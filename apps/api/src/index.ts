@@ -3,6 +3,7 @@ import { HealthSchema } from "@repo/validators";
 import { sql as dsql } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { authRoutes } from "./modules/auth/routes.ts";
+import { propertiesRoutes } from "./modules/properties/routes.ts";
 import { templatesRoutes } from "./modules/templates/routes.ts";
 import { tenancy } from "./modules/tenancy/plugin.ts";
 import { tenantRoutes } from "./modules/tenants/routes.ts";
@@ -18,6 +19,7 @@ export const app = new Elysia()
 	.use(authRoutes)
 	.use(tenantRoutes)
 	.use(templatesRoutes)
+	.use(propertiesRoutes)
 	.group("/tenant", (g) =>
 		g
 			.use(tenancy)

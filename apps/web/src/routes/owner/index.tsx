@@ -11,6 +11,11 @@ function OwnerHome() {
 			<p className="text-sm text-muted-foreground">Properties, templates and finance live here.</p>
 			<ul className="space-y-1 text-sm">
 				<li>
+					<Link to="/owner/properties" className="underline">
+						Properties
+					</Link>
+				</li>
+				<li>
 					<Link to="/owner/templates" className="underline">
 						Templates
 					</Link>

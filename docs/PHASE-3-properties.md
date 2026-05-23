@@ -15,7 +15,7 @@ A property is the noun the entire acceptance loop (Phase 4) operates on. You can
 ### 3.1 Property card & creation
 - Property entity: address, layout type (new-build / secondary), minimalist floor-plan upload, status (`PENDING` / `READY_FOR_PRODUCTION` / `IN_PROGRESS` / `COMPLETED`; `ARCHIVED` terminal in Phase 7 — see §3.5 for the full state machine), deadlines, and the fixed **planned unit cost** (A2: entered manually by Owner — e.g. $230/m² × area).
 - Square meterage captured here (drives A4 wage math downstream).
-- Floor-plan image upload via R2 presigned URL (reuses the storage pattern that Phase 4 leans on heavily — establish it here on a low-stakes upload).
+- Floor-plan image upload via R2 presigned URL — use **`Bun.s3`** (Bun's native S3-compatible client) to generate presigned `PUT` URLs server-side; the browser uploads directly to R2 without the app server proxying the binary. Establish this pattern here on a low-stakes upload; Phase 4 leans on it heavily.
 - Owner desktop creation flow: multi-step form (RHF + Zod), since unit creation has several fields per the stack doc's "multi-step forms for unit creation" note.
 
 ### 3.2 Template instantiation (the snapshot)
@@ -56,7 +56,7 @@ This subsection exists specifically to close the workflow gap the TZ defines in 
 - **The snapshot is the critical mechanic.** Instantiation must deep-copy the template tree (stages → sub-stages → checklist items → photo requirements) into instance tables. Get this right and template editing is safe forever; get it wrong and editing a template corrupts live jobs.
 - **The Ready-for-Production gate is a correctness fix, not a nicety.** The first master stage must NOT be reachable until Sub-stage 1.1 is accepted. This is enforced as the same blocking invariant as any other stage dependency (Phase 4 owns enforcement) — 1.1 is simply the predecessor of the first master stage. Treating creation-time as the unlock point (the earlier draft's error) would let masters start on an undocumented property, defeating the TZ's whole "protect the fixed budget from hidden defects" rationale for 1.1.
 - **Frozen wage amounts**: computing wage at instantiation (rate × area) and freezing it means a later rate change doesn't retroactively alter a property's economics — correct behavior, but confirm it matches business intent.
-- **R2 presigned upload pattern** is first used at scale in Phase 4; proving it here on floor plans (and the 1.1 "before" photos) de-risks Phase 4.
+- **`Bun.s3` presigned upload pattern** is first used at scale in Phase 4; proving it here on floor plans (and the 1.1 "before" photos) de-risks Phase 4. `Bun.s3` is Bun's built-in S3-compatible client — no AWS SDK dependency needed; configure it with the R2 endpoint, access key, and secret key from env.
 - **Status state machine**: define the stage-instance status enum cleanly now (`LOCKED → AVAILABLE → IN_PROGRESS → SUBMITTED → ACCEPTED`, plus `REJECTED` looping back to `IN_PROGRESS`). Note Sub-stage 1.1 uses this same enum but is Inspector-performed. Phase 4 transitions through it; getting the states right here prevents churn.
 
 ## Definition of Done

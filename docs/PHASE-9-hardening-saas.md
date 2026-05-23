@@ -20,7 +20,7 @@ D1/D2 made SaaS-readiness a first-class goal, and the schema was built for it fr
 ### 9.2 Isolation hardening & security
 - **Re-verify the schema-per-tenant guarantee end-to-end** under every code path built since Phase 1: requests, BullMQ jobs (Phase 5), WebSocket subscriptions (Phase 8), R2 object keys (no cross-tenant object access), document generation (Phase 7). This is the highest-stakes audit in the project.
 - Consider Postgres Row-Level Security as defense-in-depth on top of schema isolation (stack doc cites RLS for multi-tenant isolation) — decide whether to add it.
-- Standard security pass: presigned-URL scoping (a master can't request a URL for another tenant's object), auth session hardening, rate limiting on auth and upload endpoints, input validation coverage (Zod everywhere — audit for gaps), secrets management on Railway.
+- Standard security pass: presigned-URL scoping via `Bun.s3` (a master can't request a URL for another tenant's object — enforce tenant-prefix validation in the URL-generation helper), auth session hardening, rate limiting on auth and upload endpoints, input validation coverage (Zod everywhere — audit for gaps), secrets management on Railway.
 - R2 object key namespacing by tenant; verify no key collision or traversal across tenants.
 
 ### 9.3 Performance & scale

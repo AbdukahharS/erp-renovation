@@ -29,6 +29,7 @@
 		"./schema/tenant": "./src/schema/tenant.ts",
 		"./client": "./src/client.ts",
 		"./provision": "./src/provision.ts",
-		"./with-tenant": "./src/with-tenant.ts"
+		"./with-tenant": "./src/with-tenant.ts",
+		"./instantiate-template": "./src/instantiate-template.ts"
 	}
 }

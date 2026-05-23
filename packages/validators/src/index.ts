@@ -7,4 +7,5 @@ export type Health = z.infer<typeof HealthSchema>;
 
 export * from "./auth.ts";
 export * from "./elysia.ts";
+export * from "./properties.ts";
 export * from "./templates.ts";
