@@ -1,7 +1,19 @@
 import type { StageTree, SubStageTree, TemplateTree } from "@repo/validators";
 import { createFileRoute } from "@tanstack/react-router";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useState } from "react";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -112,25 +124,20 @@ function StageEditor({
 	onMoveDown: () => void;
 	mutators: ReturnType<typeof useTemplateMutations>;
 }) {
-	const [open, setOpen] = useState(stage.order === 1);
+	const [open, setOpen] = useState(true);
 	return (
-		<div className="rounded-lg border bg-card">
-			<div className="flex items-center gap-2 p-3">
+		<motion.div layout className="rounded-lg border bg-card overflow-hidden">
+			<motion.div layout="position" className="flex items-center gap-2 p-3">
+				<span className="rounded bg-muted px-2 py-0.5 text-xs font-mono">{stage.order}</span>
 				<button
 					type="button"
 					onClick={() => setOpen(!open)}
-					className="rounded bg-muted px-2 py-0.5 text-xs hover:bg-muted/80"
+					className="flex-1 flex items-center gap-2 text-left text-sm font-medium group cursor-pointer"
 					aria-label={open ? "Collapse stage" : "Expand stage"}
+					aria-expanded={open}
 				>
-					{stage.order}
+					<span className="font-medium group-hover:underline decoration-dotted">{stage.name}</span>
 				</button>
-				<div className="flex-1 text-sm font-medium">
-					<InlineText
-						value={stage.name}
-						onSave={(v) => mutators.renameStage.mutate({ id: stage.id, name: v })}
-						className="font-medium"
-					/>
-				</div>
 				<span className="text-xs text-muted-foreground">{stage.subStages.length} sub-stages</span>
 				<Button
 					variant="ghost"
@@ -139,7 +146,7 @@ function StageEditor({
 					disabled={isFirst}
 					aria-label="Move up"
 				>
-					<ChevronUp className="size-4" />
+					<ArrowUp className="size-4" />
 				</Button>
 				<Button
 					variant="ghost"
@@ -148,38 +155,57 @@ function StageEditor({
 					disabled={isLast}
 					aria-label="Move down"
 				>
-					<ChevronDown className="size-4" />
+					<ArrowDown className="size-4" />
 				</Button>
 				<Button
 					variant="ghost"
 					size="icon-sm"
-					onClick={() => {
-						if (confirm(`Delete stage "${stage.name}" and all its sub-stages?`)) {
-							mutators.deleteStage.mutate(stage.id);
-						}
-					}}
-					aria-label="Delete stage"
+					onClick={() => setOpen(!open)}
+					aria-label={open ? "Collapse stage" : "Expand stage"}
 				>
-					<Trash2 className="size-4 text-destructive" />
+					<motion.span
+						animate={{ rotate: open ? 180 : 0 }}
+						transition={{ duration: 0.2, ease: "easeOut" }}
+						className="inline-flex"
+					>
+						<ChevronDown className="size-4" />
+					</motion.span>
 				</Button>
-			</div>
-			{open && (
-				<div className="border-t p-3 space-y-3">
-					{stage.subStages.map((ss, i) => (
-						<SubStageEditor
-							key={ss.id}
-							sub={ss}
-							isFirst={i === 0}
-							isLast={i === stage.subStages.length - 1}
-							onMoveUp={() => moveSub(stage, ss.id, -1, mutators)}
-							onMoveDown={() => moveSub(stage, ss.id, 1, mutators)}
-							mutators={mutators}
-						/>
-					))}
-					<AddSubStageForm stageId={stage.id} mutators={mutators} />
-				</div>
-			)}
-		</div>
+				<ConfirmDelete
+					title={`Delete stage "${stage.name}"?`}
+					description="This permanently removes the stage and all its sub-stages, checklists, and media requirements."
+					onConfirm={() => mutators.deleteStage.mutate(stage.id)}
+					ariaLabel="Delete stage"
+				/>
+			</motion.div>
+			<AnimatePresence initial={false}>
+				{open && (
+					<motion.div
+						key="content"
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: "auto", opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+						style={{ overflow: "hidden" }}
+					>
+						<div className="border-t p-3 space-y-3">
+							{stage.subStages.map((ss, i) => (
+								<SubStageEditor
+									key={ss.id}
+									sub={ss}
+									isFirst={i === 0}
+									isLast={i === stage.subStages.length - 1}
+									onMoveUp={() => moveSub(stage, ss.id, -1, mutators)}
+									onMoveDown={() => moveSub(stage, ss.id, 1, mutators)}
+									mutators={mutators}
+								/>
+							))}
+							<AddSubStageForm stageId={stage.id} mutators={mutators} />
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</motion.div>
 	);
 }
 
@@ -225,15 +251,16 @@ function SubStageEditor({
 		mutators.updateSubStage.mutate({ id: sub.id, patch: p });
 
 	return (
-		<div className="rounded-md border bg-background">
-			<div className="flex items-center gap-2 p-2">
+		<motion.div layout className="rounded-md border bg-background overflow-hidden">
+			<motion.div layout="position" className="flex items-center gap-2 p-2">
 				<button
 					type="button"
 					onClick={() => setExpanded(!expanded)}
-					className="flex-1 text-left flex items-center gap-2 text-sm"
+					className="flex-1 text-left flex items-center gap-2 text-sm cursor-pointer group"
+					aria-expanded={expanded}
 				>
 					<span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{sub.code}</span>
-					<span className="font-medium">{sub.name}</span>
+					<span className="font-medium group-hover:underline decoration-dotted">{sub.name}</span>
 					<span
 						className={
 							sub.performerType === "INSPECTOR"
@@ -251,187 +278,208 @@ function SubStageEditor({
 					{sub.checklistItems.length} checks · {sub.mediaRequirements.length} media
 				</span>
 				<Button variant="ghost" size="icon-sm" onClick={onMoveUp} disabled={isFirst}>
-					<ChevronUp className="size-4" />
+					<ArrowUp className="size-4" />
 				</Button>
 				<Button variant="ghost" size="icon-sm" onClick={onMoveDown} disabled={isLast}>
-					<ChevronDown className="size-4" />
+					<ArrowDown className="size-4" />
 				</Button>
 				<Button
 					variant="ghost"
 					size="icon-sm"
-					onClick={() => {
-						if (confirm(`Delete sub-stage "${sub.name}"?`)) {
-							mutators.deleteSubStage.mutate(sub.id);
-						}
-					}}
+					onClick={() => setExpanded(!expanded)}
+					aria-label={expanded ? "Collapse sub-stage" : "Expand sub-stage"}
 				>
-					<Trash2 className="size-4 text-destructive" />
+					<motion.span
+						animate={{ rotate: expanded ? 180 : 0 }}
+						transition={{ duration: 0.2, ease: "easeOut" }}
+						className="inline-flex"
+					>
+						<ChevronDown className="size-4" />
+					</motion.span>
 				</Button>
-			</div>
-			{expanded && (
-				<div className="border-t p-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
-					<div className="space-y-3">
-						<Field label="Code">
-							<InlineText value={sub.code} onSave={(v) => patch({ code: v })} />
-						</Field>
-						<Field label="Name">
-							<InlineText value={sub.name} onSave={(v) => patch({ name: v })} />
-						</Field>
-						<Field label="Performer">
-							<select
-								className="h-9 rounded-md border bg-input/30 px-2 text-sm"
-								value={sub.performerType}
-								onChange={(e) => patch({ performerType: e.target.value })}
-							>
-								<option value="MASTER">MASTER</option>
-								<option value="INSPECTOR">INSPECTOR</option>
-							</select>
-						</Field>
-						<Field label="Specialization">
-							<select
-								className="h-9 rounded-md border bg-input/30 px-2 text-sm"
-								value={sub.specialization ?? ""}
-								onChange={(e) => patch({ specialization: e.target.value || null })}
-							>
-								<option value="">— none —</option>
-								{(specs ?? []).map((s) => (
-									<option key={s.id} value={s.name}>
-										{s.name}
-									</option>
-								))}
-							</select>
-						</Field>
-						<Field label="Standard duration (days)">
-							<InlineText
-								value={String(sub.standardDurationDays)}
-								onSave={(v) => {
-									const n = Number(v);
-									if (!Number.isNaN(n) && n >= 0) patch({ standardDurationDays: Math.floor(n) });
-								}}
-							/>
-						</Field>
-						<Field label="Wage rate per m² ($)">
-							<InlineText
-								value={sub.wageRatePerSqm}
-								onSave={(v) => {
-									if (/^\d+(\.\d{1,2})?$/.test(v)) patch({ wageRatePerSqm: v });
-								}}
-							/>
-						</Field>
-						<Field label="Description">
-							<InlineTextarea
-								value={sub.description ?? ""}
-								onSave={(v) => patch({ description: v || null })}
-							/>
-						</Field>
-					</div>
-
-					<div className="space-y-4">
-						<div>
-							<h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
-								Media requirements
-							</h4>
-							<ul className="space-y-1.5">
-								{sub.mediaRequirements.map((mr) => (
-									<li
-										key={mr.id}
-										className="flex items-center gap-2 rounded border px-2 py-1.5 text-sm"
+				<ConfirmDelete
+					title={`Delete sub-stage "${sub.name}"?`}
+					description="This permanently removes the sub-stage and its checklists and media requirements."
+					onConfirm={() => mutators.deleteSubStage.mutate(sub.id)}
+					ariaLabel="Delete sub-stage"
+				/>
+			</motion.div>
+			<AnimatePresence initial={false}>
+				{expanded && (
+					<motion.div
+						key="content"
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: "auto", opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+						style={{ overflow: "hidden" }}
+					>
+						<div className="border-t p-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
+							<div className="space-y-3">
+								<Field label="Code">
+									<InlineText value={sub.code} onSave={(v) => patch({ code: v })} />
+								</Field>
+								<Field label="Name">
+									<InlineText value={sub.name} onSave={(v) => patch({ name: v })} />
+								</Field>
+								<Field label="Performer">
+									<select
+										className="h-9 rounded-md border bg-input/30 px-2 text-sm"
+										value={sub.performerType}
+										onChange={(e) => patch({ performerType: e.target.value })}
 									>
-										<select
-											value={mr.mediaType}
-											onChange={(e) =>
-												mutators.updateMediaRequirement.mutate({
-													id: mr.id,
-													patch: { mediaType: e.target.value as "PHOTO" | "VIDEO" },
-												})
-											}
-											className="rounded border bg-input/30 px-1 text-xs"
-										>
-											<option value="PHOTO">PHOTO</option>
-											<option value="VIDEO">VIDEO</option>
-										</select>
-										<InlineText
-											value={mr.description}
-											onSave={(v) =>
-												mutators.updateMediaRequirement.mutate({
-													id: mr.id,
-													patch: { description: v },
-												})
-											}
-											className="flex-1 text-xs"
-										/>
-										<span className="flex items-center gap-1 text-xs">
-											<Switch
-												checked={mr.required}
-												onCheckedChange={(checked) =>
-													mutators.updateMediaRequirement.mutate({
-														id: mr.id,
-														patch: { required: !!checked },
-													})
-												}
-												size="sm"
-											/>
-											required
-										</span>
-										<Button
-											variant="ghost"
-											size="icon-xs"
-											onClick={() => mutators.deleteMediaRequirement.mutate(mr.id)}
-										>
-											<Trash2 className="size-3 text-destructive" />
-										</Button>
-									</li>
-								))}
-							</ul>
-							<AddMediaForm subStageId={sub.id} mutators={mutators} />
-						</div>
+										<option value="MASTER">MASTER</option>
+										<option value="INSPECTOR">INSPECTOR</option>
+									</select>
+								</Field>
+								<Field label="Specialization">
+									<select
+										className="h-9 rounded-md border bg-input/30 px-2 text-sm"
+										value={sub.specialization ?? ""}
+										onChange={(e) => patch({ specialization: e.target.value || null })}
+									>
+										<option value="">— none —</option>
+										{(specs ?? []).map((s) => (
+											<option key={s.id} value={s.name}>
+												{s.name}
+											</option>
+										))}
+									</select>
+								</Field>
+								<Field label="Standard duration (days)">
+									<InlineText
+										value={String(sub.standardDurationDays)}
+										onSave={(v) => {
+											const n = Number(v);
+											if (!Number.isNaN(n) && n >= 0)
+												patch({ standardDurationDays: Math.floor(n) });
+										}}
+									/>
+								</Field>
+								<Field label="Wage rate per m² ($)">
+									<InlineText
+										value={sub.wageRatePerSqm}
+										onSave={(v) => {
+											if (/^\d+(\.\d{1,2})?$/.test(v)) patch({ wageRatePerSqm: v });
+										}}
+									/>
+								</Field>
+								<Field label="Description">
+									<InlineTextarea
+										value={sub.description ?? ""}
+										onSave={(v) => patch({ description: v || null })}
+									/>
+								</Field>
+							</div>
 
-						<div>
-							<h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
-								Checklist control points ({sub.checklistItems.length})
-							</h4>
-							<ul className="space-y-1.5">
-								{sub.checklistItems.map((ci) => (
-									<li key={ci.id} className="rounded border px-2 py-1.5 text-sm space-y-1">
-										<div className="flex items-start gap-2">
-											<InlineTextarea
-												value={ci.text}
-												onSave={(v) =>
-													mutators.updateChecklistItem.mutate({
-														id: ci.id,
-														patch: { text: v },
-													})
-												}
-												className="flex-1 text-sm"
-											/>
-											<Button
-												variant="ghost"
-												size="icon-xs"
-												onClick={() => mutators.deleteChecklistItem.mutate(ci.id)}
+							<div className="space-y-4">
+								<div>
+									<h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+										Media requirements
+									</h4>
+									<ul className="space-y-1.5">
+										{sub.mediaRequirements.map((mr) => (
+											<li
+												key={mr.id}
+												className="flex items-center gap-2 rounded border px-2 py-1.5 text-sm"
 											>
-												<Trash2 className="size-3 text-destructive" />
-											</Button>
-										</div>
-										<InlineTextarea
-											value={ci.criteria ?? ""}
-											onSave={(v) =>
-												mutators.updateChecklistItem.mutate({
-													id: ci.id,
-													patch: { criteria: v || null },
-												})
-											}
-											placeholder="Criteria / threshold (optional)…"
-											className="text-xs text-muted-foreground"
-										/>
-									</li>
-								))}
-							</ul>
-							<AddChecklistForm subStageId={sub.id} mutators={mutators} />
+												<select
+													value={mr.mediaType}
+													onChange={(e) =>
+														mutators.updateMediaRequirement.mutate({
+															id: mr.id,
+															patch: { mediaType: e.target.value as "PHOTO" | "VIDEO" },
+														})
+													}
+													className="rounded border bg-input/30 px-1 text-xs"
+												>
+													<option value="PHOTO">PHOTO</option>
+													<option value="VIDEO">VIDEO</option>
+												</select>
+												<InlineText
+													value={mr.description}
+													onSave={(v) =>
+														mutators.updateMediaRequirement.mutate({
+															id: mr.id,
+															patch: { description: v },
+														})
+													}
+													className="flex-1 text-xs"
+												/>
+												<span className="flex items-center gap-1 text-xs">
+													<Switch
+														checked={mr.required}
+														onCheckedChange={(checked) =>
+															mutators.updateMediaRequirement.mutate({
+																id: mr.id,
+																patch: { required: !!checked },
+															})
+														}
+														size="sm"
+													/>
+													required
+												</span>
+												<Button
+													variant="ghost"
+													size="icon-xs"
+													onClick={() => mutators.deleteMediaRequirement.mutate(mr.id)}
+												>
+													<Trash2 className="size-3 text-destructive" />
+												</Button>
+											</li>
+										))}
+									</ul>
+									<AddMediaForm subStageId={sub.id} mutators={mutators} />
+								</div>
+
+								<div>
+									<h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+										Checklist control points ({sub.checklistItems.length})
+									</h4>
+									<ul className="space-y-1.5">
+										{sub.checklistItems.map((ci) => (
+											<li key={ci.id} className="rounded border px-2 py-1.5 text-sm space-y-1">
+												<div className="flex items-start gap-2">
+													<InlineTextarea
+														value={ci.text}
+														onSave={(v) =>
+															mutators.updateChecklistItem.mutate({
+																id: ci.id,
+																patch: { text: v },
+															})
+														}
+														className="flex-1 text-sm"
+													/>
+													<Button
+														variant="ghost"
+														size="icon-xs"
+														onClick={() => mutators.deleteChecklistItem.mutate(ci.id)}
+													>
+														<Trash2 className="size-3 text-destructive" />
+													</Button>
+												</div>
+												<InlineTextarea
+													value={ci.criteria ?? ""}
+													onSave={(v) =>
+														mutators.updateChecklistItem.mutate({
+															id: ci.id,
+															patch: { criteria: v || null },
+														})
+													}
+													placeholder="Criteria / threshold (optional)…"
+													className="text-xs text-muted-foreground"
+												/>
+											</li>
+										))}
+									</ul>
+									<AddChecklistForm subStageId={sub.id} mutators={mutators} />
+								</div>
+							</div>
 						</div>
-					</div>
-				</div>
-			)}
-		</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</motion.div>
 	);
 }
 
@@ -639,6 +687,45 @@ function InlineText({
 			}}
 			className={className}
 		/>
+	);
+}
+
+function ConfirmDelete({
+	title,
+	description,
+	onConfirm,
+	ariaLabel,
+}: {
+	title: string;
+	description?: string;
+	onConfirm: () => void;
+	ariaLabel?: string;
+}) {
+	return (
+		<AlertDialog>
+			<AlertDialogTrigger
+				render={
+					<Button variant="ghost" size="icon-sm" aria-label={ariaLabel}>
+						<Trash2 className="size-4 text-destructive" />
+					</Button>
+				}
+			/>
+			<AlertDialogContent>
+				<AlertDialogHeader>
+					<AlertDialogTitle>{title}</AlertDialogTitle>
+					{description && <AlertDialogDescription>{description}</AlertDialogDescription>}
+				</AlertDialogHeader>
+				<AlertDialogFooter>
+					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogAction
+						onClick={onConfirm}
+						className="bg-destructive text-white hover:bg-destructive/90"
+					>
+						Delete
+					</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
 	);
 }
 
