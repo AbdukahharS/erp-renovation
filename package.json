@@ -9,9 +9,10 @@
 		"check": "biome check --write .",
 		"typecheck": "turbo run typecheck",
 		"test": "turbo run test",
-		"db:push": "turbo run db:push",
-		"db:generate": "turbo run db:generate",
-		"db:migrate": "turbo run db:migrate"
+		"db:generate:control": "turbo run db:generate:control",
+		"db:generate:tenant": "turbo run db:generate:tenant",
+		"db:migrate:control": "turbo run db:migrate:control",
+		"db:migrate:tenants": "turbo run db:migrate:tenants"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.15",

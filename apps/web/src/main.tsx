@@ -5,7 +5,11 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { routeTree } from "./routeTree.gen";
 
-const router = createRouter({ routeTree });
+const router = createRouter({
+	routeTree,
+	context: { me: null },
+	defaultPreload: "intent",
+});
 const queryClient = new QueryClient();
 
 declare module "@tanstack/react-router" {

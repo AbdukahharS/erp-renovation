@@ -4,6 +4,6 @@
 		"noEmit": true,
 		"allowImportingTsExtensions": true
 	},
-	"include": ["src", "drizzle.config.ts"],
+	"include": ["src", "drizzle.control.config.ts", "drizzle.tenant.config.ts"],
 	"exclude": ["node_modules", "dist"]
 }

@@ -21,13 +21,16 @@
 			"dependsOn": ["^build"],
 			"cache": false
 		},
-		"db:push": {
+		"db:generate:control": {
 			"cache": false
 		},
-		"db:generate": {
+		"db:generate:tenant": {
 			"cache": false
 		},
-		"db:migrate": {
+		"db:migrate:control": {
+			"cache": false
+		},
+		"db:migrate:tenants": {
 			"cache": false
 		}
 	}

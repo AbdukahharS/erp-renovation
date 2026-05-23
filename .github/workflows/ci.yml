@@ -9,6 +9,28 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: erp
+          POSTGRES_PASSWORD: erp
+          POSTGRES_DB: erp
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U erp -d erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://erp:erp@localhost:5433/erp
+      BETTER_AUTH_SECRET: ci-secret-32-chars-minimum-yes-it-is
+      BETTER_AUTH_URL: http://localhost:3001
+      BOOTSTRAP_TOKEN: ci-bootstrap-token
+
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +46,9 @@ jobs:
 
       - name: Typecheck
         run: bun run typecheck
+
+      - name: Apply control-plane migrations
+        run: bun run db:migrate:control
 
       - name: Test
         run: bun run test

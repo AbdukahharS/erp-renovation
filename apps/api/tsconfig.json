@@ -2,7 +2,9 @@
 	"extends": "@repo/typescript-config/base.json",
 	"compilerOptions": {
 		"types": ["bun"],
-		"outDir": "dist"
+		"outDir": "dist",
+		"noEmit": true,
+		"allowImportingTsExtensions": true
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", "dist"]
