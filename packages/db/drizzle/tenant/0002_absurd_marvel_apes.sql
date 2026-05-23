@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "templates_one_default" ON "templates" USING btree ("is_default") WHERE "templates"."is_default" = true;

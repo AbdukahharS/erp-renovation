@@ -49,7 +49,7 @@ export const requireAuth = new Elysia({ name: "require-auth" })
 export function requireRole(...allowed: Role[]) {
 	return new Elysia({ name: `require-role:${allowed.join(",")}` })
 		.use(authContext)
-		.onBeforeHandle(({ user, activeRole, set }) => {
+		.onBeforeHandle({ as: "scoped" }, ({ user, activeRole, set }) => {
 			if (!user) {
 				set.status = 401;
 				return { error: "unauthorized" };

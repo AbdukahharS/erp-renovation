@@ -2,6 +2,7 @@ import { Glob } from "bun";
 import { sql as dsql, eq } from "drizzle-orm";
 import { createDbClient } from "../client.ts";
 import { tenantMigrations, tenants } from "../schema/control.ts";
+import { seedDefaultTemplate } from "../seed/default-template.ts";
 
 export interface TenantMigration {
 	tag: string;
@@ -59,6 +60,24 @@ export async function applyTenantMigrations(opts: {
 					);
 				});
 				console.log(`[tenant:${schemaName}] applied ${m.tag}`);
+			}
+
+			// Seed-or-skip: if the templates table exists but has no rows, seed the default.
+			// Covers pre-Phase-2 tenants whose schemas got the migration via this runner.
+			const exists = await db.execute<{ exists: boolean }>(
+				dsql`SELECT EXISTS (
+					SELECT 1 FROM information_schema.tables
+					WHERE table_schema = ${schemaName} AND table_name = 'templates'
+				) AS exists`,
+			);
+			if (exists[0]?.exists) {
+				const count = await db.execute<{ n: number }>(
+					dsql.raw(`SELECT count(*)::int AS n FROM "${schemaName}".templates`),
+				);
+				if ((count[0]?.n ?? 0) === 0) {
+					await seedDefaultTemplate(db, schemaName);
+					console.log(`[tenant:${schemaName}] seeded default template`);
+				}
 			}
 		}
 	} finally {

@@ -37,6 +37,8 @@ export async function provisionTenant(
 	// Apply tenant migrations against the new schema.
 	// Done after the outer tx because the fan-out opens its own connection
 	// and inner txns for each migration; the schema must already exist + be committed.
+	// applyTenantMigrations runs the tenant migration set AND seeds the default
+	// template if the schema is fresh — see migrations/fanout.ts seed-or-skip.
 	await applyTenantMigrations({ connectionString: input.connectionString, onlySchema: schemaName });
 
 	return { id, schemaName, name: input.name, slug: input.slug };

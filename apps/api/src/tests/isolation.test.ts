@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { tenantMemberships, tenants, user as userTable } from "@repo/db/schema/control";
 import { sql as dsql } from "drizzle-orm";
-import { db, sql } from "../db.ts";
+import { db } from "../db.ts";
 import { app } from "../index.ts";
 
 // This is the permanent cross-tenant leakage test.
@@ -86,7 +86,6 @@ afterAll(async () => {
 	await db.delete(tenantMemberships).where(dsql`tenant_id IN (${acmeTenantId}, ${betaTenantId})`);
 	await db.delete(tenants).where(dsql`id IN (${acmeTenantId}, ${betaTenantId})`);
 	await db.delete(userTable).where(dsql`email IN (${acmeEmail}, ${betaEmail})`);
-	await sql.end();
 });
 
 describe("tenant isolation", () => {
