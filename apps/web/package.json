@@ -8,7 +8,8 @@
 		"build": "tsc -b && vite build",
 		"preview": "vite preview",
 		"lint": "biome check .",
-		"typecheck": "tsc -b --noEmit"
+		"generate:routes": "bun run scripts/generate-routes.ts",
+		"typecheck": "bun run generate:routes && tsc -b --noEmit"
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.5.0",
@@ -37,6 +38,7 @@
 		"@tailwindcss/vite": "^4.3.0",
 		"@tanstack/react-query-devtools": "^5.100.13",
 		"@tanstack/router-devtools": "^1.167.0",
+		"@tanstack/router-generator": "^1.167.9",
 		"@tanstack/router-plugin": "^1.168.10",
 		"@types/node": "^24.12.3",
 		"@types/react": "^19.2.14",
