@@ -1,1 +1,1 @@
-{"root":["./src/main.tsx","./src/routeTree.gen.ts","./src/components/ui/button.tsx","./src/lib/utils.ts","./src/routes/__root.tsx","./src/routes/index.tsx","./vite.config.ts"],"version":"5.9.2"}
+{"root":["./src/main.tsx","./src/routeTree.gen.ts","./src/components/ui/button.tsx","./src/lib/api.ts","./src/lib/utils.ts","./src/routes/__root.tsx","./src/routes/index.tsx","./vite.config.ts"],"version":"5.9.2"}

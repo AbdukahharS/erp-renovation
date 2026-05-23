@@ -2,6 +2,9 @@
 	"name": "api",
 	"type": "module",
 	"private": true,
+	"exports": {
+		".": "./src/index.ts"
+	},
 	"devDependencies": {
 		"@repo/typescript-config": "workspace:*",
 		"@types/bun": "latest"
@@ -10,6 +13,9 @@
 		"typescript": "^5"
 	},
 	"dependencies": {
+		"@elysiajs/cors": "^1.4.2",
+		"@elysiajs/eden": "^1.4.9",
+		"@repo/validators": "workspace:*",
 		"elysia": "^1.4.28"
 	},
 	"scripts": {
@@ -17,6 +23,7 @@
 		"build": "bun build src/index.ts --outdir dist --target bun",
 		"start": "bun run dist/index.js",
 		"lint": "biome check .",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"test": "bun test"
 	}
 }
