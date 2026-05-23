@@ -7,8 +7,8 @@
  *
  * Usage:  bun run scripts/generate-routes.ts
  */
-import { Generator, getConfig } from "@tanstack/router-generator";
 import { resolve } from "node:path";
+import { Generator, getConfig } from "@tanstack/router-generator";
 
 const root = resolve(import.meta.dir, "..");
 
