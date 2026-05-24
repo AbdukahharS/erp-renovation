@@ -20,6 +20,11 @@ function OwnerHome() {
 						Templates
 					</Link>
 				</li>
+				<li>
+					<Link to="/owner/masters" className="underline">
+						Masters
+					</Link>
+				</li>
 			</ul>
 		</section>
 	);

@@ -29,6 +29,20 @@
 			"when": 1779536602833,
 			"tag": "0003_clumsy_wither",
 			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "7",
+			"when": 1779599151954,
+			"tag": "0004_sturdy_the_watchers",
+			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "7",
+			"when": 1779601521547,
+			"tag": "0005_whole_wolfsbane",
+			"breakpoints": true
 		}
 	]
 }

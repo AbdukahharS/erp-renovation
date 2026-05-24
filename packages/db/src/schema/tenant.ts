@@ -3,6 +3,7 @@ import {
 	boolean,
 	index,
 	integer,
+	jsonb,
 	numeric,
 	pgEnum,
 	pgTable,
@@ -240,6 +241,13 @@ export const subStageInstances = pgTable(
 		wageAmount: numeric("wage_amount", { precision: 14, scale: 2 }).notNull().default("0"),
 		description: text("description"),
 		status: stageInstanceStatusEnum("status").notNull().default("LOCKED"),
+		// Manual block is a property of the sub-stage, not of any incoming dep
+		// edge: it has to work even for root sub-stages with no prerequisites
+		// (e.g. 1.1). FORCE_UNBLOCK remains per-edge (see stageInstanceDependencies).
+		manualBlocked: boolean("manual_blocked").notNull().default(false),
+		manualBlockedBy: text("manual_blocked_by"),
+		manualBlockedAt: timestamp("manual_blocked_at"),
+		manualBlockedReason: text("manual_blocked_reason"),
 	},
 	(t) => [
 		unique("sub_stage_instances_stage_order_unique").on(t.stageInstanceId, t.order),
@@ -304,3 +312,158 @@ export type PropertyStatus = (typeof propertyStatusEnum.enumValues)[number];
 export type StageInstanceStatus = (typeof stageInstanceStatusEnum.enumValues)[number];
 export type LayoutType = (typeof layoutTypeEnum.enumValues)[number];
 export type AssetKind = (typeof assetKindEnum.enumValues)[number];
+
+// ---------- Phase 4 enums ----------
+
+export const acceptanceResolutionEnum = pgEnum("acceptance_resolution", ["ACCEPTED", "REJECTED"]);
+
+export const stageEventTypeEnum = pgEnum("stage_event_type", [
+	"TAKEN_INTO_WORK",
+	"SUBMITTED",
+	"ACCEPTED",
+	"REJECTED",
+	"MANUAL_BLOCKED",
+	"MANUAL_UNBLOCKED",
+	"READY_FOR_PRODUCTION",
+	"PROPERTY_IN_PROGRESS",
+	"PROPERTY_COMPLETED",
+	"UNLOCKED",
+]);
+
+// ---------- Phase 4 tables ----------
+
+export const masterProfiles = pgTable(
+	"master_profiles",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		userId: text("user_id").notNull().unique(),
+		displayName: text("display_name").notNull(),
+		specializations: text("specializations").array().notNull().default(sql`'{}'::text[]`),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
+	},
+	(t) => [index("master_profiles_user_idx").on(t.userId)],
+);
+
+export const subStageAssignments = pgTable(
+	"sub_stage_assignments",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		subStageInstanceId: uuid("sub_stage_instance_id")
+			.notNull()
+			.references(() => subStageInstances.id, { onDelete: "cascade" }),
+		masterUserId: text("master_user_id").notNull(),
+		claimedAt: timestamp("claimed_at").notNull().defaultNow(),
+		releasedAt: timestamp("released_at"),
+	},
+	(t) => [
+		uniqueIndex("sub_stage_assignments_active_unique")
+			.on(t.subStageInstanceId)
+			.where(sql`${t.releasedAt} IS NULL`),
+		index("sub_stage_assignments_sub_stage_idx").on(t.subStageInstanceId),
+		index("sub_stage_assignments_master_idx").on(t.masterUserId),
+	],
+);
+
+export const acceptanceRequests = pgTable(
+	"acceptance_requests",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		subStageInstanceId: uuid("sub_stage_instance_id")
+			.notNull()
+			.references(() => subStageInstances.id, { onDelete: "cascade" }),
+		submittedBy: text("submitted_by").notNull(),
+		submittedAt: timestamp("submitted_at").notNull().defaultNow(),
+		resolvedAt: timestamp("resolved_at"),
+		resolution: acceptanceResolutionEnum("resolution"),
+		resolvedBy: text("resolved_by"),
+	},
+	(t) => [
+		uniqueIndex("acceptance_requests_active_unique")
+			.on(t.subStageInstanceId)
+			.where(sql`${t.resolvedAt} IS NULL`),
+		index("acceptance_requests_sub_stage_idx").on(t.subStageInstanceId),
+	],
+);
+
+export const checklistResults = pgTable(
+	"checklist_results",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		acceptanceRequestId: uuid("acceptance_request_id")
+			.notNull()
+			.references(() => acceptanceRequests.id, { onDelete: "cascade" }),
+		checklistItemInstanceId: uuid("checklist_item_instance_id")
+			.notNull()
+			.references(() => checklistItemInstances.id, { onDelete: "cascade" }),
+		passed: boolean("passed").notNull(),
+		note: text("note"),
+		recordedAt: timestamp("recorded_at").notNull().defaultNow(),
+	},
+	(t) => [
+		unique("checklist_results_request_item_unique").on(
+			t.acceptanceRequestId,
+			t.checklistItemInstanceId,
+		),
+		index("checklist_results_request_idx").on(t.acceptanceRequestId),
+	],
+);
+
+export const rejections = pgTable(
+	"rejections",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		acceptanceRequestId: uuid("acceptance_request_id")
+			.notNull()
+			.unique()
+			.references(() => acceptanceRequests.id, { onDelete: "cascade" }),
+		comment: text("comment").notNull(),
+		defectAssetId: uuid("defect_asset_id").references(() => propertyAssets.id, {
+			onDelete: "set null",
+		}),
+		rejectedBy: text("rejected_by").notNull(),
+		rejectedAt: timestamp("rejected_at").notNull().defaultNow(),
+	},
+	(t) => [index("rejections_request_idx").on(t.acceptanceRequestId)],
+);
+
+export const stageMediaAssets = pgTable(
+	"stage_media_assets",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		subStageInstanceId: uuid("sub_stage_instance_id")
+			.notNull()
+			.references(() => subStageInstances.id, { onDelete: "cascade" }),
+		assetId: uuid("asset_id")
+			.notNull()
+			.references(() => propertyAssets.id, { onDelete: "cascade" }),
+		uploadedBy: text("uploaded_by").notNull(),
+		linkedAt: timestamp("linked_at").notNull().defaultNow(),
+	},
+	(t) => [
+		unique("stage_media_assets_edge_unique").on(t.subStageInstanceId, t.assetId),
+		index("stage_media_assets_sub_stage_idx").on(t.subStageInstanceId),
+	],
+);
+
+export const stageEvents = pgTable(
+	"stage_events",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		subStageInstanceId: uuid("sub_stage_instance_id").references(() => subStageInstances.id, {
+			onDelete: "cascade",
+		}),
+		propertyId: uuid("property_id").references(() => properties.id, { onDelete: "cascade" }),
+		eventType: stageEventTypeEnum("event_type").notNull(),
+		actorUserId: text("actor_user_id"),
+		payload: jsonb("payload"),
+		occurredAt: timestamp("occurred_at").notNull().defaultNow(),
+	},
+	(t) => [
+		index("stage_events_sub_stage_idx").on(t.subStageInstanceId, t.occurredAt),
+		index("stage_events_property_idx").on(t.propertyId, t.occurredAt),
+	],
+);
+
+export type AcceptanceResolution = (typeof acceptanceResolutionEnum.enumValues)[number];
+export type StageEventType = (typeof stageEventTypeEnum.enumValues)[number];

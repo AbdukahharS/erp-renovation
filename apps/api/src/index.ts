@@ -2,6 +2,7 @@ import { cors } from "@elysiajs/cors";
 import { HealthSchema } from "@repo/validators";
 import { sql as dsql } from "drizzle-orm";
 import { Elysia } from "elysia";
+import { acceptanceRoutes } from "./modules/acceptance/routes.ts";
 import { authRoutes } from "./modules/auth/routes.ts";
 import { propertiesRoutes } from "./modules/properties/routes.ts";
 import { templatesRoutes } from "./modules/templates/routes.ts";
@@ -20,6 +21,7 @@ export const app = new Elysia()
 	.use(tenantRoutes)
 	.use(templatesRoutes)
 	.use(propertiesRoutes)
+	.use(acceptanceRoutes)
 	.group("/tenant", (g) =>
 		g
 			.use(tenancy)

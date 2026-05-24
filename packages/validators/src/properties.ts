@@ -153,3 +153,153 @@ export const PresignAssetUploadInput = z.object({
 export const AttachFloorPlanInput = z.object({
 	assetId: z.string().uuid(),
 });
+
+// ---------- Phase 4: acceptance loop ----------
+
+export const AcceptanceResolutionSchema = z.enum(["ACCEPTED", "REJECTED"]);
+export type AcceptanceResolution = z.infer<typeof AcceptanceResolutionSchema>;
+
+export const ManualOverrideActionSchema = z.enum(["BLOCK", "UNBLOCK", "FORCE_UNBLOCK"]);
+export type ManualOverrideAction = z.infer<typeof ManualOverrideActionSchema>;
+
+// Master profiles (Owner-managed in Phase 4; Phase 6 takes over).
+export const MasterProfileSchema = z.object({
+	id: z.string().uuid(),
+	userId: z.string(),
+	displayName: z.string(),
+	specializations: z.array(z.string()),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+});
+export type MasterProfile = z.infer<typeof MasterProfileSchema>;
+
+export const UpsertMasterProfileInput = z.object({
+	userId: z.string().min(1),
+	displayName: z.string().min(1).max(200),
+	specializations: z.array(z.string().min(1)).default([]),
+});
+
+export const UpdateMasterProfileInput = z.object({
+	displayName: z.string().min(1).max(200).optional(),
+	specializations: z.array(z.string().min(1)).optional(),
+});
+
+// Stage media — Master/Inspector PWA upload flow.
+export const PresignStageMediaInput = z.object({
+	mediaType: z.enum(["PHOTO", "VIDEO"]),
+	contentType: z.string().min(1),
+});
+
+export const AttachStageMediaInput = z.object({
+	assetId: z.string().uuid(),
+});
+
+export const AttachInspectorMediaInput = z.object({
+	assetId: z.string().uuid(),
+	kind: z.enum(["BEFORE_PHOTO", "DEFECT_PHOTO"]),
+});
+
+export const PresignInspectorMediaInput = z.object({
+	kind: z.enum(["BEFORE_PHOTO", "DEFECT_PHOTO"]),
+	contentType: z.string().min(1),
+});
+
+// Submit / accept / reject inputs.
+export const SubmitForAcceptanceInput = z.object({
+	// Empty for now; submission is implicit from the active claim. Reserved for
+	// extra master-side metadata later (e.g. notes).
+});
+
+export const ChecklistResultEntry = z.object({
+	checklistItemInstanceId: z.string().uuid(),
+	passed: z.boolean(),
+	note: z.string().nullable().optional(),
+});
+export type ChecklistResultEntryType = z.infer<typeof ChecklistResultEntry>;
+
+export const AcceptInput = z.object({
+	results: z.array(ChecklistResultEntry).min(0),
+});
+
+export const RejectInput = z.object({
+	comment: z.string().min(1).max(2000),
+	defectAssetId: z.string().uuid().nullable().optional(),
+	results: z.array(ChecklistResultEntry).optional(),
+});
+
+export const SubmitSelfInspectorInput = z.object({
+	materialsOnSite: z.boolean().optional(),
+});
+
+export const ManualOverrideInput = z.object({
+	action: ManualOverrideActionSchema,
+	reason: z.string().min(1).max(500),
+});
+
+// List/queue item shapes.
+export const MasterAvailableStageSchema = z.object({
+	subStageInstanceId: z.string().uuid(),
+	propertyId: z.string().uuid(),
+	propertyName: z.string(),
+	stageName: z.string(),
+	code: z.string(),
+	name: z.string(),
+	specialization: z.string().nullable(),
+	wageAmount: z.string(),
+	standardDurationDays: z.number().int(),
+});
+
+export const MasterMyStageSchema = MasterAvailableStageSchema.extend({
+	status: StageInstanceStatusSchema,
+});
+
+export const InspectorQueueItemSchema = z.object({
+	subStageInstanceId: z.string().uuid(),
+	propertyId: z.string().uuid(),
+	propertyName: z.string(),
+	stageName: z.string(),
+	code: z.string(),
+	name: z.string(),
+	performerType: PerformerTypeSchema,
+	status: StageInstanceStatusSchema,
+	acceptanceRequestId: z.string().uuid().nullable(),
+	submittedBy: z.string().nullable(),
+	submittedAt: z.string().nullable(),
+});
+
+export const StageMediaAssetView = z.object({
+	id: z.string().uuid(),
+	assetId: z.string().uuid(),
+	kind: AssetKindSchema,
+	contentType: z.string(),
+	r2Key: z.string(),
+	uploadedBy: z.string(),
+	uploadedAt: z.string(),
+	url: z.string().nullable(),
+});
+
+export const StageReviewSchema = z.object({
+	subStage: SubStageInstanceTreeSchema,
+	stageName: z.string(),
+	property: z.object({
+		id: z.string().uuid(),
+		name: z.string(),
+		status: PropertyStatusSchema,
+		materialsOnSite: z.boolean(),
+	}),
+	assignment: z
+		.object({
+			masterUserId: z.string(),
+			claimedAt: z.string(),
+		})
+		.nullable(),
+	activeRequest: z
+		.object({
+			id: z.string().uuid(),
+			submittedBy: z.string(),
+			submittedAt: z.string(),
+		})
+		.nullable(),
+	media: z.array(StageMediaAssetView),
+	previousResults: z.array(ChecklistResultEntry),
+});
