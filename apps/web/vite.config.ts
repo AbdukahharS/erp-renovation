@@ -21,6 +21,19 @@ export default defineConfig({
 		tailwindcss(),
 		VitePWA({
 			registerType: "autoUpdate",
+			// Phase 8: switch from GenerateSW to injectManifest so we can own
+			// the `push` and `notificationclick` handlers (Workbox precaching
+			// still injected via `precacheAndRoute` in src/sw.ts).
+			strategies: "injectManifest",
+			srcDir: "src",
+			filename: "sw.ts",
+			injectManifest: {
+				maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+			},
+			// Register the SW in dev so Chrome's installability heuristic sees
+			// it (without this the install affordance only appears after
+			// `vite build`/`vite preview`).
+			devOptions: { enabled: true, type: "module" },
 			manifest: {
 				name: "ERP Renovation",
 				short_name: "ERP",
@@ -29,6 +42,18 @@ export default defineConfig({
 				background_color: "#ffffff",
 				display: "standalone",
 				start_url: "/",
+				// Chrome's install prompt requires icons. The bundled SVG works
+				// (since Chrome 93) with `sizes: "any"`; the maskable copy
+				// makes Android home-screen icons render with safe insets.
+				icons: [
+					{ src: "/favicon.svg", sizes: "any", type: "image/svg+xml" },
+					{
+						src: "/favicon.svg",
+						sizes: "any",
+						type: "image/svg+xml",
+						purpose: "maskable",
+					},
+				],
 			},
 		}),
 	],

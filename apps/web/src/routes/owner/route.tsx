@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { roleHomePath } from "@/lib/auth";
 
 export const Route = createFileRoute("/owner")({
@@ -16,7 +17,10 @@ function OwnerShell() {
 		<div className="min-h-screen bg-background">
 			<header className="border-b px-6 py-3 flex items-center justify-between">
 				<div className="text-sm font-semibold">ERP — Owner</div>
-				<div className="text-xs text-muted-foreground">desktop-dense shell</div>
+				<div className="flex items-center gap-4">
+					<div className="text-xs text-muted-foreground">desktop-dense shell</div>
+					<NotificationBell />
+				</div>
 			</header>
 			<main className="p-6">
 				<Outlet />

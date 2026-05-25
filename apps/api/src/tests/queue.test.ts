@@ -275,7 +275,11 @@ describe("phase 5 worker handlers", () => {
 					),
 				);
 			expect(intents.length).toBe(1);
-			expect(must(intents[0]).status).toBe("CREATED");
+			// Phase 8 owns the intent lifecycle: stage-propagate creates them, the
+			// notification-dispatch worker flips them to SENT. Either state is a
+			// valid post-accept observation depending on whether a worker happens
+			// to be draining this Redis instance during the test run.
+			expect(["CREATED", "SENT"]).toContain(must(intents[0]).status);
 		});
 	});
 

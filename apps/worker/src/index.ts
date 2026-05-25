@@ -1,17 +1,21 @@
 import {
 	closeAllQueues,
 	getRedisConnection,
+	NotificationDispatchJobData,
+	PushDeliveryJobData,
 	QUEUE_NAMES,
 	StagePropagateJobData,
 	WageCreditJobData,
 } from "@repo/queue";
 import { Worker } from "bullmq";
+import { processNotificationDispatch } from "./jobs/notification-dispatch.ts";
+import { processPushDelivery } from "./jobs/push-delivery.ts";
 import { processStagePropagate } from "./jobs/stage-propagate.ts";
 import { processWageCredit } from "./jobs/wage-credit.ts";
 import { startOutboxPoller, stopOutboxPoller } from "./outbox-poller.ts";
 
 /**
- * Phase 5 worker entry. Boots one BullMQ Worker per queue, sharing a single
+ * Phase 5 + 8 worker entry. Boots one BullMQ Worker per queue, sharing a single
  * IORedis connection. Each handler is fully self-contained (creates its own
  * tenant transaction via `withTenant`).
  */
@@ -36,7 +40,32 @@ const stagePropagateWorker = new Worker(
 	{ connection, concurrency: 4 },
 );
 
-for (const w of [wageCreditWorker, stagePropagateWorker]) {
+const notificationDispatchWorker = new Worker(
+	QUEUE_NAMES.NOTIFICATION_DISPATCH,
+	async (job) => {
+		const data = NotificationDispatchJobData.parse(job.data);
+		await processNotificationDispatch({ data });
+	},
+	{ connection, concurrency: 8 },
+);
+
+const pushDeliveryWorker = new Worker(
+	QUEUE_NAMES.PUSH_DELIVERY,
+	async (job) => {
+		const data = PushDeliveryJobData.parse(job.data);
+		await processPushDelivery({ data });
+	},
+	{ connection, concurrency: 8 },
+);
+
+const allWorkers = [
+	wageCreditWorker,
+	stagePropagateWorker,
+	notificationDispatchWorker,
+	pushDeliveryWorker,
+];
+
+for (const w of allWorkers) {
 	w.on("completed", (job) => {
 		console.log(`[worker:${w.name}] job ${job.id} completed`);
 	});
@@ -47,7 +76,9 @@ for (const w of [wageCreditWorker, stagePropagateWorker]) {
 
 startOutboxPoller();
 
-console.log("[worker] ready: wage-credit + stage-propagate + outbox-poller");
+console.log(
+	"[worker] ready: wage-credit + stage-propagate + notification-dispatch + push-delivery + outbox-poller",
+);
 
 let shuttingDown = false;
 async function shutdown(signal: string) {
@@ -55,7 +86,7 @@ async function shutdown(signal: string) {
 	shuttingDown = true;
 	console.log(`[worker] received ${signal}, draining...`);
 	await stopOutboxPoller();
-	await Promise.all([wageCreditWorker.close(), stagePropagateWorker.close()]);
+	await Promise.all(allWorkers.map((w) => w.close()));
 	await closeAllQueues();
 	process.exit(0);
 }

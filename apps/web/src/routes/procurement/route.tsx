@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { roleHomePath } from "@/lib/auth";
 
 export const Route = createFileRoute("/procurement")({
@@ -14,7 +15,10 @@ export const Route = createFileRoute("/procurement")({
 function ProcurementShell() {
 	return (
 		<div className="min-h-screen bg-background">
-			<header className="border-b px-4 py-3 text-base font-semibold">Procurement</header>
+			<header className="flex items-center justify-between border-b px-4 py-3">
+				<div className="text-base font-semibold">Procurement</div>
+				<NotificationBell />
+			</header>
 			<main className="p-4">
 				<Outlet />
 			</main>

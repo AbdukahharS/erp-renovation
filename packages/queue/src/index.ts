@@ -14,6 +14,8 @@ import { z } from "zod";
 export const QUEUE_NAMES = {
 	WAGE_CREDIT: "wage-credit",
 	STAGE_PROPAGATE: "stage-propagate",
+	NOTIFICATION_DISPATCH: "notification-dispatch",
+	PUSH_DELIVERY: "push-delivery",
 } as const;
 
 export const WageCreditJobData = z.object({
@@ -31,6 +33,19 @@ export const StagePropagateJobData = z.object({
 	stageEventId: z.string().uuid().optional(),
 });
 export type StagePropagateJobData = z.infer<typeof StagePropagateJobData>;
+
+export const NotificationDispatchJobData = z.object({
+	tenantSchema: z.string(),
+	notificationIntentId: z.string().uuid(),
+});
+export type NotificationDispatchJobData = z.infer<typeof NotificationDispatchJobData>;
+
+export const PushDeliveryJobData = z.object({
+	tenantSchema: z.string(),
+	notificationId: z.string().uuid(),
+	subscriptionId: z.string().uuid(),
+});
+export type PushDeliveryJobData = z.infer<typeof PushDeliveryJobData>;
 
 let redisSingleton: Redis | null = null;
 
@@ -70,6 +85,14 @@ export function getStagePropagateQueue(): Queue<StagePropagateJobData> {
 	return getQueue(QUEUE_NAMES.STAGE_PROPAGATE) as Queue<StagePropagateJobData>;
 }
 
+export function getNotificationDispatchQueue(): Queue<NotificationDispatchJobData> {
+	return getQueue(QUEUE_NAMES.NOTIFICATION_DISPATCH) as Queue<NotificationDispatchJobData>;
+}
+
+export function getPushDeliveryQueue(): Queue<PushDeliveryJobData> {
+	return getQueue(QUEUE_NAMES.PUSH_DELIVERY) as Queue<PushDeliveryJobData>;
+}
+
 export async function closeAllQueues(): Promise<void> {
 	await Promise.all([...queues.values()].map((q) => q.close()));
 	queues.clear();
@@ -85,3 +108,25 @@ export const DEFAULT_JOB_OPTS = {
 	removeOnComplete: { age: 24 * 60 * 60, count: 1_000 },
 	removeOnFail: { age: 7 * 24 * 60 * 60 },
 };
+
+// ---------- Phase 8 realtime pub/sub ----------
+//
+// Worker processes broadcast realtime events via Redis pub/sub; API instances
+// subscribe and fan out to their local WebSocket clients. Channel name embeds
+// tenant schema so cross-tenant leakage is structurally impossible.
+
+export const REALTIME_CHANNEL_PREFIX = "tenant-realtime:";
+
+export function realtimeChannel(tenantSchema: string): string {
+	return `${REALTIME_CHANNEL_PREFIX}${tenantSchema}`;
+}
+
+export function publishToTenant(tenantSchema: string, event: unknown): void {
+	if (!process.env.REDIS_URL) return; // no-op in tests without Redis
+	const r = getRedisConnection();
+	// Fire-and-forget; Redis PUBLISH is fast and any failure here is non-fatal
+	// to the originating tx (in-app + push delivery are the durable channels).
+	r.publish(realtimeChannel(tenantSchema), JSON.stringify(event)).catch((err) => {
+		console.error("[realtime:publish] failed:", err);
+	});
+}

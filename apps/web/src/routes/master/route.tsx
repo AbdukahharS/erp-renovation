@@ -1,4 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { InstallAndPermissionCard } from "@/components/notifications/install-and-permission-card";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { roleHomePath } from "@/lib/auth";
 
 export const Route = createFileRoute("/master")({
@@ -14,8 +16,12 @@ export const Route = createFileRoute("/master")({
 function MasterShell() {
 	return (
 		<div className="min-h-screen bg-background">
-			<header className="border-b px-4 py-3 text-base font-semibold">Master</header>
+			<header className="flex items-center justify-between border-b px-4 py-3">
+				<div className="text-base font-semibold">Master</div>
+				<NotificationBell />
+			</header>
 			<main className="p-4 space-y-4 text-base">
+				<InstallAndPermissionCard />
 				<Outlet />
 			</main>
 		</div>

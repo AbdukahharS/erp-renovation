@@ -521,12 +521,27 @@ export const propertyCostCategoryEnum = pgEnum("property_cost_category", [
 	"OTHER",
 ]);
 
-export const notificationIntentTypeEnum = pgEnum("notification_intent_type", ["STAGE_AVAILABLE"]);
+export const notificationIntentTypeEnum = pgEnum("notification_intent_type", [
+	"STAGE_AVAILABLE",
+	"STAGE_SUBMITTED",
+	"STAGE_REJECTED",
+	"STAGE_BLOCKED",
+	"STAGE_UNBLOCKED",
+]);
 
 export const notificationIntentStatusEnum = pgEnum("notification_intent_status", [
 	"CREATED",
 	"SENT",
 	"FAILED",
+]);
+
+// ---------- Phase 8 enums ----------
+
+export const notificationDeliveryStatusEnum = pgEnum("notification_delivery_status", [
+	"PENDING",
+	"SENT",
+	"FAILED",
+	"GONE",
 ]);
 
 export const masterBalances = pgTable("master_balances", {
@@ -570,6 +585,9 @@ export const notificationIntents = pgTable(
 		propertyId: uuid("property_id").references(() => properties.id, { onDelete: "cascade" }),
 		payload: jsonb("payload"),
 		status: notificationIntentStatusEnum("status").notNull().default("CREATED"),
+		// Phase 8: set when notification-dispatch produces the in-app notification
+		// row. Nullable for back-compat with intents not yet dispatched.
+		notificationId: uuid("notification_id"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		sentAt: timestamp("sent_at"),
 	},
@@ -723,3 +741,87 @@ export const portfolioAssets = pgTable(
 );
 
 export type PropertyCostCategory = (typeof propertyCostCategoryEnum.enumValues)[number];
+
+// ---------- Phase 8: in-app notifications + push delivery ----------
+
+// In-app notification record. Written by notification-dispatch from a
+// notification_intents row (intent_id set), or by direct emitters for
+// notification types that bypass intents (e.g. ad-hoc system messages —
+// none today, intent_id nullable for that future path).
+export const notifications = pgTable(
+	"notifications",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		recipientUserId: text("recipient_user_id").notNull(),
+		type: notificationIntentTypeEnum("type").notNull(),
+		title: text("title").notNull(),
+		body: text("body").notNull(),
+		// Deep link the PWA should navigate to on tap (e.g. /master/stages/<id>).
+		targetUrl: text("target_url"),
+		propertyId: uuid("property_id").references(() => properties.id, { onDelete: "set null" }),
+		subStageInstanceId: uuid("sub_stage_instance_id").references(() => subStageInstances.id, {
+			onDelete: "set null",
+		}),
+		intentId: uuid("intent_id"),
+		readAt: timestamp("read_at"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		// Idempotent dispatch: one in-app row per intent. Partial unique so direct
+		// (intent-less) notifications can coexist without colliding.
+		// Plain UNIQUE (not a partial index): Postgres treats multiple NULLs as
+		// distinct, so direct (intent-less) notifications coexist, and a plain
+		// constraint lets `ON CONFLICT (intent_id) DO NOTHING` work without
+		// having to repeat the index predicate.
+		unique("notifications_intent_unique").on(t.intentId),
+		index("notifications_recipient_created_idx").on(t.recipientUserId, t.createdAt),
+		index("notifications_recipient_unread_idx")
+			.on(t.recipientUserId, t.createdAt)
+			.where(sql`${t.readAt} IS NULL`),
+	],
+);
+
+// Per-device Web Push subscription. One row per (user, browser/device). The
+// endpoint URL is globally unique across the push service, so it doubles as
+// the natural key for upsert.
+export const pushSubscriptions = pgTable(
+	"push_subscriptions",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		userId: text("user_id").notNull(),
+		endpoint: text("endpoint").notNull().unique(),
+		p256dh: text("p256dh").notNull(),
+		auth: text("auth").notNull(),
+		userAgent: text("user_agent"),
+		failureCount: integer("failure_count").notNull().default(0),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+	},
+	(t) => [index("push_subscriptions_user_idx").on(t.userId)],
+);
+
+// Per-(notification, subscription) send attempt. Lets us audit failures and
+// retry transient errors without re-creating the in-app row.
+export const notificationDeliveries = pgTable(
+	"notification_deliveries",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		notificationId: uuid("notification_id")
+			.notNull()
+			.references(() => notifications.id, { onDelete: "cascade" }),
+		subscriptionId: uuid("subscription_id")
+			.notNull()
+			.references(() => pushSubscriptions.id, { onDelete: "cascade" }),
+		status: notificationDeliveryStatusEnum("status").notNull().default("PENDING"),
+		attemptCount: integer("attempt_count").notNull().default(0),
+		lastError: text("last_error"),
+		lastAttemptAt: timestamp("last_attempt_at"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		unique("notification_deliveries_notif_sub_unique").on(t.notificationId, t.subscriptionId),
+		index("notification_deliveries_status_idx").on(t.status, t.createdAt),
+	],
+);
+
+export type NotificationDeliveryStatus = (typeof notificationDeliveryStatusEnum.enumValues)[number];

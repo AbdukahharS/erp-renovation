@@ -6,7 +6,7 @@ import {
 	subStageInstances,
 } from "@repo/db/schema/tenant";
 import { withTenant } from "@repo/db/with-tenant";
-import type { WageCreditJobData } from "@repo/queue";
+import { publishToTenant, type WageCreditJobData } from "@repo/queue";
 import { sql as dsql, eq } from "drizzle-orm";
 import { db } from "../db.ts";
 
@@ -23,6 +23,11 @@ import { db } from "../db.ts";
  */
 export async function processWageCredit(job: { data: WageCreditJobData }): Promise<void> {
 	const { tenantSchema, subStageInstanceId } = job.data;
+	let financeChanged: null | { propertyId: string | null; masterUserId: string | null } = null;
+	// TS narrows the outer `null` to `never` inside the closure; widen explicitly.
+	const setFinanceChanged = (v: { propertyId: string | null; masterUserId: string | null }) => {
+		financeChanged = v;
+	};
 	await withTenant(db, tenantSchema, async (tx) => {
 		const [ss] = await tx
 			.select({
@@ -110,7 +115,24 @@ export async function processWageCredit(job: { data: WageCreditJobData }): Promi
 					},
 				});
 		}
+		// Only emit realtime when this call actually wrote a wage row (so a stale
+		// retry doesn't trigger spurious dashboard refetches).
+		if (wageInsert.length > 0) {
+			setFinanceChanged({ propertyId, masterUserId });
+		}
 	});
+
+	if (financeChanged) {
+		const { propertyId, masterUserId } = financeChanged as {
+			propertyId: string | null;
+			masterUserId: string | null;
+		};
+		publishToTenant(tenantSchema, {
+			kind: "FINANCE_CHANGED",
+			propertyId,
+			masterUserId,
+		});
+	}
 }
 
 async function propertyIdForSubStage(

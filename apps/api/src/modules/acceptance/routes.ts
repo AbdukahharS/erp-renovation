@@ -14,6 +14,7 @@ import {
 	subStageAssignments,
 	subStageInstances,
 } from "@repo/db/schema/tenant";
+import { deferUntilCommit } from "@repo/db/with-tenant";
 import {
 	AcceptInput,
 	AttachInspectorMediaInput,
@@ -37,6 +38,7 @@ import {
 import { zodBody } from "../../lib/zod-body.ts";
 import { requireRole } from "../auth/guards.ts";
 import { tenancy } from "../tenancy/plugin.ts";
+import { emitAcceptanceNotificationIntents, enqueueDispatchForIntents } from "./notify.ts";
 import {
 	activeAcceptanceRequest,
 	activeAssignment,
@@ -417,6 +419,16 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 					propertyId,
 					actorUserId: user.id,
 				});
+				const intentIds = await emitAcceptanceNotificationIntents(tx, tenant.schemaName, {
+					type: "STAGE_SUBMITTED",
+					subStageInstanceId: params.id,
+					propertyId,
+				});
+				// Phase 8 audit #4: enqueue MUST run after the tenant tx commits
+				// — otherwise a worker can pick up the intent id before the row
+				// is visible. `deferUntilCommit` drains hooks at the end of
+				// `runInTenant`, after the transaction is durable.
+				deferUntilCommit(tx, () => enqueueDispatchForIntents(tenant.schemaName, intentIds));
 				return { ok: true };
 			});
 		},
@@ -669,6 +681,18 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 					propertyId,
 					actorUserId: user.id,
 				});
+				// Inspector self-submit (e.g. Sub-stage 1.1): notify other
+				// inspectors so any of them can pick up the acceptance.
+				const intentIds = await emitAcceptanceNotificationIntents(tx, tenant.schemaName, {
+					type: "STAGE_SUBMITTED",
+					subStageInstanceId: params.id,
+					propertyId,
+				});
+				// Phase 8 audit #4: enqueue MUST run after the tenant tx commits
+				// — otherwise a worker can pick up the intent id before the row
+				// is visible. `deferUntilCommit` drains hooks at the end of
+				// `runInTenant`, after the transaction is durable.
+				deferUntilCommit(tx, () => enqueueDispatchForIntents(tenant.schemaName, intentIds));
 				return { ok: true };
 			});
 		},
@@ -855,6 +879,17 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 					actorUserId: user.id,
 					payload: { comment: body.comment },
 				});
+				const intentIds = await emitAcceptanceNotificationIntents(tx, tenant.schemaName, {
+					type: "STAGE_REJECTED",
+					subStageInstanceId: params.id,
+					propertyId,
+					payload: { comment: body.comment },
+				});
+				// Phase 8 audit #4: enqueue MUST run after the tenant tx commits
+				// — otherwise a worker can pick up the intent id before the row
+				// is visible. `deferUntilCommit` drains hooks at the end of
+				// `runInTenant`, after the transaction is durable.
+				deferUntilCommit(tx, () => enqueueDispatchForIntents(tenant.schemaName, intentIds));
 				return { ok: true };
 			});
 		},
@@ -947,6 +982,18 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 					actorUserId: user.id,
 					payload: { action: body.action, reason: body.reason },
 				});
+				const intentType = eventType === "MANUAL_BLOCKED" ? "STAGE_BLOCKED" : "STAGE_UNBLOCKED";
+				const intentIds = await emitAcceptanceNotificationIntents(tx, tenant.schemaName, {
+					type: intentType,
+					subStageInstanceId: params.id,
+					propertyId,
+					payload: { reason: body.reason },
+				});
+				// Phase 8 audit #4: enqueue MUST run after the tenant tx commits
+				// — otherwise a worker can pick up the intent id before the row
+				// is visible. `deferUntilCommit` drains hooks at the end of
+				// `runInTenant`, after the transaction is durable.
+				deferUntilCommit(tx, () => enqueueDispatchForIntents(tenant.schemaName, intentIds));
 				return { ok: true };
 			});
 		},

@@ -4,7 +4,8 @@
 	"private": true,
 	"devDependencies": {
 		"@repo/typescript-config": "workspace:*",
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"@types/web-push": "^3.6.4"
 	},
 	"peerDependencies": {
 		"typescript": "^5"
@@ -16,8 +17,12 @@
 		"@repo/validators": "workspace:*",
 		"bullmq": "^5.59.3",
 		"drizzle-orm": "^0.45.2",
-		"ioredis": "^5.10.0"
+		"ioredis": "^5.10.0",
+		"web-push": "^3.6.7"
 	},
+	"trustedDependencies": [
+		"web-push"
+	],
 	"scripts": {
 		"dev": "bun --env-file=../../.env --watch src/index.ts",
 		"build": "bun build src/index.ts --outdir dist --target bun",

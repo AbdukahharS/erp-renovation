@@ -8,7 +8,9 @@ import { authRoutes } from "./modules/auth/routes.ts";
 import { financeRoutes } from "./modules/finance/routes.ts";
 import { hrRoutes } from "./modules/hr/routes.ts";
 import { invitationsRoutes } from "./modules/invitations/routes.ts";
+import { notificationsRoutes } from "./modules/notifications/routes.ts";
 import { propertiesRoutes } from "./modules/properties/routes.ts";
+import { realtimeRoutes } from "./modules/realtime/routes.ts";
 import { templatesRoutes } from "./modules/templates/routes.ts";
 import { tenancy } from "./modules/tenancy/plugin.ts";
 import { tenantRoutes } from "./modules/tenants/routes.ts";
@@ -32,6 +34,8 @@ export const app = new Elysia()
 	.use(invitationsRoutes)
 	.use(hrRoutes)
 	.use(financeRoutes)
+	.use(notificationsRoutes)
+	.use(realtimeRoutes)
 	.group("/tenant", (g) =>
 		g
 			.use(tenancy)

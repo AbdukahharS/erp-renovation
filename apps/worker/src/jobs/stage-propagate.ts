@@ -7,7 +7,12 @@ import {
 	subStageInstances,
 } from "@repo/db/schema/tenant";
 import { withTenant } from "@repo/db/with-tenant";
-import type { StagePropagateJobData } from "@repo/queue";
+import {
+	DEFAULT_JOB_OPTS,
+	getNotificationDispatchQueue,
+	publishToTenant,
+	type StagePropagateJobData,
+} from "@repo/queue";
 import { and, sql as dsql, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "../db.ts";
 
@@ -26,7 +31,8 @@ export async function processStagePropagate(job: {
 	data: StagePropagateJobData;
 }): Promise<{ unlocked: string[]; notificationsCreated: number }> {
 	const { tenantSchema, subStageInstanceId, propertyId, actorUserId } = job.data;
-	return await withTenant(db, tenantSchema, async (tx) => {
+	const createdIntentIds: string[] = [];
+	const result = await withTenant(db, tenantSchema, async (tx) => {
 		const [ss] = await tx
 			.select({
 				status: subStageInstances.status,
@@ -121,9 +127,35 @@ export async function processStagePropagate(job: {
 					})
 					.returning({ id: notificationIntents.id });
 				notificationsCreated += inserted.length;
+				for (const row of inserted) createdIntentIds.push(row.id);
 			}
 		}
 
 		return { unlocked, notificationsCreated };
 	});
+
+	// Phase 8: hand each fresh intent to the dispatch queue. Idempotent — the
+	// dispatcher itself bails on already-SENT intents and the outbox poller
+	// re-enqueues anything stranded by a crash here.
+	if (process.env.REDIS_URL && createdIntentIds.length > 0) {
+		const q = getNotificationDispatchQueue();
+		for (const intentId of createdIntentIds) {
+			await q.add(
+				"notification-dispatch",
+				{ tenantSchema, notificationIntentId: intentId },
+				{ ...DEFAULT_JOB_OPTS, jobId: `dispatch-${intentId}` },
+			);
+		}
+	}
+
+	// Phase 8: realtime fan-out so connected dashboards refetch.
+	if (result.unlocked.length > 0) {
+		publishToTenant(tenantSchema, {
+			kind: "STAGE_ACCEPTED",
+			propertyId,
+			subStageInstanceId,
+		});
+	}
+
+	return result;
 }
