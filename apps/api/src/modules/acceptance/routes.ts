@@ -44,11 +44,9 @@ import {
 	canTransition,
 	isUnlocked,
 	lockSubStage,
-	maybeAdvancePropertyOnAccept,
 	maybeAdvancePropertyOnTake,
 	missingRequiredMedia,
 	propertyIdForSubStage,
-	unlockReadySubStages,
 	writeStageEvent,
 } from "./service.ts";
 
@@ -757,26 +755,15 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 					);
 
 				const propertyId = await propertyIdForSubStage(tx, params.id);
+				// Phase 5: the ACCEPTED event is the seam BullMQ subscribes to.
+				// The wage-credit + stage-propagate jobs run async; this route
+				// returns as soon as the row updates commit.
 				await writeStageEvent(tx, tenant.schemaName, {
 					type: "ACCEPTED",
 					subStageInstanceId: params.id,
 					propertyId,
 					actorUserId: user.id,
 				});
-
-				// PHASE-5-REPLACE: synchronous side-effects below. Phase 5 moves
-				// these into BullMQ jobs subscribing to `acceptanceEvents` or
-				// polling `stage_events`.
-				if (propertyId) {
-					await unlockReadySubStages(tx, propertyId, tenant.schemaName, user.id);
-					await maybeAdvancePropertyOnAccept(
-						tx,
-						tenant.schemaName,
-						propertyId,
-						ss.performer_type,
-						user.id,
-					);
-				}
 				return { ok: true };
 			});
 		},

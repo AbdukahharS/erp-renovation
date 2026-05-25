@@ -458,6 +458,8 @@ export const stageEvents = pgTable(
 		actorUserId: text("actor_user_id"),
 		payload: jsonb("payload"),
 		occurredAt: timestamp("occurred_at").notNull().defaultNow(),
+		// Reserved for a future outbox-poller fallback; jobs don't read this yet.
+		processedAt: timestamp("processed_at"),
 	},
 	(t) => [
 		index("stage_events_sub_stage_idx").on(t.subStageInstanceId, t.occurredAt),
@@ -467,3 +469,78 @@ export const stageEvents = pgTable(
 
 export type AcceptanceResolution = (typeof acceptanceResolutionEnum.enumValues)[number];
 export type StageEventType = (typeof stageEventTypeEnum.enumValues)[number];
+
+// ---------- Phase 5: finance + notification intents ----------
+
+export const financialTransactionTypeEnum = pgEnum("financial_transaction_type", [
+	"WAGE_CREDIT",
+	"BUDGET_DECREMENT",
+]);
+
+export const notificationIntentTypeEnum = pgEnum("notification_intent_type", ["STAGE_AVAILABLE"]);
+
+export const notificationIntentStatusEnum = pgEnum("notification_intent_status", [
+	"CREATED",
+	"SENT",
+	"FAILED",
+]);
+
+export const masterBalances = pgTable("master_balances", {
+	masterUserId: text("master_user_id").primaryKey(),
+	balance: numeric("balance", { precision: 14, scale: 2 }).notNull().default("0"),
+	updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const financialTransactions = pgTable(
+	"financial_transactions",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		type: financialTransactionTypeEnum("type").notNull(),
+		masterUserId: text("master_user_id"),
+		propertyId: uuid("property_id").references(() => properties.id, { onDelete: "set null" }),
+		subStageInstanceId: uuid("sub_stage_instance_id").references(() => subStageInstances.id, {
+			onDelete: "set null",
+		}),
+		amount: numeric("amount", { precision: 14, scale: 2 }).notNull().default("0"),
+		description: text("description"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		// Idempotency: a given (sub-stage, type) can be written exactly once even
+		// under job retry or double-accept.
+		unique("financial_transactions_substage_type_unique").on(t.subStageInstanceId, t.type),
+		index("financial_transactions_master_idx").on(t.masterUserId),
+		index("financial_transactions_property_idx").on(t.propertyId),
+	],
+);
+
+export const notificationIntents = pgTable(
+	"notification_intents",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		type: notificationIntentTypeEnum("type").notNull(),
+		targetUserId: text("target_user_id").notNull(),
+		subStageInstanceId: uuid("sub_stage_instance_id").references(() => subStageInstances.id, {
+			onDelete: "cascade",
+		}),
+		propertyId: uuid("property_id").references(() => properties.id, { onDelete: "cascade" }),
+		payload: jsonb("payload"),
+		status: notificationIntentStatusEnum("status").notNull().default("CREATED"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		sentAt: timestamp("sent_at"),
+	},
+	(t) => [
+		// Idempotency for stage-available notifications: one per (user, sub-stage, type).
+		unique("notification_intents_target_substage_type_unique").on(
+			t.targetUserId,
+			t.subStageInstanceId,
+			t.type,
+		),
+		index("notification_intents_status_idx").on(t.status),
+		index("notification_intents_target_idx").on(t.targetUserId),
+	],
+);
+
+export type FinancialTransactionType = (typeof financialTransactionTypeEnum.enumValues)[number];
+export type NotificationIntentType = (typeof notificationIntentTypeEnum.enumValues)[number];
+export type NotificationIntentStatus = (typeof notificationIntentStatusEnum.enumValues)[number];

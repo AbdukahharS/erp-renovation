@@ -1,0 +1,25 @@
+{
+	"name": "@repo/acceptance",
+	"type": "module",
+	"private": true,
+	"devDependencies": {
+		"@repo/typescript-config": "workspace:*",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"dependencies": {
+		"@repo/db": "workspace:*",
+		"drizzle-orm": "^0.45.2"
+	},
+	"exports": {
+		".": "./src/index.ts",
+		"./events": "./src/events.ts",
+		"./service": "./src/service.ts"
+	},
+	"scripts": {
+		"lint": "biome check .",
+		"typecheck": "tsc --noEmit"
+	}
+}

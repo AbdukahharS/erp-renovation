@@ -1,10 +1,7 @@
 {
-	"name": "api",
+	"name": "worker",
 	"type": "module",
 	"private": true,
-	"exports": {
-		".": "./src/index.ts"
-	},
 	"devDependencies": {
 		"@repo/typescript-config": "workspace:*",
 		"@types/bun": "latest"
@@ -13,23 +10,19 @@
 		"typescript": "^5"
 	},
 	"dependencies": {
-		"@elysiajs/cors": "^1.4.2",
-		"@elysiajs/eden": "^1.4.9",
 		"@repo/acceptance": "workspace:*",
 		"@repo/db": "workspace:*",
 		"@repo/queue": "workspace:*",
 		"@repo/validators": "workspace:*",
-		"better-auth": "^1.6.11",
+		"bullmq": "^5.59.3",
 		"drizzle-orm": "^0.45.2",
-		"elysia": "^1.4.28",
-		"zod": "^4.4.3"
+		"ioredis": "^5.10.0"
 	},
 	"scripts": {
 		"dev": "bun --env-file=../../.env --watch src/index.ts",
 		"build": "bun build src/index.ts --outdir dist --target bun",
 		"start": "bun --env-file=../../.env dist/index.js",
 		"lint": "biome check .",
-		"typecheck": "tsc --noEmit",
-		"test": "bun --env-file=../../.env test"
+		"typecheck": "tsc --noEmit"
 	}
 }

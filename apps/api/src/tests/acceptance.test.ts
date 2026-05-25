@@ -12,6 +12,7 @@ import { db } from "../db.ts";
 import { app } from "../index.ts";
 import { acceptanceEvents } from "../modules/acceptance/events.ts";
 import { auth } from "../modules/auth/auth.ts";
+import { flushAcceptanceJobs } from "./job-runner.ts";
 
 function must<T>(v: T | undefined | null, msg = "expected value"): T {
 	if (v === undefined || v === null) throw new Error(msg);
@@ -86,7 +87,11 @@ async function call(cookie: string, path: string, init: RequestInit = {}) {
 	const headers = new Headers(init.headers);
 	headers.set("cookie", cookie);
 	if (init.body && !headers.has("content-type")) headers.set("content-type", "application/json");
-	return await app.handle(new Request(`http://localhost${path}`, { ...init, headers }));
+	const res = await app.handle(new Request(`http://localhost${path}`, { ...init, headers }));
+	// Phase 5: drain in-process worker jobs so subsequent assertions see the
+	// unlock + property-advance + notification rows the handlers wrote.
+	await flushAcceptanceJobs();
+	return res;
 }
 
 async function signUpAs(email: string, role: "INSPECTOR" | "MASTER", tenantId: string) {

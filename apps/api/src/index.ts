@@ -2,12 +2,16 @@ import { cors } from "@elysiajs/cors";
 import { HealthSchema } from "@repo/validators";
 import { sql as dsql } from "drizzle-orm";
 import { Elysia } from "elysia";
+import { wireAcceptanceEnqueuer } from "./modules/acceptance/enqueue.ts";
 import { acceptanceRoutes } from "./modules/acceptance/routes.ts";
 import { authRoutes } from "./modules/auth/routes.ts";
 import { propertiesRoutes } from "./modules/properties/routes.ts";
 import { templatesRoutes } from "./modules/templates/routes.ts";
 import { tenancy } from "./modules/tenancy/plugin.ts";
 import { tenantRoutes } from "./modules/tenants/routes.ts";
+
+// Phase 5: subscribe the BullMQ enqueuer to acceptance events at startup.
+wireAcceptanceEnqueuer();
 
 const corsOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:3000")
 	.split(",")
