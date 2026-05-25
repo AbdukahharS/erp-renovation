@@ -21,6 +21,8 @@ The TZ frames this as enabling the plan to "attract narrowly specialized profess
 - Recompute on each accept/reject event. Decide the formula and make it tenant-configurable later (SaaS) but ship a sensible default now.
 - Rating is read by the assignment/notification logic so better masters can be prioritized (optional refinement) and by the Phase 8 unit-closing defect summary.
 
+**Implementation note (Phase 6 deferral):** The current implementation stores only raw counters (`acceptedCount`, `rejectedCount`, `avgDurationRatio`) in `master_ratings`. The composite score formula and tenant-configurable weights are deferred to **Phase 9** along with per-tenant config. All inputs the formula will need are already captured and recomputed correctly, so adding the formula later requires no backfill. UI surfaces the raw counters in the meantime.
+
 ### 6.3 Availability schedule
 - Master status visualization: "Available" / "On property X until [date]" (TZ Module 4). Derive "on property until" from active stage assignments + stage durations where possible, with manual override.
 - Owner/Inspector see availability when deciding assignments.

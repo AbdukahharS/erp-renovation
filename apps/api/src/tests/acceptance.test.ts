@@ -274,21 +274,25 @@ describe("phase 4 acceptance loop", () => {
 		);
 
 		// Give master1 the matching specialization; master2 left with none → 403.
-		await call(aOwnerCookie, "/owner/master-profiles", {
-			method: "POST",
-			body: JSON.stringify({
-				userId: aMasterUserId,
-				displayName: "Master One",
-				specializations: firstMaster.specialization ? [firstMaster.specialization] : [],
-			}),
-		});
-		await call(aOwnerCookie, "/owner/master-profiles", {
-			method: "POST",
-			body: JSON.stringify({
-				userId: aMaster2UserId,
-				displayName: "Master Two",
-				specializations: [],
-			}),
+		// Phase 6 removed the upsert endpoint; insert directly through tenant tx.
+		await withTenant(db, aSchema, async (tx) => {
+			await tx
+				.insert(masterProfiles)
+				.values({
+					userId: aMasterUserId,
+					displayName: "Master One",
+					specializations: firstMaster.specialization ? [firstMaster.specialization] : [],
+				})
+				.onConflictDoUpdate({
+					target: masterProfiles.userId,
+					set: {
+						specializations: firstMaster.specialization ? [firstMaster.specialization] : [],
+					},
+				});
+			await tx
+				.insert(masterProfiles)
+				.values({ userId: aMaster2UserId, displayName: "Master Two", specializations: [] })
+				.onConflictDoNothing();
 		});
 
 		// available list for master1 includes it; master2 does not (if spec set).
@@ -338,7 +342,6 @@ describe("phase 4 acceptance loop", () => {
 		);
 
 		// Master claim (use master1 with matching spec set in beforeAll-driven prior test? safer: upsert)
-		await call(aOwnerCookie, `/owner/master-profiles/`, { method: "GET" });
 		await withTenant(db, aSchema, async (tx) => {
 			await tx
 				.insert(masterProfiles)

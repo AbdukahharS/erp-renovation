@@ -214,33 +214,31 @@ afterAll(async () => {
 describe("phase 5 worker handlers", () => {
 	it("accept → 1.1 INSPECTOR stage: zero wage rows, next master stage AVAILABLE, notification intent created", async () => {
 		// Seed the master profile so the propagate handler can target it.
-		await call(aOwnerCookie, "/owner/master-profiles", {
-			method: "POST",
-			body: JSON.stringify({
-				userId: aMasterUserId,
-				displayName: "Test Master",
-				// Wildcard: include common Phase-2 specializations so we match the
-				// first master stage regardless of TZ-template specialization.
-				// Cover every specialization the seeded TZ template uses, so the
-				// notification fan-out picks this master for whatever the first
-				// master sub-stage requires.
-				specializations: [
-					"Demolition Specialist",
-					"Site Foreman",
-					"Mason / Installer",
-					"Plasterer",
-					"HVAC Installer",
-					"Plumber",
-					"Electrician",
-					"Screed Layer",
-					"Drywall Installer",
-					"Door Installer",
-					"Painter",
-					"Tiler",
-					"Floor Installer",
-					"Cleaning Contractor",
-				],
-			}),
+		// Phase 6 removed the upsert endpoint; insert directly through tenant tx.
+		await withTenant(db, aSchema, async (tx) => {
+			await tx
+				.insert(masterProfiles)
+				.values({
+					userId: aMasterUserId,
+					displayName: "Test Master",
+					specializations: [
+						"Demolition Specialist",
+						"Site Foreman",
+						"Mason / Installer",
+						"Plasterer",
+						"HVAC Installer",
+						"Plumber",
+						"Electrician",
+						"Screed Layer",
+						"Drywall Installer",
+						"Door Installer",
+						"Painter",
+						"Tiler",
+						"Floor Installer",
+						"Cleaning Contractor",
+					],
+				})
+				.onConflictDoNothing();
 		});
 
 		const after = await createPropertyAndAcceptFirst(aOwnerCookie, aInspectorCookie);

@@ -1,4 +1,13 @@
-import { boolean, pgEnum, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+	boolean,
+	index,
+	pgEnum,
+	pgTable,
+	primaryKey,
+	text,
+	timestamp,
+	uuid,
+} from "drizzle-orm/pg-core";
 
 // ---------- Domain enums ----------
 
@@ -86,6 +95,30 @@ export const tenantMemberships = pgTable(
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 	},
 	(t) => [primaryKey({ columns: [t.userId, t.tenantId] })],
+);
+
+// ---------- Phase 6: invitations ----------
+
+export const invitations = pgTable(
+	"invitations",
+	{
+		token: text("token").primaryKey(),
+		tenantId: uuid("tenant_id")
+			.notNull()
+			.references(() => tenants.id, { onDelete: "cascade" }),
+		role: roleEnum("role").notNull(),
+		email: text("email"),
+		createdBy: text("created_by")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		expiresAt: timestamp("expires_at").notNull(),
+		consumedAt: timestamp("consumed_at"),
+		consumedByUserId: text("consumed_by_user_id").references(() => user.id, {
+			onDelete: "set null",
+		}),
+	},
+	(t) => [index("invitations_tenant_idx").on(t.tenantId)],
 );
 
 // Tracks applied tenant migrations per schema — resumable fan-out.

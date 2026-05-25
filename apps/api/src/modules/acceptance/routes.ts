@@ -1,3 +1,4 @@
+import { recomputeMasterRating } from "@repo/acceptance/rating";
 import {
 	acceptanceRequests,
 	checklistItemInstances,
@@ -23,8 +24,6 @@ import {
 	RejectInput,
 	SubmitForAcceptanceInput,
 	SubmitSelfInspectorInput,
-	UpdateMasterProfileInput,
-	UpsertMasterProfileInput,
 } from "@repo/validators";
 import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { Elysia } from "elysia";
@@ -840,6 +839,15 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 					.where(eq(subStageInstances.id, params.id));
 
 				const propertyId = await propertyIdForSubStage(tx, params.id);
+				// Phase 6: recompute the assigned master's rating counters on REJECTED.
+				// Accept flows recompute via the stage-propagate worker; reject has no
+				// downstream worker, so do it inline.
+				if (ss.performer_type === "MASTER") {
+					const assignment = await activeAssignment(tx, params.id);
+					if (assignment) {
+						await recomputeMasterRating(tx, assignment.master_user_id);
+					}
+				}
 				await writeStageEvent(tx, tenant.schemaName, {
 					type: "REJECTED",
 					subStageInstanceId: params.id,
@@ -944,94 +952,6 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 		},
 		{ body: zodBody(ManualOverrideInput) },
 	);
-
-// ============ OWNER (master profile management) ============
-
-const ownerRoutes = new Elysia({ prefix: "/owner" })
-	.use(tenancy)
-	.use(requireRole("OWNER"))
-
-	.get("/master-profiles", async ({ runInTenant, set }) => {
-		if (!runInTenant) {
-			set.status = 401;
-			return { error: "no tenant" };
-		}
-		return await runInTenant(async (tx) => {
-			const rows = await tx.select().from(masterProfiles).orderBy(desc(masterProfiles.createdAt));
-			return rows;
-		});
-	})
-
-	.post(
-		"/master-profiles",
-		async ({ body, runInTenant, set }) => {
-			if (!runInTenant) {
-				set.status = 401;
-				return { error: "no tenant" };
-			}
-			return await runInTenant(async (tx) => {
-				try {
-					const [row] = await tx
-						.insert(masterProfiles)
-						.values({
-							userId: body.userId,
-							displayName: body.displayName,
-							specializations: body.specializations,
-						})
-						.returning();
-					return row;
-				} catch (_err) {
-					set.status = 409;
-					return { error: "profile for that user already exists" };
-				}
-			});
-		},
-		{ body: zodBody(UpsertMasterProfileInput) },
-	)
-
-	.patch(
-		"/master-profiles/:id",
-		async ({ params, body, runInTenant, set }) => {
-			if (!runInTenant) {
-				set.status = 401;
-				return { error: "no tenant" };
-			}
-			return await runInTenant(async (tx) => {
-				const updates: Record<string, unknown> = { updatedAt: new Date() };
-				if (body.displayName !== undefined) updates.displayName = body.displayName;
-				if (body.specializations !== undefined) updates.specializations = body.specializations;
-				const [row] = await tx
-					.update(masterProfiles)
-					.set(updates)
-					.where(eq(masterProfiles.id, params.id))
-					.returning();
-				if (!row) {
-					set.status = 404;
-					return { error: "master profile not found" };
-				}
-				return row;
-			});
-		},
-		{ body: zodBody(UpdateMasterProfileInput) },
-	)
-
-	.delete("/master-profiles/:id", async ({ params, runInTenant, set }) => {
-		if (!runInTenant) {
-			set.status = 401;
-			return { error: "no tenant" };
-		}
-		return await runInTenant(async (tx) => {
-			const deleted = await tx
-				.delete(masterProfiles)
-				.where(eq(masterProfiles.id, params.id))
-				.returning({ id: masterProfiles.id });
-			if (deleted.length === 0) {
-				set.status = 404;
-				return { error: "master profile not found" };
-			}
-			return { ok: true };
-		});
-	});
 
 // ============ shared loader ============
 
@@ -1147,7 +1067,4 @@ async function loadStageDetail(tx: AnyRow, subStageInstanceId: string) {
 	};
 }
 
-export const acceptanceRoutes = new Elysia()
-	.use(masterRoutes)
-	.use(inspectorRoutes)
-	.use(ownerRoutes);
+export const acceptanceRoutes = new Elysia().use(masterRoutes).use(inspectorRoutes);

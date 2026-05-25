@@ -1,8 +1,14 @@
+import { recomputeMasterRating } from "@repo/acceptance/rating";
 import { maybeAdvancePropertyOnAccept, unlockReadySubStages } from "@repo/acceptance/service";
-import { masterProfiles, notificationIntents, subStageInstances } from "@repo/db/schema/tenant";
+import {
+	masterProfiles,
+	notificationIntents,
+	subStageAssignments,
+	subStageInstances,
+} from "@repo/db/schema/tenant";
 import { withTenant } from "@repo/db/with-tenant";
 import type { StagePropagateJobData } from "@repo/queue";
-import { and, sql as dsql, eq, inArray } from "drizzle-orm";
+import { and, sql as dsql, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "../db.ts";
 
 /**
@@ -42,6 +48,20 @@ export async function processStagePropagate(job: {
 			actorUserId ?? null,
 		);
 
+		// Phase 6: recompute the accepting master's rating counters. Master-performed
+		// sub-stages always carry an assignment; for inspector-performed ones there's
+		// nothing to score.
+		if (ss.performerType === "MASTER") {
+			const [assignment] = await tx
+				.select({ masterUserId: subStageAssignments.masterUserId })
+				.from(subStageAssignments)
+				.where(eq(subStageAssignments.subStageInstanceId, subStageInstanceId))
+				.limit(1);
+			if (assignment) {
+				await recomputeMasterRating(tx, assignment.masterUserId);
+			}
+		}
+
 		if (unlocked.length === 0) {
 			return { unlocked, notificationsCreated: 0 };
 		}
@@ -62,12 +82,25 @@ export async function processStagePropagate(job: {
 		for (const ssi of newlyAvailable) {
 			// Notify all masters whose specializations array contains the required
 			// specialization (or every master if the sub-stage has no specialization).
+			// Skip masters whose manual availability override is still in effect.
+			const availabilityClause = or(
+				isNull(masterProfiles.availabilityOverrideUntil),
+				dsql`${masterProfiles.availabilityOverrideUntil} <= now()`,
+			);
 			const targets = ssi.specialization
 				? await tx
 						.select({ userId: masterProfiles.userId })
 						.from(masterProfiles)
-						.where(dsql`${ssi.specialization} = ANY(${masterProfiles.specializations})`)
-				: await tx.select({ userId: masterProfiles.userId }).from(masterProfiles);
+						.where(
+							and(
+								dsql`${ssi.specialization} = ANY(${masterProfiles.specializations})`,
+								availabilityClause,
+							),
+						)
+				: await tx
+						.select({ userId: masterProfiles.userId })
+						.from(masterProfiles)
+						.where(availabilityClause);
 
 			for (const t of targets) {
 				const inserted = await tx

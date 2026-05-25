@@ -16,7 +16,8 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./events": "./src/events.ts",
-		"./service": "./src/service.ts"
+		"./service": "./src/service.ts",
+		"./rating": "./src/rating.ts"
 	},
 	"scripts": {
 		"lint": "biome check .",

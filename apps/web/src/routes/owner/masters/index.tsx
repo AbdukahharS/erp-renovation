@@ -1,40 +1,48 @@
-import { createFileRoute } from "@tanstack/react-router";
+import type { Role } from "@repo/validators";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-	useDeleteMasterProfile,
-	useMasterProfiles,
-	useUpdateMasterProfile,
-	useUpsertMasterProfile,
-} from "@/lib/queries/acceptance";
+	useCreateInvitation,
+	useInvitations,
+	useMasters,
+	useRevokeInvitation,
+} from "@/lib/queries/hr";
 
 export const Route = createFileRoute("/owner/masters/")({
 	component: OwnerMasters,
 });
 
-function OwnerMasters() {
-	const profiles = useMasterProfiles();
-	const upsert = useUpsertMasterProfile();
-	const update = useUpdateMasterProfile();
-	const del = useDeleteMasterProfile();
+function inviteUrl(token: string) {
+	return `${window.location.origin}/invite/${token}`;
+}
 
-	const [form, setForm] = useState({ userId: "", displayName: "", specializations: "" });
-	const [createError, setCreateError] = useState<string | null>(null);
+function OwnerMasters() {
+	const invitations = useInvitations();
+	const masters = useMasters();
+	const create = useCreateInvitation();
+	const revoke = useRevokeInvitation();
+
+	const [role, setRole] = useState<Role>("MASTER");
+	const [email, setEmail] = useState("");
+	const [days, setDays] = useState(14);
+	const [lastLink, setLastLink] = useState<string | null>(null);
+	const [error, setError] = useState<string | null>(null);
 
 	function submit() {
-		setCreateError(null);
-		const specs = form.specializations
-			.split(",")
-			.map((s) => s.trim())
-			.filter(Boolean);
-		upsert.mutate(
-			{ userId: form.userId.trim(), displayName: form.displayName.trim(), specializations: specs },
+		setError(null);
+		create.mutate(
+			{ role, email: email.trim() || undefined, expiresInDays: days },
 			{
-				onSuccess: () => setForm({ userId: "", displayName: "", specializations: "" }),
-				onError: (e) => setCreateError((e as Error).message),
+				onSuccess: (row) => {
+					setLastLink(inviteUrl(row.token));
+					setEmail("");
+				},
+				onError: (e) => setError((e as Error).message),
 			},
 		);
 	}
@@ -44,107 +52,170 @@ function OwnerMasters() {
 			<header className="space-y-1">
 				<h1 className="text-2xl font-semibold">Masters</h1>
 				<p className="text-sm text-muted-foreground">
-					Manage the master roster and their specializations. Phase 6 will replace this with
-					invite-link onboarding.
+					Onboard masters with single-use invite links. The roster shows live ratings and
+					availability.
 				</p>
 			</header>
 
 			<Card className="space-y-3 p-4">
-				<h2 className="text-sm font-semibold">Add master profile</h2>
+				<h2 className="text-sm font-semibold">Create invitation</h2>
 				<div className="grid gap-2 md:grid-cols-4">
 					<div>
-						<Label>User ID</Label>
+						<Label>Role</Label>
+						<select
+							className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+							value={role}
+							onChange={(e) => setRole(e.target.value as Role)}
+						>
+							<option value="MASTER">Master</option>
+							<option value="INSPECTOR">Inspector</option>
+							<option value="OWNER">Owner</option>
+							<option value="PROCUREMENT">Procurement</option>
+						</select>
+					</div>
+					<div className="md:col-span-2">
+						<Label>Email (optional)</Label>
 						<Input
-							value={form.userId}
-							onChange={(e) => setForm((f) => ({ ...f, userId: e.target.value }))}
-							placeholder="auth user id"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							placeholder="invitee@example.com"
 						/>
 					</div>
 					<div>
-						<Label>Display name</Label>
+						<Label>Expires in (days)</Label>
 						<Input
-							value={form.displayName}
-							onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
-							placeholder="Name shown in lists"
-						/>
-					</div>
-					<div className="md:col-span-2">
-						<Label>Specializations (comma-separated)</Label>
-						<Input
-							value={form.specializations}
-							onChange={(e) => setForm((f) => ({ ...f, specializations: e.target.value }))}
-							placeholder="electrician, tiler"
+							type="number"
+							min={1}
+							max={60}
+							value={days}
+							onChange={(e) => setDays(Number(e.target.value))}
 						/>
 					</div>
 				</div>
 				<div className="flex items-center gap-3">
-					<Button onClick={submit} disabled={!form.userId || !form.displayName || upsert.isPending}>
-						{upsert.isPending ? "Saving…" : "Add"}
+					<Button onClick={submit} disabled={create.isPending}>
+						{create.isPending ? "Creating…" : "Create invite"}
 					</Button>
-					{createError && <span className="text-xs text-destructive">{createError}</span>}
+					{error && <span className="text-xs text-destructive">{error}</span>}
 				</div>
+				{lastLink && (
+					<div className="rounded-md border bg-muted/40 p-2 text-xs">
+						Share this single-use link:{" "}
+						<button
+							type="button"
+							className="font-mono underline"
+							onClick={() => navigator.clipboard?.writeText(lastLink)}
+						>
+							{lastLink}
+						</button>
+					</div>
+				)}
 			</Card>
 
-			<div className="space-y-2">
-				<h2 className="text-sm font-semibold">Existing</h2>
-				{profiles.isLoading && <p className="text-sm text-muted-foreground">loading…</p>}
-				{profiles.data?.length === 0 && (
-					<p className="text-sm text-muted-foreground">No master profiles yet.</p>
+			<section className="space-y-2">
+				<h2 className="text-sm font-semibold">Pending invitations</h2>
+				{invitations.isLoading && <p className="text-sm text-muted-foreground">loading…</p>}
+				{invitations.data?.length === 0 && (
+					<p className="text-sm text-muted-foreground">No invitations.</p>
 				)}
 				<div className="grid gap-2">
-					{profiles.data?.map((p) => (
-						<MasterProfileRow
-							key={p.id}
-							profile={p}
-							onSave={(displayName, specs) =>
-								update.mutate({ id: p.id, displayName, specializations: specs })
-							}
-							onDelete={() => del.mutate(p.id)}
-						/>
+					{invitations.data?.map((inv) => {
+						const expired = new Date(inv.expiresAt).getTime() <= Date.now();
+						const status = inv.consumedAt ? "CONSUMED" : expired ? "EXPIRED" : "PENDING";
+						return (
+							<Card
+								key={inv.token}
+								className="grid items-center gap-3 p-3 md:grid-cols-[auto_1fr_auto_auto_auto]"
+							>
+								<Badge variant="outline">{inv.role}</Badge>
+								<div className="text-xs text-muted-foreground">
+									{inv.email ?? "any email"} ·{" "}
+									<button
+										type="button"
+										className="font-mono underline"
+										onClick={() => navigator.clipboard?.writeText(inviteUrl(inv.token))}
+									>
+										copy link
+									</button>
+								</div>
+								<div className="text-xs">{new Date(inv.expiresAt).toLocaleString()}</div>
+								<Badge variant={status === "PENDING" ? "default" : "secondary"}>{status}</Badge>
+								<Button
+									size="sm"
+									variant="destructive"
+									disabled={status !== "PENDING"}
+									onClick={() => revoke.mutate(inv.token)}
+								>
+									Revoke
+								</Button>
+							</Card>
+						);
+					})}
+				</div>
+			</section>
+
+			<section className="space-y-2">
+				<h2 className="text-sm font-semibold">Roster</h2>
+				{masters.isLoading && <p className="text-sm text-muted-foreground">loading…</p>}
+				{masters.data?.length === 0 && (
+					<p className="text-sm text-muted-foreground">No masters on the roster yet.</p>
+				)}
+				<div className="grid gap-2">
+					{masters.data?.map((m) => (
+						<Card
+							key={m.id}
+							className="grid items-center gap-3 p-3 md:grid-cols-[1fr_1fr_1fr_1fr_auto]"
+						>
+							<div className="space-y-0.5">
+								<div className="text-sm font-medium">{m.displayName}</div>
+								<div className="text-xs text-muted-foreground">{m.phone ?? "no phone"}</div>
+							</div>
+							<div className="flex flex-wrap gap-1">
+								{m.specializations.length === 0 && (
+									<span className="text-xs text-muted-foreground">no specializations</span>
+								)}
+								{m.specializations.map((s) => (
+									<Badge key={s} variant="outline">
+										{s}
+									</Badge>
+								))}
+							</div>
+							<div className="text-xs">
+								<div>
+									{m.rating ? (
+										<>
+											<strong>{m.rating.acceptedCount}</strong> accepted ·{" "}
+											<strong>{m.rating.rejectedCount}</strong> rejected
+										</>
+									) : (
+										<span className="text-muted-foreground">no activity</span>
+									)}
+								</div>
+								<div className="text-muted-foreground">
+									avg ratio:{" "}
+									{m.rating?.avgDurationRatio ? Number(m.rating.avgDurationRatio).toFixed(2) : "—"}
+								</div>
+							</div>
+							<div className="text-xs">
+								<div className="font-medium">{m.availability.state}</div>
+								{m.availability.detail && (
+									<div className="text-muted-foreground">{m.availability.detail}</div>
+								)}
+								{m.availability.until && (
+									<div className="text-muted-foreground">
+										until {new Date(m.availability.until).toLocaleDateString()}
+									</div>
+								)}
+							</div>
+							<Link to="/owner/masters/$id" params={{ id: m.id }}>
+								<Button size="sm" variant="outline">
+									Open
+								</Button>
+							</Link>
+						</Card>
 					))}
 				</div>
-			</div>
+			</section>
 		</section>
-	);
-}
-
-function MasterProfileRow({
-	profile,
-	onSave,
-	onDelete,
-}: {
-	profile: { id: string; userId: string; displayName: string; specializations: string[] };
-	onSave: (displayName: string, specs: string[]) => void;
-	onDelete: () => void;
-}) {
-	const [name, setName] = useState(profile.displayName);
-	const [specs, setSpecs] = useState(profile.specializations.join(", "));
-	const dirty = name !== profile.displayName || specs !== profile.specializations.join(", ");
-	return (
-		<Card className="grid items-center gap-3 p-3 md:grid-cols-[1fr_1fr_2fr_auto]">
-			<div className="text-xs font-mono text-muted-foreground">{profile.userId}</div>
-			<Input value={name} onChange={(e) => setName(e.target.value)} />
-			<Input value={specs} onChange={(e) => setSpecs(e.target.value)} />
-			<div className="flex gap-2">
-				<Button
-					size="sm"
-					disabled={!dirty}
-					onClick={() =>
-						onSave(
-							name,
-							specs
-								.split(",")
-								.map((s) => s.trim())
-								.filter(Boolean),
-						)
-					}
-				>
-					Save
-				</Button>
-				<Button size="sm" variant="destructive" onClick={onDelete}>
-					Delete
-				</Button>
-			</div>
-		</Card>
 	);
 }

@@ -339,11 +339,27 @@ export const masterProfiles = pgTable(
 		userId: text("user_id").notNull().unique(),
 		displayName: text("display_name").notNull(),
 		specializations: text("specializations").array().notNull().default(sql`'{}'::text[]`),
+		phone: text("phone"),
+		availabilityOverride: text("availability_override"),
+		availabilityOverrideUntil: timestamp("availability_override_until"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
 	(t) => [index("master_profiles_user_idx").on(t.userId)],
 );
+
+// ---------- Phase 6: master rating counters ----------
+//
+// Raw counters only — Phase 9 will layer a composite score on top.
+// Recomputed in full on every ACCEPTED/REJECTED event affecting the master.
+
+export const masterRatings = pgTable("master_ratings", {
+	masterUserId: text("master_user_id").primaryKey(),
+	acceptedCount: integer("accepted_count").notNull().default(0),
+	rejectedCount: integer("rejected_count").notNull().default(0),
+	avgDurationRatio: numeric("avg_duration_ratio", { precision: 6, scale: 3 }),
+	computedAt: timestamp("computed_at").notNull().defaultNow(),
+});
 
 export const subStageAssignments = pgTable(
 	"sub_stage_assignments",

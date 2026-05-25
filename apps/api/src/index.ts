@@ -5,6 +5,8 @@ import { Elysia } from "elysia";
 import { wireAcceptanceEnqueuer } from "./modules/acceptance/enqueue.ts";
 import { acceptanceRoutes } from "./modules/acceptance/routes.ts";
 import { authRoutes } from "./modules/auth/routes.ts";
+import { hrRoutes } from "./modules/hr/routes.ts";
+import { invitationsRoutes } from "./modules/invitations/routes.ts";
 import { propertiesRoutes } from "./modules/properties/routes.ts";
 import { templatesRoutes } from "./modules/templates/routes.ts";
 import { tenancy } from "./modules/tenancy/plugin.ts";
@@ -26,6 +28,8 @@ export const app = new Elysia()
 	.use(templatesRoutes)
 	.use(propertiesRoutes)
 	.use(acceptanceRoutes)
+	.use(invitationsRoutes)
+	.use(hrRoutes)
 	.group("/tenant", (g) =>
 		g
 			.use(tenancy)

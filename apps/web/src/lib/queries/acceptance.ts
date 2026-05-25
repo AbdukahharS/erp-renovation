@@ -1,4 +1,3 @@
-import type { MasterProfile } from "@repo/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiBaseUrl } from "../api";
 
@@ -109,7 +108,6 @@ export const acceptanceKeys = {
 	masterMy: ["master", "my"] as const,
 	stage: (id: string) => ["stage", id] as const,
 	inspectorQueue: ["inspector", "queue"] as const,
-	masterProfiles: ["owner", "master-profiles"] as const,
 };
 
 // --------- Master ---------
@@ -307,50 +305,5 @@ export function useManualOverride() {
 			qc.invalidateQueries({ queryKey: acceptanceKeys.stage(vars.id) });
 			qc.invalidateQueries({ queryKey: ["properties"] });
 		},
-	});
-}
-
-// --------- Owner: master profiles ---------
-
-export function useMasterProfiles() {
-	return useQuery({
-		queryKey: acceptanceKeys.masterProfiles,
-		queryFn: () => call<MasterProfile[]>("/owner/master-profiles"),
-	});
-}
-
-export function useUpsertMasterProfile() {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: (vars: { userId: string; displayName: string; specializations: string[] }) =>
-			call<MasterProfile>("/owner/master-profiles", {
-				method: "POST",
-				body: JSON.stringify(vars),
-			}),
-		onSuccess: () => qc.invalidateQueries({ queryKey: acceptanceKeys.masterProfiles }),
-	});
-}
-
-export function useUpdateMasterProfile() {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: (vars: { id: string; displayName?: string; specializations?: string[] }) =>
-			call<MasterProfile>(`/owner/master-profiles/${vars.id}`, {
-				method: "PATCH",
-				body: JSON.stringify({
-					displayName: vars.displayName,
-					specializations: vars.specializations,
-				}),
-			}),
-		onSuccess: () => qc.invalidateQueries({ queryKey: acceptanceKeys.masterProfiles }),
-	});
-}
-
-export function useDeleteMasterProfile() {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: (id: string) =>
-			call<{ ok: true }>(`/owner/master-profiles/${id}`, { method: "DELETE" }),
-		onSuccess: () => qc.invalidateQueries({ queryKey: acceptanceKeys.masterProfiles }),
 	});
 }
