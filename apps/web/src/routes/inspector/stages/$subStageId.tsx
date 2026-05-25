@@ -16,6 +16,7 @@ import {
 	useStageDetail,
 	useSubmitSelfStage,
 } from "@/lib/queries/acceptance";
+import { useApplyFine, useLatestRejection } from "@/lib/queries/finance";
 
 export const Route = createFileRoute("/inspector/stages/$subStageId")({
 	component: InspectorStageReview,
@@ -42,6 +43,10 @@ function InspectorStageReview() {
 	const [uploading, setUploading] = useState(false);
 	const [overrideMode, setOverrideMode] = useState(false);
 	const [overrideReason, setOverrideReason] = useState("");
+	const [fineAmount, setFineAmount] = useState("");
+	const [fineReason, setFineReason] = useState("");
+	const latestRejection = useLatestRejection(subStageId);
+	const applyFine = useApplyFine(latestRejection.data?.id);
 
 	const items = data?.subStage.checklistItems ?? [];
 
@@ -352,6 +357,66 @@ function InspectorStageReview() {
 					</div>
 				)}
 			</Card>
+
+			{/* Apply fine — only when the stage has a recent rejection and it
+			    hasn't been fined yet. TZ §2 Inspector right; deducts from master
+			    balance via the single financial-transactions ledger. */}
+			{latestRejection.data && !latestRejection.data.fined && (
+				<Card className="space-y-3 p-4">
+					<div>
+						<h2 className="text-sm font-semibold">Apply fine for defects</h2>
+						<p className="text-xs text-muted-foreground">
+							Rejection on {new Date(latestRejection.data.rejectedAt).toISOString().slice(0, 10)}: "
+							{latestRejection.data.comment}"
+						</p>
+					</div>
+					<div className="grid gap-2 sm:grid-cols-2">
+						<div className="space-y-1">
+							<Label>Amount (USD)</Label>
+							<input
+								value={fineAmount}
+								onChange={(e) => setFineAmount(e.target.value)}
+								placeholder="0.00"
+								pattern="^\d+(\.\d{1,2})?$"
+								className="w-full rounded border px-2 py-1.5 font-mono text-sm"
+							/>
+						</div>
+						<div className="space-y-1">
+							<Label>Reason</Label>
+							<input
+								value={fineReason}
+								onChange={(e) => setFineReason(e.target.value)}
+								className="w-full rounded border px-2 py-1.5 text-sm"
+							/>
+						</div>
+					</div>
+					<Button
+						variant="destructive"
+						disabled={!fineAmount.trim() || !fineReason.trim() || applyFine.isPending}
+						onClick={() =>
+							applyFine.mutate(
+								{ amount: fineAmount.trim(), reason: fineReason.trim() },
+								{
+									onSuccess: () => {
+										setFineAmount("");
+										setFineReason("");
+									},
+								},
+							)
+						}
+					>
+						{applyFine.isPending ? "Applying…" : "Apply fine"}
+					</Button>
+					{applyFine.error && (
+						<p className="text-xs text-destructive">{(applyFine.error as Error).message}</p>
+					)}
+				</Card>
+			)}
+			{latestRejection.data?.fined && (
+				<p className="text-xs text-muted-foreground">
+					Fine already applied to the latest rejection.
+				</p>
+			)}
 
 			{uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
 		</section>

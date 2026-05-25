@@ -25,6 +25,11 @@ function OwnerHome() {
 						Masters
 					</Link>
 				</li>
+				<li>
+					<Link to="/owner/finance" className="underline">
+						Finance
+					</Link>
+				</li>
 			</ul>
 		</section>
 	);

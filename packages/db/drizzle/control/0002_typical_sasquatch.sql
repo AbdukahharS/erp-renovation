@@ -1,0 +1,1 @@
+ALTER TABLE "tenant_memberships" ADD COLUMN "closing_permission" boolean DEFAULT false NOT NULL;

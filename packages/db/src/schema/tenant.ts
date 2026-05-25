@@ -166,6 +166,9 @@ export const assetKindEnum = pgEnum("asset_kind", [
 	"BEFORE_PHOTO",
 	"STAGE_PHOTO",
 	"DEFECT_PHOTO",
+	"PORTFOLIO_PHOTO",
+	"HANDOVER_CERTIFICATE",
+	"FINAL_REPORT",
 ]);
 
 // ---------- Properties (Phase 3) ----------
@@ -342,6 +345,11 @@ export const masterProfiles = pgTable(
 		phone: text("phone"),
 		availabilityOverride: text("availability_override"),
 		availabilityOverrideUntil: timestamp("availability_override_until"),
+		// Phase 7: masters whose work is paid as a flat external cost (e.g.
+		// TZ 8.1 cleaning company) rather than per-m² wages. Excluded from
+		// wage credits; their cost lands in property_costs as
+		// EXTERNAL_CONTRACTOR.
+		isExternalContractor: boolean("is_external_contractor").notNull().default(false),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at").notNull().defaultNow(),
 	},
@@ -491,6 +499,26 @@ export type StageEventType = (typeof stageEventTypeEnum.enumValues)[number];
 export const financialTransactionTypeEnum = pgEnum("financial_transaction_type", [
 	"WAGE_CREDIT",
 	"BUDGET_DECREMENT",
+	// Phase 7: non-wage costs (authored via property_costs).
+	"MATERIAL_COST",
+	"TRANSPORT_COST",
+	"EXTERNAL_CONTRACTOR_COST",
+	"OTHER_COST",
+	// Phase 7: fines applied by inspectors against master balances.
+	"FINE",
+	// Phase 7: settled payouts (manual mark-paid) — negative against balance.
+	"PAYOUT_SETTLEMENT",
+	// Phase 7: inverse rows for soft reversal of authoring entries pre-closing.
+	"REVERSAL",
+]);
+
+// Phase 7: category for manual cost entries against a property. Each category
+// has a paired entry in financial_transactions for dashboard aggregation.
+export const propertyCostCategoryEnum = pgEnum("property_cost_category", [
+	"MATERIAL",
+	"TRANSPORT",
+	"EXTERNAL_CONTRACTOR",
+	"OTHER",
 ]);
 
 export const notificationIntentTypeEnum = pgEnum("notification_intent_type", ["STAGE_AVAILABLE"]);
@@ -560,3 +588,138 @@ export const notificationIntents = pgTable(
 export type FinancialTransactionType = (typeof financialTransactionTypeEnum.enumValues)[number];
 export type NotificationIntentType = (typeof notificationIntentTypeEnum.enumValues)[number];
 export type NotificationIntentStatus = (typeof notificationIntentStatusEnum.enumValues)[number];
+
+// ---------- Phase 7: finance authoring + unit closing ----------
+
+// Authoring side of non-wage costs. Each row pairs with a matching financial
+// transaction (same id stored as transactionId) so the dashboard aggregates
+// solely from financial_transactions. Reversals insert a REVERSAL transaction
+// and flag the originating row as reversed.
+export const propertyCosts = pgTable(
+	"property_costs",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		propertyId: uuid("property_id")
+			.notNull()
+			.references(() => properties.id, { onDelete: "cascade" }),
+		category: propertyCostCategoryEnum("category").notNull(),
+		amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+		description: text("description"),
+		incurredAt: timestamp("incurred_at").notNull().defaultNow(),
+		createdBy: text("created_by").notNull(),
+		transactionId: uuid("transaction_id")
+			.notNull()
+			.references(() => financialTransactions.id, { onDelete: "restrict" }),
+		reversedAt: timestamp("reversed_at"),
+		reversedBy: text("reversed_by"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		index("property_costs_property_idx").on(t.propertyId),
+		index("property_costs_category_idx").on(t.category),
+	],
+);
+
+// Fines authored by inspectors. Each fine pairs with a FINE financial
+// transaction (negative amount) and decrements the master's balance.
+export const fines = pgTable(
+	"fines",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		masterUserId: text("master_user_id").notNull(),
+		propertyId: uuid("property_id").references(() => properties.id, { onDelete: "set null" }),
+		rejectionId: uuid("rejection_id").references(() => rejections.id, { onDelete: "set null" }),
+		amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+		reason: text("reason").notNull(),
+		appliedBy: text("applied_by").notNull(),
+		transactionId: uuid("transaction_id")
+			.notNull()
+			.references(() => financialTransactions.id, { onDelete: "restrict" }),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		index("fines_master_idx").on(t.masterUserId),
+		index("fines_property_idx").on(t.propertyId),
+		// At most one fine per rejection.
+		uniqueIndex("fines_rejection_unique")
+			.on(t.rejectionId)
+			.where(sql`${t.rejectionId} IS NOT NULL`),
+	],
+);
+
+// Manual mark-paid against a master balance. Pairs with a PAYOUT_SETTLEMENT
+// transaction that subtracts from the balance.
+export const payoutSettlements = pgTable(
+	"payout_settlements",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		masterUserId: text("master_user_id").notNull(),
+		amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+		note: text("note"),
+		settledBy: text("settled_by").notNull(),
+		settledAt: timestamp("settled_at").notNull().defaultNow(),
+		transactionId: uuid("transaction_id")
+			.notNull()
+			.references(() => financialTransactions.id, { onDelete: "restrict" }),
+	},
+	(t) => [index("payout_settlements_master_idx").on(t.masterUserId)],
+);
+
+// One closing per property. reportSnapshot freezes the Plan-vs-Actual numbers
+// at closing time so later cost edits don't retroactively alter the report.
+export const unitClosings = pgTable(
+	"unit_closings",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		propertyId: uuid("property_id")
+			.notNull()
+			.references(() => properties.id, { onDelete: "cascade" }),
+		closedBy: text("closed_by").notNull(),
+		closedAt: timestamp("closed_at").notNull().defaultNow(),
+		materialsHandoverChecked: boolean("materials_handover_checked").notNull().default(false),
+		clientHandoverChecked: boolean("client_handover_checked").notNull().default(false),
+		notes: text("notes"),
+		netProfit: numeric("net_profit", { precision: 14, scale: 2 }).notNull(),
+		reportSnapshot: jsonb("report_snapshot").notNull(),
+		certificateAssetId: uuid("certificate_asset_id").references(() => propertyAssets.id, {
+			onDelete: "set null",
+		}),
+		finalReportAssetId: uuid("final_report_asset_id").references(() => propertyAssets.id, {
+			onDelete: "set null",
+		}),
+		reopenedAt: timestamp("reopened_at"),
+		reopenedBy: text("reopened_by"),
+	},
+	(t) => [
+		index("unit_closings_property_idx").on(t.propertyId),
+		// At most one active (non-reopened) closing per property. Reopened rows
+		// stay as audit history so reports of past closes survive — the audit
+		// trail the spec requires (PHASE-7 §7.4 "reversible by Owner only,
+		// audited") is exactly this row preserved with reopenedAt/reopenedBy.
+		uniqueIndex("unit_closings_property_active_unique")
+			.on(t.propertyId)
+			.where(sql`${t.reopenedAt} IS NULL`),
+	],
+);
+
+// Links portfolio photos uploaded at closing to the property.
+export const portfolioAssets = pgTable(
+	"portfolio_assets",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		propertyId: uuid("property_id")
+			.notNull()
+			.references(() => properties.id, { onDelete: "cascade" }),
+		assetId: uuid("asset_id")
+			.notNull()
+			.references(() => propertyAssets.id, { onDelete: "cascade" }),
+		uploadedBy: text("uploaded_by").notNull(),
+		linkedAt: timestamp("linked_at").notNull().defaultNow(),
+	},
+	(t) => [
+		unique("portfolio_assets_edge_unique").on(t.propertyId, t.assetId),
+		index("portfolio_assets_property_idx").on(t.propertyId),
+	],
+);
+
+export type PropertyCostCategory = (typeof propertyCostCategoryEnum.enumValues)[number];

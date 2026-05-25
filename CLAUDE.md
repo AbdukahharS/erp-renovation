@@ -81,7 +81,7 @@ Use **IORedis** (not `Bun.redis`) for BullMQ connections — this is the maintai
 | UI | shadcn/ui (Maia `base-maia` style, neutral palette) + Tailwind CSS v4 + Inter Variable |
 | Auth | Better Auth |
 | Storage | Cloudflare R2 — **Bun native S3 client** (`Bun.s3`) for presigned URLs and server-side object ops |
-| Notifications | Telegram (grammy) + Web Push |
+| Notifications | Web Push (installed PWA) + in-app notification center |
 | Infra (local) | Docker Compose → Railway (prod) |
 
 ## Definition of Done

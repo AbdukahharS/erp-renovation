@@ -92,6 +92,10 @@ export const tenantMemberships = pgTable(
 			.notNull()
 			.references(() => tenants.id, { onDelete: "cascade" }),
 		role: roleEnum("role").notNull(),
+		// Phase 7: grants the holder the right to perform the property closing
+		// audit (TZ "Chief Technical Supervisor" maps to an Inspector with this
+		// permission, per assumption A7). Owners always implicitly hold it.
+		closingPermission: boolean("closing_permission").notNull().default(false),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 	},
 	(t) => [primaryKey({ columns: [t.userId, t.tenantId] })],

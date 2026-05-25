@@ -61,7 +61,7 @@ Per `tech-stack-and-monorepo.md`. Quick reference:
 - **Runtime/PM/test**: Bun · **Backend**: Elysia · **API types**: Eden Treaty · **ORM**: Drizzle · **DB**: PostgreSQL (schema-per-tenant)
 - **Queue**: BullMQ + Redis · **Frontend**: React + Vite (PWA) · **Routing**: TanStack Router · **Server state**: TanStack Query
 - **Forms/validation**: React Hook Form + Zod (`packages/validators` shared) · **UI**: shadcn/ui + Tailwind
-- **Monorepo**: Turborepo over Bun workspaces · **Storage**: Cloudflare R2 via presigned URLs · **Notifications**: Telegram (grammy) + Web Push · **Auth**: Better Auth · **Infra**: Docker Compose (local) → Railway
+- **Monorepo**: Turborepo over Bun workspaces · **Storage**: Cloudflare R2 via presigned URLs · **Notifications**: Web Push (installed PWA) + in-app notification center · **Auth**: Better Auth · **Infra**: Docker Compose (local) → Railway
 
 ---
 
@@ -93,7 +93,7 @@ Each phase is a separate file. They are ordered by dependency — later phases a
 | 5 | `PHASE-5-automation-jobs.md` | BullMQ Accept automation: wage credit, unlock, notify | 4 | ~1.5 wk |
 | 6 | `PHASE-6-hr-masters.md` | Master profiles, ratings, availability, invite links | 4 | ~1.5 wk |
 | 7 | `PHASE-7-finance.md` | Wages, virtual balances, Plan-vs-Actual dashboard, unit closing | 5 | ~2 wk |
-| 8 | `PHASE-8-realtime-notifications.md` | Telegram bot, Web Push, WebSocket live dashboard | 5 | ~2 wk |
+| 8 | `PHASE-8-realtime-notifications.md` | Web Push (installed PWA), in-app notification center, WebSocket live dashboard | 5 | ~2 wk |
 | 9 | `PHASE-9-hardening-saas.md` | Tenant provisioning, billing-readiness, perf, security, launch | all | ~2 wk |
 
 **Critical path to a usable internal pilot**: Phases 0 → 1 → 2 → 3 → 4 → 5 → 7. That sequence gets one tenant running the full pipeline with working money. Phases 6, 8, and 9 harden and complete the SaaS story.
@@ -119,7 +119,7 @@ Every phase file uses the same structure:
 Not blocking, but will need answers by the phase noted:
 
 - **Fines model** (TZ §2 Inspector "apply fines for defects") — flat fine? deduction from balance? Needed by Phase 7.
-- **Telegram vs PWA push priority for field roles** — both are planned (the TZ says "PWA *or* Telegram bot"; this plan deliberately does **both** — PWA shells from Phase 1/4, Telegram from Phase 8 — as an upgrade of the spec's "or"). If time-boxed, Telegram wins (field roles are the TZ's explicit priority). Needed by Phase 8.
+- ~~**Telegram vs PWA push priority for field roles**~~ — **Resolved (2026-05-25).** The TZ says "PWA *or* Telegram bot" (alternatives, not both) and uses Telegram only as an *example* of a notification channel ("например, в Telegram"); the inspector notification is specified as "пуш-уведомление" outright. We commit to **installed PWA + Web Push** as the sole channel, with an **in-app notification center** (unread badge, history, read/unread state) inside the PWA so dismissed pushes are recoverable. Telegram is dropped from scope; if a future tenant has an iOS-heavy fleet where Web Push reliability becomes a real problem, Telegram can be reintroduced as an optional second channel against the dispatch seam Phase 5 already provides.
 - **"Before" photo storage retention** — how long do we keep construction-site photos? Cost driver on R2. Needed by Phase 9.
 - **Multi-level screed / multi-currency** — the spec uses $; SaaS clients may not. Currency-per-tenant? Needed by Phase 9.
 
@@ -144,4 +144,4 @@ An external audit against the two source documents surfaced ten findings; all ar
 | 7 | "15 steps" vs "8 stages" TZ inconsistency | Canonical-source note added to Phase 2 §2.1: detailed checklist section is canonical. |
 | 8 | BullMQ-on-Bun claims asserted as settled | Web-verified (see §9 verification flags); IORedis caveat added to Phase 5 §5.1; unconfirmed benchmark figure softened. |
 | 9 | Eden Treaty vs Zod source-of-truth tension | Precedence rule added to §6: Zod in `packages/validators` is authoritative for runtime; the Elysia route validates against it so Eden's inferred type derives from it. |
-| 10 | TZ's "PWA *or* Telegram" quietly upgraded to "and" | Acknowledged explicitly in §9 as a deliberate upgrade, with Telegram as the priority if time-boxed. |
+| 10 | TZ's "PWA *or* Telegram" quietly upgraded to "and" | **Re-resolved (2026-05-25)**: reverted to PWA-only. The TZ frames the two as alternatives and uses Telegram only as an illustrative example; the inspector notification is literally specified as "push." We ship installed PWA + Web Push + an in-app notification center, and drop Telegram from scope. See §9. |

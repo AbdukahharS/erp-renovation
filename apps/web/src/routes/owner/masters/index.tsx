@@ -7,6 +7,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	useCreateInvitation,
 	useInvitations,
 	useMasters,
@@ -62,16 +69,17 @@ function OwnerMasters() {
 				<div className="grid gap-2 md:grid-cols-4">
 					<div>
 						<Label>Role</Label>
-						<select
-							className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-							value={role}
-							onChange={(e) => setRole(e.target.value as Role)}
-						>
-							<option value="MASTER">Master</option>
-							<option value="INSPECTOR">Inspector</option>
-							<option value="OWNER">Owner</option>
-							<option value="PROCUREMENT">Procurement</option>
-						</select>
+						<Select value={role} onValueChange={(v) => setRole(v as Role)}>
+							<SelectTrigger className="h-9 w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="MASTER">Master</SelectItem>
+								<SelectItem value="INSPECTOR">Inspector</SelectItem>
+								<SelectItem value="OWNER">Owner</SelectItem>
+								<SelectItem value="PROCUREMENT">Procurement</SelectItem>
+							</SelectContent>
+						</Select>
 					</div>
 					<div className="md:col-span-2">
 						<Label>Email (optional)</Label>

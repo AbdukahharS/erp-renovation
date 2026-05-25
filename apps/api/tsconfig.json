@@ -4,7 +4,8 @@
 		"types": ["bun"],
 		"outDir": "dist",
 		"noEmit": true,
-		"allowImportingTsExtensions": true
+		"allowImportingTsExtensions": true,
+		"jsx": "react-jsx"
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", "dist"]

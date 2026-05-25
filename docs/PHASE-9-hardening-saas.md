@@ -36,7 +36,7 @@ D1/D2 made SaaS-readiness a first-class goal, and the schema was built for it fr
 
 ### 9.5 Resolve parked questions (README §9)
 - **Fines model** — should be resolved by Phase 7; confirm and document.
-- **Telegram vs Push priority** — confirm from Phase 8.
+- ~~**Telegram vs Push priority**~~ — resolved 2026-05-25: Web Push to installed PWA only, in-app notification center backs it. Telegram dropped from scope; dispatch seam preserved for future reintroduction. See Phase 8.
 - **Photo retention** — set a policy (informs R2 cost and §9.3).
 - **Multi-currency** — implement per-tenant currency or explicitly defer with a documented constraint.
 
@@ -66,5 +66,5 @@ D1/D2 made SaaS-readiness a first-class goal, and the schema was built for it fr
 - [ ] A schema migration fans out across all tenants safely and resumably; per-tenant backup + restore is tested.
 - [ ] Performance is acceptable on realistic data volumes (acceptance queue, dashboard, photo upload/serve), with indexes reviewed.
 - [ ] Production deploy has staging/prod separation, separate API/worker processes, health checks, logging, and error tracking.
-- [ ] All parked questions (fines, Telegram/Push priority, photo retention, multi-currency) are resolved and documented.
+- [ ] All parked questions (fines, photo retention, multi-currency) are resolved and documented. (Notification-channel priority resolved 2026-05-25 — PWA + Web Push only.)
 - [ ] Onboarding + operational runbooks exist, including isolation-breach incident response.

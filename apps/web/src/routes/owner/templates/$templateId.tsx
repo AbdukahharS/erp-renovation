@@ -16,6 +16,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useSpecializations, useTemplateMutations, useTemplateTree } from "@/lib/queries/templates";
@@ -323,28 +330,36 @@ function SubStageEditor({
 									<InlineText value={sub.name} onSave={(v) => patch({ name: v })} />
 								</Field>
 								<Field label="Performer">
-									<select
-										className="h-9 rounded-md border bg-input/30 px-2 text-sm"
+									<Select
 										value={sub.performerType}
-										onChange={(e) => patch({ performerType: e.target.value })}
+										onValueChange={(v) => patch({ performerType: v })}
 									>
-										<option value="MASTER">MASTER</option>
-										<option value="INSPECTOR">INSPECTOR</option>
-									</select>
+										<SelectTrigger className="h-9">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="MASTER">MASTER</SelectItem>
+											<SelectItem value="INSPECTOR">INSPECTOR</SelectItem>
+										</SelectContent>
+									</Select>
 								</Field>
 								<Field label="Specialization">
-									<select
-										className="h-9 rounded-md border bg-input/30 px-2 text-sm"
-										value={sub.specialization ?? ""}
-										onChange={(e) => patch({ specialization: e.target.value || null })}
+									<Select
+										value={sub.specialization ?? "__none__"}
+										onValueChange={(v) => patch({ specialization: v === "__none__" ? null : v })}
 									>
-										<option value="">— none —</option>
-										{(specs ?? []).map((s) => (
-											<option key={s.id} value={s.name}>
-												{s.name}
-											</option>
-										))}
-									</select>
+										<SelectTrigger className="h-9">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="__none__">— none —</SelectItem>
+											{(specs ?? []).map((s) => (
+												<SelectItem key={s.id} value={s.name}>
+													{s.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
 								</Field>
 								<Field label="Standard duration (days)">
 									<InlineText
@@ -383,19 +398,23 @@ function SubStageEditor({
 												key={mr.id}
 												className="flex items-center gap-2 rounded border px-2 py-1.5 text-sm"
 											>
-												<select
+												<Select
 													value={mr.mediaType}
-													onChange={(e) =>
+													onValueChange={(v) =>
 														mutators.updateMediaRequirement.mutate({
 															id: mr.id,
-															patch: { mediaType: e.target.value as "PHOTO" | "VIDEO" },
+															patch: { mediaType: v as "PHOTO" | "VIDEO" },
 														})
 													}
-													className="rounded border bg-input/30 px-1 text-xs"
 												>
-													<option value="PHOTO">PHOTO</option>
-													<option value="VIDEO">VIDEO</option>
-												</select>
+													<SelectTrigger size="sm" className="text-xs">
+														<SelectValue />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="PHOTO">PHOTO</SelectItem>
+														<SelectItem value="VIDEO">VIDEO</SelectItem>
+													</SelectContent>
+												</Select>
 												<InlineText
 													value={mr.description}
 													onSave={(v) =>
@@ -534,14 +553,18 @@ function AddSubStageForm({
 					placeholder="code (e.g. 1.4)"
 				/>
 				<Input value={name} onChange={(e) => setName(e.target.value)} placeholder="name" />
-				<select
-					className="h-9 rounded-md border bg-input/30 px-2 text-sm"
+				<Select
 					value={performerType}
-					onChange={(e) => setPerformerType(e.target.value as "MASTER" | "INSPECTOR")}
+					onValueChange={(v) => setPerformerType(v as "MASTER" | "INSPECTOR")}
 				>
-					<option value="MASTER">MASTER</option>
-					<option value="INSPECTOR">INSPECTOR</option>
-				</select>
+					<SelectTrigger className="h-9 w-full">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="MASTER">MASTER</SelectItem>
+						<SelectItem value="INSPECTOR">INSPECTOR</SelectItem>
+					</SelectContent>
+				</Select>
 				<Input value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="days" />
 				<Input value={wage} onChange={(e) => setWage(e.target.value)} placeholder="$ per m²" />
 			</div>
@@ -613,14 +636,15 @@ function AddMediaForm({
 			}}
 			className="mt-2 flex gap-2 items-center"
 		>
-			<select
-				value={type}
-				onChange={(e) => setType(e.target.value as "PHOTO" | "VIDEO")}
-				className="h-7 rounded border bg-input/30 px-1 text-xs"
-			>
-				<option value="PHOTO">PHOTO</option>
-				<option value="VIDEO">VIDEO</option>
-			</select>
+			<Select value={type} onValueChange={(v) => setType(v as "PHOTO" | "VIDEO")}>
+				<SelectTrigger size="sm" className="text-xs">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="PHOTO">PHOTO</SelectItem>
+					<SelectItem value="VIDEO">VIDEO</SelectItem>
+				</SelectContent>
+			</Select>
 			<Input
 				value={desc}
 				onChange={(e) => setDesc(e.target.value)}

@@ -1,6 +1,7 @@
 import {
 	financialTransactions,
 	masterBalances,
+	masterProfiles,
 	subStageAssignments,
 	subStageInstances,
 } from "@repo/db/schema/tenant";
@@ -48,6 +49,20 @@ export async function processWageCredit(job: { data: WageCreditJobData }): Promi
 		const propertyId = await propertyIdForSubStage(tx, subStageInstanceId);
 		const masterUserId = assignment?.masterUserId ?? null;
 		const wageAmount = ss.wageAmount; // numeric -> string
+
+		// PHASE-7 §7.4 / A7: external-contractor masters (e.g. TZ 8.1 cleaning
+		// company) are paid as a flat external cost recorded manually against
+		// the property via `property_costs` with category EXTERNAL_CONTRACTOR.
+		// Skip wage_credit + budget_decrement entirely — the column on
+		// master_profiles is the routing decision.
+		if (masterUserId) {
+			const [profile] = await tx
+				.select({ isExternalContractor: masterProfiles.isExternalContractor })
+				.from(masterProfiles)
+				.where(eq(masterProfiles.userId, masterUserId))
+				.limit(1);
+			if (profile?.isExternalContractor) return;
+		}
 
 		const wageInsert = await tx
 			.insert(financialTransactions)

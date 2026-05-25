@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useGrantClosingPermission, useMarkPayout, useMasterFinance } from "@/lib/queries/finance";
 import { useMaster, useUpdateMaster, useUpdateMasterAvailability } from "@/lib/queries/hr";
 
 export const Route = createFileRoute("/owner/masters/$id")({
@@ -48,6 +49,11 @@ function MasterDetail() {
 
 	const [override, setOverride] = useState("");
 	const [until, setUntil] = useState("");
+	const [payoutAmount, setPayoutAmount] = useState("");
+	const [payoutNote, setPayoutNote] = useState("");
+	const masterFinance = useMasterFinance(data?.profile.userId);
+	const markPayout = useMarkPayout(data?.profile.userId);
+	const grantPermission = useGrantClosingPermission(data?.profile.userId);
 
 	if (query.isLoading) return <p className="text-sm text-muted-foreground">loading…</p>;
 	if (!data) return <p className="text-sm text-destructive">not found</p>;
@@ -150,6 +156,125 @@ function MasterDetail() {
 							clear
 						</button>
 					</div>
+				)}
+			</Card>
+
+			<Card className="space-y-3 p-4">
+				<h2 className="text-sm font-semibold">Finance</h2>
+				{masterFinance.isLoading && (
+					<p className="text-xs text-muted-foreground">loading transactions…</p>
+				)}
+				{masterFinance.data && (
+					<>
+						<div className="grid grid-cols-3 gap-2 text-xs">
+							<div>
+								<div className="text-muted-foreground">Wages</div>
+								<div className="font-semibold tabular-nums">
+									${masterFinance.data.wagesCredited}
+								</div>
+							</div>
+							<div>
+								<div className="text-muted-foreground">Fines</div>
+								<div className="font-semibold tabular-nums text-rose-700">
+									${masterFinance.data.finesDeducted}
+								</div>
+							</div>
+							<div>
+								<div className="text-muted-foreground">Settled</div>
+								<div className="font-semibold tabular-nums">
+									${masterFinance.data.payoutsSettled}
+								</div>
+							</div>
+						</div>
+						<div className="grid gap-2 md:grid-cols-[1fr_2fr_auto]">
+							<Input
+								value={payoutAmount}
+								onChange={(e) => setPayoutAmount(e.target.value)}
+								placeholder="0.00"
+								pattern="^\d+(\.\d{1,2})?$"
+								className="font-mono"
+							/>
+							<Input
+								value={payoutNote}
+								onChange={(e) => setPayoutNote(e.target.value)}
+								placeholder="Note (optional)"
+							/>
+							<Button
+								size="sm"
+								disabled={
+									!payoutAmount.trim() ||
+									Number(payoutAmount) > Number(masterFinance.data.balance) ||
+									markPayout.isPending
+								}
+								onClick={() =>
+									markPayout.mutate(
+										{ amount: payoutAmount.trim(), note: payoutNote.trim() || undefined },
+										{
+											onSuccess: () => {
+												setPayoutAmount("");
+												setPayoutNote("");
+											},
+										},
+									)
+								}
+							>
+								Mark paid
+							</Button>
+						</div>
+						<details className="text-xs">
+							<summary className="cursor-pointer text-muted-foreground">
+								Transactions ({masterFinance.data.transactions.length})
+							</summary>
+							<div className="mt-2 grid gap-1">
+								{masterFinance.data.transactions.slice(0, 30).map((t) => (
+									<div key={t.id} className="grid grid-cols-[80px_1fr_auto] items-center gap-2">
+										<span className="text-muted-foreground">
+											{new Date(t.createdAt).toISOString().slice(0, 10)}
+										</span>
+										<span>
+											{t.type}
+											{t.description ? (
+												<span className="text-muted-foreground"> · {t.description}</span>
+											) : null}
+										</span>
+										<span
+											className={`tabular-nums ${Number(t.amount) < 0 ? "text-rose-700" : "text-emerald-700"}`}
+										>
+											${t.amount}
+										</span>
+									</div>
+								))}
+							</div>
+						</details>
+					</>
+				)}
+			</Card>
+
+			<Card className="space-y-2 p-4">
+				<h2 className="text-sm font-semibold">Closing permission</h2>
+				<p className="text-xs text-muted-foreground">
+					Per A7: the TZ's "Chief Technical Supervisor" maps to an Inspector with this permission.
+					Master accounts shown here can also receive it for cross-tenant flexibility, though only
+					Inspectors act on it in practice.
+				</p>
+				<Button
+					size="sm"
+					variant="outline"
+					disabled={grantPermission.isPending}
+					onClick={() => grantPermission.mutate(true)}
+				>
+					Grant
+				</Button>
+				<Button
+					size="sm"
+					variant="ghost"
+					disabled={grantPermission.isPending}
+					onClick={() => grantPermission.mutate(false)}
+				>
+					Revoke
+				</Button>
+				{grantPermission.error && (
+					<p className="text-xs text-destructive">{(grantPermission.error as Error).message}</p>
 				)}
 			</Card>
 

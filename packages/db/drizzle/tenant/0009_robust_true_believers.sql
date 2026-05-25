@@ -1,0 +1,2 @@
+ALTER TABLE "unit_closings" DROP CONSTRAINT "unit_closings_property_id_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX "unit_closings_property_active_unique" ON "unit_closings" USING btree ("property_id") WHERE "unit_closings"."reopened_at" IS NULL;

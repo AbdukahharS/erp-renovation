@@ -24,7 +24,7 @@ The Accept event from Phase 4 enqueues a coordinated set of jobs (the stack doc 
 
 - **`stage-accept.job.ts`** — orchestrator: closes the accepted stage definitively, then fans out the rest.
 - **`wage-credit.job.ts`** — credits the stage's frozen wage amount (Phase 3, A4) to the master's virtual balance; records a financial transaction; decrements the property's remaining planned budget.
-- **`notify-next-master.job.ts`** — unlocks the next stage (`LOCKED → AVAILABLE`) and dispatches notifications to masters of the next required specialization (TZ: "after plastering is accepted, painters receive a notification"). Actual delivery channels (Telegram/Push) are Phase 8 — here the job creates the notification intent and calls a dispatch interface that Phase 8 fills in.
+- **`notify-next-master.job.ts`** — unlocks the next stage (`LOCKED → AVAILABLE`) and dispatches notifications to masters of the next required specialization (TZ: "after plastering is accepted, painters receive a notification"). Actual delivery (Web Push to installed PWAs) and the in-app notification record are Phase 8 — here the job creates the notification intent and calls a dispatch interface that Phase 8 fills in.
 
 ### 5.3 Reliability
 - Idempotency: accepting the same stage twice (double-tap, retry) must not double-credit wages. Key jobs on the stage-instance id + a processed flag.
@@ -35,7 +35,7 @@ The Accept event from Phase 4 enqueues a coordinated set of jobs (the stack doc 
 - Remove the synchronous placeholder unlock from Phase 4; the unlock now happens via the job chain. Verify the loop still demonstrably advances stage-to-stage, now asynchronously.
 
 ## Out of scope
-- Notification *delivery* (Telegram bot, Web Push) — Phase 8. This phase produces notification intents and a dispatch seam.
+- Notification *delivery* (Web Push to installed PWA) and the in-app notification center — Phase 8. This phase produces notification intents and a dispatch seam.
 - The financial dashboard / Plan-vs-Actual visualization (Phase 7 — this phase writes the numbers, Phase 7 displays them).
 - Rating recalculation on accept/reject (Phase 6).
 - Scheduled/cron jobs (none needed yet).
