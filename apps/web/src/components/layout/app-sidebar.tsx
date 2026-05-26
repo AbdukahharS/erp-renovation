@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { LogOutIcon, type LucideIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +26,8 @@ import {
 } from "@/components/ui/sidebar";
 import { type SessionMe, signOut } from "@/lib/auth";
 
-export type NavItem = { label: string; to: string; icon: LucideIcon };
-export type NavGroup = { label: string; items: NavItem[] };
+export type NavItem = { labelKey: string; to: string; icon: LucideIcon };
+export type NavGroup = { labelKey: string; items: NavItem[] };
 
 export function AppSidebar({
 	brand,
@@ -39,6 +40,7 @@ export function AppSidebar({
 	groups: NavGroup[];
 	me: SessionMe | null;
 }) {
+	const { t } = useTranslation();
 	const { location } = useRouterState();
 	const path = location.pathname;
 	const initials =
@@ -67,23 +69,24 @@ export function AppSidebar({
 			</SidebarHeader>
 			<SidebarContent>
 				{groups.map((g) => (
-					<SidebarGroup key={g.label}>
-						<SidebarGroupLabel>{g.label}</SidebarGroupLabel>
+					<SidebarGroup key={g.labelKey}>
+						<SidebarGroupLabel>{t(g.labelKey)}</SidebarGroupLabel>
 						<SidebarGroupContent>
 							<SidebarMenu>
 								{g.items.map((item) => {
 									const active =
 										path === item.to || (item.to !== "/" && path.startsWith(`${item.to}/`));
 									const Icon = item.icon;
+									const label = t(item.labelKey);
 									return (
 										<SidebarMenuItem key={item.to}>
 											<SidebarMenuButton
 												isActive={active}
-												tooltip={item.label}
+												tooltip={label}
 												render={<Link to={item.to} />}
 											>
 												<Icon className="size-4" />
-												<span>{item.label}</span>
+												<span>{label}</span>
 											</SidebarMenuButton>
 										</SidebarMenuItem>
 									);
@@ -104,7 +107,7 @@ export function AppSidebar({
 							<AvatarFallback className="text-xs">{initials}</AvatarFallback>
 						</Avatar>
 						<div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-							<span className="font-medium truncate">{me?.user?.name ?? "Guest"}</span>
+							<span className="font-medium truncate">{me?.user?.name ?? t("auth.guest")}</span>
 							<span className="text-xs text-muted-foreground truncate">
 								{me?.user?.email ?? ""}
 							</span>
@@ -112,7 +115,7 @@ export function AppSidebar({
 					</DropdownMenuTrigger>
 					<DropdownMenuContent side="right" align="end" className="w-56">
 						<DropdownMenuGroup>
-							<DropdownMenuLabel>{me?.user?.email ?? "Account"}</DropdownMenuLabel>
+							<DropdownMenuLabel>{me?.user?.email ?? t("auth.account")}</DropdownMenuLabel>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem
 								onClick={async () => {
@@ -121,7 +124,7 @@ export function AppSidebar({
 								}}
 							>
 								<LogOutIcon className="mr-2 size-4" />
-								Sign out
+								{t("auth.signOut")}
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 					</DropdownMenuContent>

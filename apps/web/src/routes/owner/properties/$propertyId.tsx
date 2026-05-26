@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { useProperty } from "@/lib/queries/properties";
 
 export const Route = createFileRoute("/owner/properties/$propertyId")({
-	staticData: { crumb: "Detail" },
+	staticData: { crumbKey: "crumbs.detail" },
 	component: PropertyDetail,
 });
 
@@ -33,10 +34,12 @@ const COLUMN_STYLE: Record<string, string> = {
 };
 
 function PropertyDetail() {
+	const { t } = useTranslation();
 	const { propertyId } = Route.useParams();
 	const { data, isLoading } = useProperty(propertyId);
 
-	if (isLoading || !data) return <p className="text-sm text-muted-foreground">loading…</p>;
+	if (isLoading || !data)
+		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
 
 	const allSubStages = data.stages.flatMap((s) => s.subStages);
 	const byStatus = new Map<string, typeof allSubStages>();
@@ -46,13 +49,18 @@ function PropertyDetail() {
 		byStatus.set(ss.status, arr);
 	}
 
+	const layoutLabel =
+		data.layoutType === "NEW_BUILD"
+			? t("propertyDetail.layoutNewBuild")
+			: t("propertyDetail.layoutSecondary");
+
 	return (
 		<section className="space-y-6">
 			<header className="flex items-start justify-between gap-4">
 				<div className="space-y-1">
 					<div className="flex items-center gap-2 text-xs text-muted-foreground">
 						<Link to="/owner/properties" className="hover:underline">
-							Properties
+							{t("propertyDetail.backToProperties")}
 						</Link>
 						<span>/</span>
 					</div>
@@ -62,17 +70,20 @@ function PropertyDetail() {
 						<span
 							className={`rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_BADGE[data.status] ?? ""}`}
 						>
-							{data.status}
+							{t(`propertyStatus.${data.status}`, data.status)}
 						</span>
 						<span className="text-xs text-muted-foreground">
-							{data.layoutType === "NEW_BUILD" ? "New build" : "Secondary"} · {data.areaSqm} m² ·
-							planned ${data.plannedUnitCost}
+							{t("propertyDetail.metaLine", {
+								layout: layoutLabel,
+								area: data.areaSqm,
+								cost: data.plannedUnitCost,
+							})}
 						</span>
 					</div>
 				</div>
 				{data.floorPlanAsset && (
 					<div className="text-xs text-muted-foreground">
-						<div>Floor plan attached</div>
+						<div>{t("propertyDetail.floorPlanAttached")}</div>
 						<div className="font-mono">{data.floorPlanAsset.contentType}</div>
 					</div>
 				)}
@@ -80,8 +91,7 @@ function PropertyDetail() {
 
 			{data.status === "PENDING" && (
 				<div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm">
-					Awaiting Sub-stage 1.1 (Initial Property Acceptance) by an Inspector. The first master
-					stage will unlock once 1.1 is accepted.
+					{t("propertyDetail.awaitingInspector")}
 				</div>
 			)}
 
@@ -91,7 +101,7 @@ function PropertyDetail() {
 					return (
 						<div key={status} className={`rounded-lg border p-2 ${COLUMN_STYLE[status] ?? ""}`}>
 							<div className="mb-2 flex items-center justify-between px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-								<span>{status.replace("_", " ")}</span>
+								<span>{t(`stageStatus.${status}`, status.replace("_", " "))}</span>
 								<span>{items.length}</span>
 							</div>
 							<div className="space-y-2">
@@ -108,7 +118,7 @@ function PropertyDetail() {
 										<div className="mt-1 leading-tight">{ss.name}</div>
 										{ss.performerType === "MASTER" && Number(ss.wageAmount) > 0 && (
 											<div className="mt-1 text-[11px] text-muted-foreground">
-												wage ${ss.wageAmount}
+												{t("propertyDetail.wageLabel", { amount: ss.wageAmount })}
 											</div>
 										)}
 										{ss.specialization && (

@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import { uploadToPresignedUrl } from "@/lib/queries/acceptance";
 import {
 	useCloseProperty,
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/owner/properties/$propertyId/closing")({
 });
 
 function ClosingFlow() {
+	const { t } = useTranslation();
 	const { propertyId } = Route.useParams();
 	const navigate = useNavigate();
 	const { data, isLoading } = usePropertyFinance(propertyId);
@@ -41,7 +43,8 @@ function ClosingFlow() {
 		}
 	}
 
-	if (isLoading || !data) return <p className="text-sm text-muted-foreground">loading…</p>;
+	if (isLoading || !data)
+		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
 	const { summary } = data;
 
 	const canClose =
@@ -69,14 +72,17 @@ function ClosingFlow() {
 	}
 
 	if (summary.status === "ARCHIVED") {
+		const datePart = summary.closedAt
+			? t("closing.archivedOn", { date: new Date(summary.closedAt).toISOString().slice(0, 10) })
+			: "";
 		return (
 			<section className="space-y-4">
 				<header>
-					<h1 className="text-2xl font-semibold">{summary.propertyName} — closed</h1>
+					<h1 className="text-2xl font-semibold">
+						{t("closing.closedTitle", { name: summary.propertyName })}
+					</h1>
 					<p className="text-sm text-muted-foreground">
-						Property archived
-						{summary.closedAt ? ` on ${new Date(summary.closedAt).toISOString().slice(0, 10)}` : ""}
-						. Net profit ${summary.netProfit}.
+						{t("closing.archivedSummary", { date: datePart, profit: summary.netProfit })}
 					</p>
 				</header>
 				<button
@@ -85,7 +91,7 @@ function ClosingFlow() {
 					disabled={reopenMutation.isPending}
 					className="rounded border px-3 py-1.5 text-xs"
 				>
-					{reopenMutation.isPending ? "Reopening…" : "Reopen property"}
+					{reopenMutation.isPending ? t("closing.reopening") : t("closing.reopenProperty")}
 				</button>
 				<div>
 					<Link
@@ -93,7 +99,7 @@ function ClosingFlow() {
 						params={{ propertyId }}
 						className="text-xs underline"
 					>
-						Back to finance
+						{t("closing.backToFinance")}
 					</Link>
 				</div>
 			</section>
@@ -109,30 +115,29 @@ function ClosingFlow() {
 						params={{ propertyId }}
 						className="hover:underline"
 					>
-						← Back to finance
+						{t("closing.backToFinanceArrow")}
 					</Link>
 				</div>
-				<h1 className="text-2xl font-semibold">Close {summary.propertyName}</h1>
-				<p className="text-sm text-muted-foreground">
-					Final audit: confirm handover, then the system generates the certificate and final report
-					and archives the property.
-				</p>
+				<h1 className="text-2xl font-semibold">
+					{t("closing.title", { name: summary.propertyName })}
+				</h1>
+				<p className="text-sm text-muted-foreground">{t("closing.description")}</p>
 			</header>
 
 			{summary.status !== "COMPLETED" && (
 				<div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-					Status is <strong>{summary.status}</strong>. Closing requires every MASTER sub-stage to be
-					ACCEPTED.
+					<Trans
+						i18nKey="closing.statusWarning"
+						values={{ status: summary.status }}
+						components={{ strong: <strong /> }}
+					/>
 				</div>
 			)}
 
 			<form onSubmit={submit} className="space-y-4 rounded-lg border bg-card p-4">
 				<fieldset className="space-y-2">
-					<legend className="text-sm font-semibold">Portfolio photos</legend>
-					<p className="text-xs text-muted-foreground">
-						Upload at least one finished-state photo. These are stamped onto the handover
-						certificate.
-					</p>
+					<legend className="text-sm font-semibold">{t("closing.portfolioPhotos")}</legend>
+					<p className="text-xs text-muted-foreground">{t("closing.portfolioHelp")}</p>
 					<input
 						type="file"
 						accept="image/jpeg,image/png,image/webp"
@@ -144,11 +149,13 @@ function ClosingFlow() {
 						}}
 						className="block text-xs"
 					/>
-					<div className="text-xs text-muted-foreground">Uploaded: {portfolioIds.length}</div>
+					<div className="text-xs text-muted-foreground">
+						{t("closing.uploaded", { n: portfolioIds.length })}
+					</div>
 					{uploadError && <p className="text-xs text-rose-700">{uploadError}</p>}
 				</fieldset>
 				<fieldset className="space-y-2">
-					<legend className="text-sm font-semibold">Handover checklist</legend>
+					<legend className="text-sm font-semibold">{t("closing.handoverChecklist")}</legend>
 					<label className="flex items-start gap-2 text-sm">
 						<input
 							type="checkbox"
@@ -156,9 +163,7 @@ function ClosingFlow() {
 							onChange={(e) => setMaterialsChecked(e.target.checked)}
 							className="mt-1"
 						/>
-						<span>
-							All construction debris cleared and material accounting reconciled (TZ 8.2).
-						</span>
+						<span>{t("closing.checkMaterials")}</span>
 					</label>
 					<label className="flex items-start gap-2 text-sm">
 						<input
@@ -167,11 +172,11 @@ function ClosingFlow() {
 							onChange={(e) => setClientChecked(e.target.checked)}
 							className="mt-1"
 						/>
-						<span>Client handover walkthrough complete and acceptance signed.</span>
+						<span>{t("closing.checkClient")}</span>
 					</label>
 				</fieldset>
 				<label className="block text-xs">
-					<span className="mb-1 block text-muted-foreground">Notes (optional)</span>
+					<span className="mb-1 block text-muted-foreground">{t("closing.notesOptional")}</span>
 					<textarea
 						value={notes}
 						onChange={(e) => setNotes(e.target.value)}
@@ -184,7 +189,7 @@ function ClosingFlow() {
 					disabled={!canClose || closeMutation.isPending}
 					className="rounded bg-emerald-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
 				>
-					{closeMutation.isPending ? "Closing…" : "Close & archive"}
+					{closeMutation.isPending ? t("closing.closing") : t("closing.closeAndArchive")}
 				</button>
 				{closeMutation.error && (
 					<p className="text-xs text-rose-700">{(closeMutation.error as Error).message}</p>

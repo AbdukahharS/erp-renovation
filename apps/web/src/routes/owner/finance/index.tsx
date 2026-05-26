@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRightIcon, WalletIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -16,19 +17,17 @@ import { useAllPropertiesFinance } from "@/lib/queries/finance";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/owner/finance/")({
-	staticData: { crumb: "Finance" },
+	staticData: { crumbKey: "nav.finance" },
 	component: AllFinance,
 });
 
 function AllFinance() {
+	const { t } = useTranslation();
 	const { data, isLoading } = useAllPropertiesFinance();
 
 	return (
 		<div className="space-y-4">
-			<PageHeader
-				title="Finance"
-				description="Plan-vs-Actual across all properties. Net profit = planned − wages − costs."
-			/>
+			<PageHeader title={t("finance.title")} description={t("finance.description")} />
 
 			{isLoading ? (
 				<div className="space-y-2 rounded-lg border bg-card p-4">
@@ -39,20 +38,20 @@ function AllFinance() {
 			) : !data || data.length === 0 ? (
 				<EmptyState
 					icon={WalletIcon}
-					title="No properties yet"
-					description="Finance rolls up once properties enter the pipeline."
+					title={t("finance.emptyTitle")}
+					description={t("finance.emptyDescription")}
 				/>
 			) : (
 				<div className="rounded-lg border bg-card">
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Property</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead className="text-right">Planned</TableHead>
-								<TableHead className="text-right">Wages</TableHead>
-								<TableHead className="text-right">Costs</TableHead>
-								<TableHead className="text-right">Net profit</TableHead>
+								<TableHead>{t("finance.colProperty")}</TableHead>
+								<TableHead>{t("finance.colStatus")}</TableHead>
+								<TableHead className="text-right">{t("finance.colPlanned")}</TableHead>
+								<TableHead className="text-right">{t("finance.colWages")}</TableHead>
+								<TableHead className="text-right">{t("finance.colCosts")}</TableHead>
+								<TableHead className="text-right">{t("finance.colNetProfit")}</TableHead>
 								<TableHead className="w-12" />
 							</TableRow>
 						</TableHeader>
@@ -71,13 +70,13 @@ function AllFinance() {
 											</Link>
 											{r.materialsEstimateMissing ? (
 												<Badge variant="outline" className="ml-2 text-[10px]">
-													materials incomplete
+													{t("finance.materialsIncomplete")}
 												</Badge>
 											) : null}
 										</TableCell>
 										<TableCell className="text-xs">
 											<Badge variant="outline" className="text-[10px]">
-												{r.status.replace(/_/g, " ").toLowerCase()}
+												{t(`propertyStatus.${r.status}`, r.status.replace(/_/g, " ").toLowerCase())}
 											</Badge>
 										</TableCell>
 										<TableCell className="text-right tabular-nums">${r.plannedTotal}</TableCell>
@@ -97,7 +96,7 @@ function AllFinance() {
 											<Link
 												to="/owner/properties/$propertyId/finance"
 												params={{ propertyId: r.propertyId }}
-												aria-label="open"
+												aria-label={t("finance.openAria")}
 												className="inline-flex"
 											>
 												<ArrowRightIcon className="size-4 text-muted-foreground" />

@@ -2,6 +2,7 @@ import type { StageTree, SubStageTree } from "@repo/validators";
 import { ArrowDown, ArrowUp, ChevronDown, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
 	Select,
@@ -48,6 +49,7 @@ export function SubStageEditor({
 	onMoveDown: () => void;
 	mutators: Mutators;
 }) {
+	const { t } = useTranslation();
 	const { data: specs } = useSpecializations();
 	const [expanded, setExpanded] = useState(false);
 	const patch = (p: Record<string, unknown>) =>
@@ -78,19 +80,34 @@ export function SubStageEditor({
 					)}
 				</button>
 				<span className="text-xs text-muted-foreground">
-					{sub.checklistItems.length} checks · {sub.mediaRequirements.length} media
+					{t("templates.checksMedia", {
+						checks: sub.checklistItems.length,
+						media: sub.mediaRequirements.length,
+					})}
 				</span>
-				<Button variant="ghost" size="icon-sm" onClick={onMoveUp} disabled={isFirst}>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={onMoveUp}
+					disabled={isFirst}
+					aria-label={t("templates.moveUp")}
+				>
 					<ArrowUp className="size-4" />
 				</Button>
-				<Button variant="ghost" size="icon-sm" onClick={onMoveDown} disabled={isLast}>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={onMoveDown}
+					disabled={isLast}
+					aria-label={t("templates.moveDown")}
+				>
 					<ArrowDown className="size-4" />
 				</Button>
 				<Button
 					variant="ghost"
 					size="icon-sm"
 					onClick={() => setExpanded(!expanded)}
-					aria-label={expanded ? "Collapse sub-stage" : "Expand sub-stage"}
+					aria-label={expanded ? t("templates.collapseSub") : t("templates.expandSub")}
 				>
 					<motion.span
 						animate={{ rotate: expanded ? 180 : 0 }}
@@ -101,10 +118,10 @@ export function SubStageEditor({
 					</motion.span>
 				</Button>
 				<ConfirmDelete
-					title={`Delete sub-stage "${sub.name}"?`}
-					description="This permanently removes the sub-stage and its checklists and media requirements."
+					title={t("templates.deleteSubTitle", { name: sub.name })}
+					description={t("templates.deleteSubDesc")}
 					onConfirm={() => mutators.deleteSubStage.mutate(sub.id)}
-					ariaLabel="Delete sub-stage"
+					ariaLabel={t("templates.deleteSubAria")}
 				/>
 			</motion.div>
 			<AnimatePresence initial={false}>
@@ -119,13 +136,13 @@ export function SubStageEditor({
 					>
 						<div className="border-t p-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
 							<div className="space-y-3">
-								<Field label="Code">
+								<Field label={t("templates.fieldCode")}>
 									<InlineText value={sub.code} onSave={(v) => patch({ code: v })} />
 								</Field>
-								<Field label="Name">
+								<Field label={t("templates.fieldName")}>
 									<InlineText value={sub.name} onSave={(v) => patch({ name: v })} />
 								</Field>
-								<Field label="Performer">
+								<Field label={t("templates.fieldPerformer")}>
 									<Select
 										value={sub.performerType}
 										onValueChange={(v) => patch({ performerType: v })}
@@ -139,7 +156,7 @@ export function SubStageEditor({
 										</SelectContent>
 									</Select>
 								</Field>
-								<Field label="Specialization">
+								<Field label={t("templates.fieldSpecialization")}>
 									<Select
 										value={sub.specialization ?? "__none__"}
 										onValueChange={(v) => patch({ specialization: v === "__none__" ? null : v })}
@@ -148,7 +165,7 @@ export function SubStageEditor({
 											<SelectValue />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="__none__">— none —</SelectItem>
+											<SelectItem value="__none__">{t("templates.specNone")}</SelectItem>
 											{(specs ?? []).map((s) => (
 												<SelectItem key={s.id} value={s.name}>
 													{s.name}
@@ -157,7 +174,7 @@ export function SubStageEditor({
 										</SelectContent>
 									</Select>
 								</Field>
-								<Field label="Standard duration (days)">
+								<Field label={t("templates.fieldDuration")}>
 									<InlineText
 										value={String(sub.standardDurationDays)}
 										onSave={(v) => {
@@ -167,7 +184,7 @@ export function SubStageEditor({
 										}}
 									/>
 								</Field>
-								<Field label="Wage rate per m² ($)">
+								<Field label={t("templates.fieldWageRate")}>
 									<InlineText
 										value={sub.wageRatePerSqm}
 										onSave={(v) => {
@@ -175,7 +192,7 @@ export function SubStageEditor({
 										}}
 									/>
 								</Field>
-								<Field label="Description">
+								<Field label={t("templates.fieldDescription")}>
 									<InlineTextarea
 										value={sub.description ?? ""}
 										onSave={(v) => patch({ description: v || null })}
@@ -186,7 +203,7 @@ export function SubStageEditor({
 							<div className="space-y-4">
 								<div>
 									<h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
-										Media requirements
+										{t("templates.mediaRequirements")}
 									</h4>
 									<ul className="space-y-1.5">
 										{sub.mediaRequirements.map((mr) => (
@@ -232,7 +249,7 @@ export function SubStageEditor({
 														}
 														size="sm"
 													/>
-													required
+													{t("templates.required")}
 												</span>
 												<Button
 													variant="ghost"
@@ -249,7 +266,7 @@ export function SubStageEditor({
 
 								<div>
 									<h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
-										Checklist control points ({sub.checklistItems.length})
+										{t("templates.checklistPoints", { count: sub.checklistItems.length })}
 									</h4>
 									<ul className="space-y-1.5">
 										{sub.checklistItems.map((ci) => (
@@ -281,7 +298,7 @@ export function SubStageEditor({
 															patch: { criteria: v || null },
 														})
 													}
-													placeholder="Criteria / threshold (optional)…"
+													placeholder={t("templates.criteriaPlaceholder")}
 													className="text-xs text-muted-foreground"
 												/>
 											</li>

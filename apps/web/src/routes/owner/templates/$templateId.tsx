@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/owner/templates/$templateId")({
-	staticData: { crumb: "Template" },
+	staticData: { crumbKey: "crumbs.template" },
 });

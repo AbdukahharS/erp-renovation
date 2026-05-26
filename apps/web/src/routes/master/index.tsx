@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronRightIcon, HardHatIcon, InboxIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/layout/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -7,26 +8,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAvailableStages, useMyStages } from "@/lib/queries/acceptance";
 
 export const Route = createFileRoute("/master/")({
-	staticData: { crumb: "Home" },
+	staticData: { crumbKey: "common.home" },
 	component: MasterHome,
 });
 
 function MasterHome() {
+	const { t } = useTranslation();
 	const available = useAvailableStages();
 	const mine = useMyStages();
 
 	return (
 		<div className="space-y-6">
 			<Section
-				title="In progress"
-				description="Stages you've claimed. Tap to upload photos."
+				title={t("masterHome.inProgressTitle")}
+				description={t("masterHome.inProgressDesc")}
 				loading={mine.isLoading}
 				empty={
 					(mine.data?.length ?? 0) === 0 ? (
 						<EmptyState
 							icon={HardHatIcon}
-							title="No active claims"
-							description="Pick something from the Available list below."
+							title={t("masterHome.noClaimsTitle")}
+							description={t("masterHome.noClaimsDesc")}
 						/>
 					) : null
 				}
@@ -40,7 +42,7 @@ function MasterHome() {
 						subtitle={`${s.propertyName} · ${s.stageName}`}
 						right={
 							<Badge variant={statusVariant(s.status)} className="text-[10px]">
-								{s.status.toLowerCase()}
+								{t(`stageStatus.${s.status}`, { defaultValue: s.status.toLowerCase() })}
 							</Badge>
 						}
 						wage={s.wageAmount}
@@ -49,15 +51,15 @@ function MasterHome() {
 			</Section>
 
 			<Section
-				title="Available"
-				description="Open stages matching your specialization."
+				title={t("masterHome.availableTitle")}
+				description={t("masterHome.availableDesc")}
 				loading={available.isLoading}
 				empty={
 					(available.data?.length ?? 0) === 0 ? (
 						<EmptyState
 							icon={InboxIcon}
-							title="Nothing available"
-							description="New tasks will appear here when masters before you finish."
+							title={t("masterHome.nothingAvailableTitle")}
+							description={t("masterHome.nothingAvailableDesc")}
 						/>
 					) : null
 				}

@@ -1,63 +1,66 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { useSelfMasterFinance } from "@/lib/queries/finance";
 
 export const Route = createFileRoute("/master/finance")({
-	staticData: { crumb: "Wallet" },
+	staticData: { crumbKey: "crumbs.wallet" },
 	component: MasterFinance,
 });
 
 function MasterFinance() {
+	const { t } = useTranslation();
 	const { data, isLoading } = useSelfMasterFinance();
-	if (isLoading || !data) return <p className="text-sm text-muted-foreground">loading…</p>;
+	if (isLoading || !data)
+		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
 
 	return (
 		<section className="space-y-4">
 			<header>
-				<h1 className="text-xl font-semibold">My balance</h1>
-				<p className="text-sm text-muted-foreground">
-					Earnings, fines and payouts. Owner marks payouts settled when paid.
-				</p>
+				<h1 className="text-xl font-semibold">{t("masterFinance.title")}</h1>
+				<p className="text-sm text-muted-foreground">{t("masterFinance.description")}</p>
 			</header>
 
 			<div className="grid grid-cols-2 gap-3">
-				<Stat label="Balance" value={`$${data.balance}`} big />
-				<Stat label="Wages earned" value={`$${data.wagesCredited}`} />
-				<Stat label="Fines" value={`$${data.finesDeducted}`} tone="negative" />
-				<Stat label="Settled" value={`$${data.payoutsSettled}`} />
+				<Stat label={t("masterFinance.balance")} value={`$${data.balance}`} big />
+				<Stat label={t("masterFinance.wagesEarned")} value={`$${data.wagesCredited}`} />
+				<Stat label={t("masterFinance.fines")} value={`$${data.finesDeducted}`} tone="negative" />
+				<Stat label={t("masterFinance.settled")} value={`$${data.payoutsSettled}`} />
 			</div>
 
 			<div className="rounded-lg border">
-				<div className="border-b bg-muted/50 px-3 py-2 text-xs uppercase">Transactions</div>
+				<div className="border-b bg-muted/50 px-3 py-2 text-xs uppercase">
+					{t("masterFinance.transactions")}
+				</div>
 				<table className="w-full text-sm">
 					<thead className="text-left text-xs uppercase">
 						<tr>
-							<th className="px-3 py-2">Date</th>
-							<th className="px-3 py-2">Type</th>
-							<th className="px-3 py-2">Note</th>
-							<th className="px-3 py-2 text-right">Amount</th>
+							<th className="px-3 py-2">{t("masterFinance.colDate")}</th>
+							<th className="px-3 py-2">{t("masterFinance.colType")}</th>
+							<th className="px-3 py-2">{t("masterFinance.colNote")}</th>
+							<th className="px-3 py-2 text-right">{t("masterFinance.colAmount")}</th>
 						</tr>
 					</thead>
 					<tbody>
-						{data.transactions.map((t) => (
-							<tr key={t.id} className="border-t">
+						{data.transactions.map((tr) => (
+							<tr key={tr.id} className="border-t">
 								<td className="px-3 py-2 text-xs">
-									{new Date(t.createdAt).toISOString().slice(0, 10)}
+									{new Date(tr.createdAt).toISOString().slice(0, 10)}
 								</td>
-								<td className="px-3 py-2 text-xs">{t.type}</td>
-								<td className="px-3 py-2 text-xs">{t.description ?? "—"}</td>
+								<td className="px-3 py-2 text-xs">{tr.type}</td>
+								<td className="px-3 py-2 text-xs">{tr.description ?? t("common.em")}</td>
 								<td
 									className={`px-3 py-2 text-right tabular-nums ${
-										Number(t.amount) < 0 ? "text-rose-700" : "text-emerald-700"
+										Number(tr.amount) < 0 ? "text-rose-700" : "text-emerald-700"
 									}`}
 								>
-									${t.amount}
+									${tr.amount}
 								</td>
 							</tr>
 						))}
 						{data.transactions.length === 0 && (
 							<tr>
 								<td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">
-									No transactions yet.
+									{t("masterFinance.noTransactions")}
 								</td>
 							</tr>
 						)}

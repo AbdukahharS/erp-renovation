@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,6 +37,7 @@ type MasterDetailPayload = {
 };
 
 export function MasterDetail({ id }: { id: string }) {
+	const { t } = useTranslation();
 	const query = useMaster(id);
 	const update = useUpdateMaster();
 	const availability = useUpdateMasterAvailability();
@@ -50,15 +52,16 @@ export function MasterDetail({ id }: { id: string }) {
 	const markPayout = useMarkPayout(data?.profile.userId);
 	const grantPermission = useGrantClosingPermission(data?.profile.userId);
 
-	if (query.isLoading) return <p className="text-sm text-muted-foreground">loading…</p>;
-	if (!data) return <p className="text-sm text-destructive">not found</p>;
+	if (query.isLoading)
+		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
+	if (!data) return <p className="text-sm text-destructive">{t("masterDetail.notFound")}</p>;
 
 	const p = data.profile;
 
 	return (
 		<section className="space-y-4">
 			<Link to="/owner/masters" className="text-xs text-muted-foreground hover:underline">
-				← Back to roster
+				{t("masterDetail.backToRoster")}
 			</Link>
 			<header className="space-y-1">
 				<h1 className="text-2xl font-semibold">{p.displayName}</h1>
@@ -67,25 +70,27 @@ export function MasterDetail({ id }: { id: string }) {
 
 			<div className="grid gap-3 md:grid-cols-3">
 				<Card className="p-4">
-					<div className="text-xs text-muted-foreground">Balance</div>
+					<div className="text-xs text-muted-foreground">{t("masterDetail.balance")}</div>
 					<div className="text-2xl font-semibold">${data.balance}</div>
 				</Card>
 				<Card className="p-4">
-					<div className="text-xs text-muted-foreground">Accepted / Rejected</div>
+					<div className="text-xs text-muted-foreground">{t("masterDetail.acceptedRejected")}</div>
 					<div className="text-2xl font-semibold">
 						{data.rating?.acceptedCount ?? 0} / {data.rating?.rejectedCount ?? 0}
 					</div>
 				</Card>
 				<Card className="p-4">
-					<div className="text-xs text-muted-foreground">Avg duration ratio</div>
+					<div className="text-xs text-muted-foreground">{t("masterDetail.avgDurationRatio")}</div>
 					<div className="text-2xl font-semibold">
-						{data.rating?.avgDurationRatio ? Number(data.rating.avgDurationRatio).toFixed(2) : "—"}
+						{data.rating?.avgDurationRatio
+							? Number(data.rating.avgDurationRatio).toFixed(2)
+							: t("common.em")}
 					</div>
 				</Card>
 			</div>
 
 			<Card className="space-y-3 p-4">
-				<h2 className="text-sm font-semibold">Specializations</h2>
+				<h2 className="text-sm font-semibold">{t("masterDetail.specializations")}</h2>
 				<div className="flex flex-wrap gap-1">
 					{p.specializations.map((s) => (
 						<Badge key={s} variant="outline">
@@ -93,7 +98,7 @@ export function MasterDetail({ id }: { id: string }) {
 						</Badge>
 					))}
 					{p.specializations.length === 0 && (
-						<span className="text-xs text-muted-foreground">none</span>
+						<span className="text-xs text-muted-foreground">{t("common.none")}</span>
 					)}
 				</div>
 				<EditSpecializations
@@ -108,15 +113,13 @@ export function MasterDetail({ id }: { id: string }) {
 			</Card>
 
 			<Card className="space-y-3 p-4">
-				<h2 className="text-sm font-semibold">Availability override</h2>
-				<p className="text-xs text-muted-foreground">
-					While the override window is active, notifications for new stages skip this master.
-				</p>
+				<h2 className="text-sm font-semibold">{t("masterDetail.availabilityOverride")}</h2>
+				<p className="text-xs text-muted-foreground">{t("masterDetail.availabilityHelp")}</p>
 				<div className="grid gap-2 md:grid-cols-[2fr_1fr_auto]">
 					<Input
 						value={override}
 						onChange={(e) => setOverride(e.target.value)}
-						placeholder={p.availabilityOverride ?? "Reason (e.g. on leave)"}
+						placeholder={p.availabilityOverride ?? t("masterDetail.overrideReason")}
 					/>
 					<Input type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
 					<Button
@@ -130,12 +133,13 @@ export function MasterDetail({ id }: { id: string }) {
 							})
 						}
 					>
-						Save
+						{t("common.save")}
 					</Button>
 				</div>
 				{p.availabilityOverrideUntil && (
 					<div className="text-xs">
-						Current: <strong>{p.availabilityOverride ?? "set"}</strong> until{" "}
+						{t("masterDetail.current")}{" "}
+						<strong>{p.availabilityOverride ?? t("masterDetail.set")}</strong> until{" "}
 						{new Date(p.availabilityOverrideUntil).toLocaleString()}{" "}
 						<button
 							type="button"
@@ -148,34 +152,34 @@ export function MasterDetail({ id }: { id: string }) {
 								})
 							}
 						>
-							clear
+							{t("masterDetail.clear")}
 						</button>
 					</div>
 				)}
 			</Card>
 
 			<Card className="space-y-3 p-4">
-				<h2 className="text-sm font-semibold">Finance</h2>
+				<h2 className="text-sm font-semibold">{t("masterDetail.finance")}</h2>
 				{masterFinance.isLoading && (
-					<p className="text-xs text-muted-foreground">loading transactions…</p>
+					<p className="text-xs text-muted-foreground">{t("masterDetail.loadingTransactions")}</p>
 				)}
 				{masterFinance.data && (
 					<>
 						<div className="grid grid-cols-3 gap-2 text-xs">
 							<div>
-								<div className="text-muted-foreground">Wages</div>
+								<div className="text-muted-foreground">{t("masterDetail.wages")}</div>
 								<div className="font-semibold tabular-nums">
 									${masterFinance.data.wagesCredited}
 								</div>
 							</div>
 							<div>
-								<div className="text-muted-foreground">Fines</div>
+								<div className="text-muted-foreground">{t("masterDetail.fines")}</div>
 								<div className="font-semibold tabular-nums text-rose-700">
 									${masterFinance.data.finesDeducted}
 								</div>
 							</div>
 							<div>
-								<div className="text-muted-foreground">Settled</div>
+								<div className="text-muted-foreground">{t("masterDetail.settled")}</div>
 								<div className="font-semibold tabular-nums">
 									${masterFinance.data.payoutsSettled}
 								</div>
@@ -192,7 +196,7 @@ export function MasterDetail({ id }: { id: string }) {
 							<Input
 								value={payoutNote}
 								onChange={(e) => setPayoutNote(e.target.value)}
-								placeholder="Note (optional)"
+								placeholder={t("masterDetail.noteOptional")}
 							/>
 							<Button
 								size="sm"
@@ -213,12 +217,14 @@ export function MasterDetail({ id }: { id: string }) {
 									)
 								}
 							>
-								Mark paid
+								{t("masterDetail.markPaid")}
 							</Button>
 						</div>
 						<details className="text-xs">
 							<summary className="cursor-pointer text-muted-foreground">
-								Transactions ({masterFinance.data.transactions.length})
+								{t("masterDetail.transactionsCount", {
+									count: masterFinance.data.transactions.length,
+								})}
 							</summary>
 							<div className="mt-2 grid gap-1">
 								{masterFinance.data.transactions.slice(0, 30).map((t) => (
@@ -246,19 +252,15 @@ export function MasterDetail({ id }: { id: string }) {
 			</Card>
 
 			<Card className="space-y-2 p-4">
-				<h2 className="text-sm font-semibold">Closing permission</h2>
-				<p className="text-xs text-muted-foreground">
-					Per A7: the TZ's "Chief Technical Supervisor" maps to an Inspector with this permission.
-					Master accounts shown here can also receive it for cross-tenant flexibility, though only
-					Inspectors act on it in practice.
-				</p>
+				<h2 className="text-sm font-semibold">{t("masterDetail.closingPermission")}</h2>
+				<p className="text-xs text-muted-foreground">{t("masterDetail.closingPermissionDesc")}</p>
 				<Button
 					size="sm"
 					variant="outline"
 					disabled={grantPermission.isPending}
 					onClick={() => grantPermission.mutate(true)}
 				>
-					Grant
+					{t("masterDetail.grant")}
 				</Button>
 				<Button
 					size="sm"
@@ -266,7 +268,7 @@ export function MasterDetail({ id }: { id: string }) {
 					disabled={grantPermission.isPending}
 					onClick={() => grantPermission.mutate(false)}
 				>
-					Revoke
+					{t("masterDetail.revoke")}
 				</Button>
 				{grantPermission.error && (
 					<p className="text-xs text-destructive">{(grantPermission.error as Error).message}</p>
@@ -274,9 +276,9 @@ export function MasterDetail({ id }: { id: string }) {
 			</Card>
 
 			<Card className="space-y-3 p-4">
-				<h2 className="text-sm font-semibold">Recent activity</h2>
+				<h2 className="text-sm font-semibold">{t("masterDetail.recentActivity")}</h2>
 				{data.recentAssignments.length === 0 && (
-					<p className="text-xs text-muted-foreground">No assignments yet.</p>
+					<p className="text-xs text-muted-foreground">{t("masterDetail.noAssignments")}</p>
 				)}
 				<div className="grid gap-2">
 					{data.recentAssignments.map((a) => (
@@ -311,17 +313,26 @@ function EditSpecializations({
 	onSave: (displayName: string, phone: string | null, specs: string[]) => void;
 	pending: boolean;
 }) {
+	const { t } = useTranslation();
 	const [name, setName] = useState(displayName);
 	const [phoneVal, setPhoneVal] = useState(phone ?? "");
 	const [specs, setSpecs] = useState(initial.join(", "));
 	return (
 		<div className="grid gap-2 md:grid-cols-[1fr_1fr_2fr_auto]">
-			<Input value={name} onChange={(e) => setName(e.target.value)} placeholder="display name" />
-			<Input value={phoneVal} onChange={(e) => setPhoneVal(e.target.value)} placeholder="phone" />
+			<Input
+				value={name}
+				onChange={(e) => setName(e.target.value)}
+				placeholder={t("masterDetail.displayNamePh")}
+			/>
+			<Input
+				value={phoneVal}
+				onChange={(e) => setPhoneVal(e.target.value)}
+				placeholder={t("masterDetail.phonePh")}
+			/>
 			<Input
 				value={specs}
 				onChange={(e) => setSpecs(e.target.value)}
-				placeholder="electrician, tiler"
+				placeholder={t("masterDetail.specsPh")}
 			/>
 			<Button
 				size="sm"
@@ -337,7 +348,7 @@ function EditSpecializations({
 					)
 				}
 			>
-				Save
+				{t("common.save")}
 			</Button>
 		</div>
 	);

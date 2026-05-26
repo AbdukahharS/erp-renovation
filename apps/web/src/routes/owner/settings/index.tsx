@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api, unwrap } from "@/lib/api";
 
 export const Route = createFileRoute("/owner/settings/")({
-	staticData: { crumb: "Settings" },
+	staticData: { crumbKey: "nav.settings" },
 	component: OwnerSettings,
 });
 
@@ -26,6 +27,7 @@ interface TenantConfig {
 }
 
 function OwnerSettings() {
+	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const { data, isLoading } = useQuery({
 		queryKey: ["tenant-config"],
@@ -40,7 +42,7 @@ function OwnerSettings() {
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["tenant-config"] });
 			setForm({});
-			toast.success("Settings saved");
+			toast.success(t("settings.saved"));
 		},
 		onError: (e: Error) => toast.error(e.message),
 	});
@@ -48,7 +50,7 @@ function OwnerSettings() {
 	if (isLoading || !cfg) {
 		return (
 			<div className="space-y-4">
-				<PageHeader title="Tenant settings" description="Currency, targets, branding, retention." />
+				<PageHeader title={t("settings.title")} description={t("settings.shortDescription")} />
 				<Skeleton className="h-48 w-full max-w-2xl" />
 				<Skeleton className="h-48 w-full max-w-2xl" />
 			</div>
@@ -60,11 +62,11 @@ function OwnerSettings() {
 	return (
 		<div className="space-y-6">
 			<PageHeader
-				title="Tenant settings"
-				description="Currency, targets, branding and retention policies for this tenant."
+				title={t("settings.title")}
+				description={t("settings.description")}
 				actions={
 					<Button onClick={() => save.mutate(form)} disabled={save.isPending || !dirty}>
-						{save.isPending ? "Saving…" : "Save changes"}
+						{save.isPending ? t("common.saving") : t("common.saveChanges")}
 					</Button>
 				}
 			/>
@@ -72,14 +74,12 @@ function OwnerSettings() {
 			<div className="grid gap-6 max-w-3xl">
 				<Card>
 					<CardHeader>
-						<CardTitle>Currency &amp; targets</CardTitle>
-						<CardDescription>
-							Display currency and the per-unit cost goal used by the green-marker indicator.
-						</CardDescription>
+						<CardTitle>{t("settings.currency.title")}</CardTitle>
+						<CardDescription>{t("settings.currency.description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="grid gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
-							<Label htmlFor="currency">Currency code (ISO 4217)</Label>
+							<Label htmlFor="currency">{t("settings.currency.code")}</Label>
 							<Input
 								id="currency"
 								value={value.currencyCode}
@@ -88,12 +88,10 @@ function OwnerSettings() {
 									setForm((f) => ({ ...f, currencyCode: e.target.value.toUpperCase() }))
 								}
 							/>
-							<p className="text-xs text-muted-foreground">
-								Only changeable when no non-archived properties exist.
-							</p>
+							<p className="text-xs text-muted-foreground">{t("settings.currency.codeHelp")}</p>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="target">Target unit cost</Label>
+							<Label htmlFor="target">{t("settings.currency.target")}</Label>
 							<Input
 								id="target"
 								value={value.targetUnitCost ?? ""}
@@ -105,14 +103,12 @@ function OwnerSettings() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Rating weights</CardTitle>
-						<CardDescription>
-							How master speed and defects contribute to the rating.
-						</CardDescription>
+						<CardTitle>{t("settings.rating.title")}</CardTitle>
+						<CardDescription>{t("settings.rating.description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="grid gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
-							<Label htmlFor="ws">Speed</Label>
+							<Label htmlFor="ws">{t("settings.rating.speed")}</Label>
 							<Input
 								id="ws"
 								type="number"
@@ -127,7 +123,7 @@ function OwnerSettings() {
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="wd">Defect</Label>
+							<Label htmlFor="wd">{t("settings.rating.defect")}</Label>
 							<Input
 								id="wd"
 								type="number"
@@ -146,12 +142,12 @@ function OwnerSettings() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Branding</CardTitle>
-						<CardDescription>How this tenant appears in shared UI.</CardDescription>
+						<CardTitle>{t("settings.branding.title")}</CardTitle>
+						<CardDescription>{t("settings.branding.description")}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<div className="space-y-2">
-							<Label htmlFor="brand-name">Display name</Label>
+							<Label htmlFor="brand-name">{t("settings.branding.displayName")}</Label>
 							<Input
 								id="brand-name"
 								value={value.branding.displayName ?? ""}
@@ -168,12 +164,12 @@ function OwnerSettings() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Retention</CardTitle>
-						<CardDescription>How long photos and notifications stay around.</CardDescription>
+						<CardTitle>{t("settings.retention.title")}</CardTitle>
+						<CardDescription>{t("settings.retention.description")}</CardDescription>
 					</CardHeader>
 					<CardContent className="grid gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
-							<Label htmlFor="photo-ret">Photo retention (days)</Label>
+							<Label htmlFor="photo-ret">{t("settings.retention.photoDays")}</Label>
 							<Input
 								id="photo-ret"
 								type="number"
@@ -186,7 +182,7 @@ function OwnerSettings() {
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="notif-ret">Notification retention (days)</Label>
+							<Label htmlFor="notif-ret">{t("settings.retention.notificationDays")}</Label>
 							<Input
 								id="notif-ret"
 								type="number"

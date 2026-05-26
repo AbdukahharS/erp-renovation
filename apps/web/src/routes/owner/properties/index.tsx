@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BuildingIcon, PlusIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { type Column, DataTable } from "@/components/layout/data-table";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
@@ -10,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useProperties } from "@/lib/queries/properties";
 
 export const Route = createFileRoute("/owner/properties/")({
-	staticData: { crumb: "Properties" },
+	staticData: { crumbKey: "nav.properties" },
 	component: PropertiesList,
 });
 
@@ -24,74 +25,75 @@ const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
 	ARCHIVED: "outline",
 };
 
-const columns: Column<Row>[] = [
-	{
-		key: "name",
-		header: "Name",
-		cell: (p) => (
-			<Link
-				to="/owner/properties/$propertyId"
-				params={{ propertyId: p.id }}
-				className="font-medium hover:underline"
-			>
-				{p.name}
-			</Link>
-		),
-	},
-	{
-		key: "address",
-		header: "Address",
-		cell: (p) => <span className="text-muted-foreground">{p.address}</span>,
-	},
-	{
-		key: "status",
-		header: "Status",
-		cell: (p) => (
-			<Badge variant={STATUS_VARIANT[p.status] ?? "outline"} className="text-[10px]">
-				{p.status.replace(/_/g, " ").toLowerCase()}
-			</Badge>
-		),
-	},
-	{
-		key: "area",
-		header: "Area (m²)",
-		cell: (p) => <span className="tabular-nums">{p.areaSqm}</span>,
-		className: "text-right",
-		headerClassName: "text-right",
-	},
-	{
-		key: "progress",
-		header: "Progress",
-		cell: (p) => {
-			const pct =
-				p.totalMasterSubStages > 0
-					? Math.round((p.acceptedMasterSubStages / p.totalMasterSubStages) * 100)
-					: 0;
-			return (
-				<div className="flex items-center gap-2">
-					<Progress value={pct} className="h-1.5 w-24" />
-					<span className="text-xs tabular-nums text-muted-foreground">
-						{p.acceptedMasterSubStages}/{p.totalMasterSubStages}
-					</span>
-				</div>
-			);
-		},
-	},
-];
-
 function PropertiesList() {
+	const { t } = useTranslation();
 	const { data, isLoading } = useProperties();
 	const rows = data ?? [];
+
+	const columns: Column<Row>[] = [
+		{
+			key: "name",
+			header: t("properties.columns.name"),
+			cell: (p) => (
+				<Link
+					to="/owner/properties/$propertyId"
+					params={{ propertyId: p.id }}
+					className="font-medium hover:underline"
+				>
+					{p.name}
+				</Link>
+			),
+		},
+		{
+			key: "address",
+			header: t("properties.columns.address"),
+			cell: (p) => <span className="text-muted-foreground">{p.address}</span>,
+		},
+		{
+			key: "status",
+			header: t("properties.columns.status"),
+			cell: (p) => (
+				<Badge variant={STATUS_VARIANT[p.status] ?? "outline"} className="text-[10px]">
+					{t(`propertyStatus.${p.status}`, p.status.replace(/_/g, " ").toLowerCase())}
+				</Badge>
+			),
+		},
+		{
+			key: "area",
+			header: t("properties.columns.area"),
+			cell: (p) => <span className="tabular-nums">{p.areaSqm}</span>,
+			className: "text-right",
+			headerClassName: "text-right",
+		},
+		{
+			key: "progress",
+			header: t("properties.columns.progress"),
+			cell: (p) => {
+				const pct =
+					p.totalMasterSubStages > 0
+						? Math.round((p.acceptedMasterSubStages / p.totalMasterSubStages) * 100)
+						: 0;
+				return (
+					<div className="flex items-center gap-2">
+						<Progress value={pct} className="h-1.5 w-24" />
+						<span className="text-xs tabular-nums text-muted-foreground">
+							{p.acceptedMasterSubStages}/{p.totalMasterSubStages}
+						</span>
+					</div>
+				);
+			},
+		},
+	];
 
 	return (
 		<div className="space-y-4">
 			<PageHeader
-				title="Properties"
-				description="Units in the pipeline. Each property snapshots the tenant's default template at creation."
+				title={t("properties.title")}
+				description={t("properties.description")}
 				actions={
 					<Button nativeButton={false} render={<Link to="/owner/properties/new" />}>
 						<PlusIcon className="mr-1 size-4" />
-						New property
+						{t("properties.newProperty")}
 					</Button>
 				}
 			/>
@@ -110,12 +112,12 @@ function PropertiesList() {
 					empty={
 						<EmptyState
 							icon={BuildingIcon}
-							title="No properties yet"
-							description="Create your first property to start the pipeline."
+							title={t("properties.emptyTitle")}
+							description={t("properties.emptyDescription")}
 							action={
 								<Button nativeButton={false} render={<Link to="/owner/properties/new" />}>
 									<PlusIcon className="mr-1 size-4" />
-									New property
+									{t("properties.newProperty")}
 								</Button>
 							}
 						/>

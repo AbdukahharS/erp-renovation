@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -33,6 +34,7 @@ export function InlineText({
 	onSave: (v: string) => void;
 	className?: string;
 }) {
+	const { t } = useTranslation();
 	const [draft, setDraft] = useState(value);
 	const [editing, setEditing] = useState(false);
 	if (!editing) {
@@ -42,7 +44,7 @@ export function InlineText({
 				onClick={() => setEditing(true)}
 				className={`${className ?? ""} cursor-text hover:underline decoration-dotted text-left bg-transparent`}
 			>
-				{value || <span className="italic text-muted-foreground">empty</span>}
+				{value || <span className="italic text-muted-foreground">{t("templates.empty1")}</span>}
 			</button>
 		);
 	}
@@ -104,6 +106,7 @@ export function ConfirmDelete({
 	onConfirm: () => void;
 	ariaLabel?: string;
 }) {
+	const { t } = useTranslation();
 	return (
 		<AlertDialog>
 			<AlertDialogTrigger
@@ -119,12 +122,12 @@ export function ConfirmDelete({
 					{description && <AlertDialogDescription>{description}</AlertDialogDescription>}
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={onConfirm}
 						className="bg-destructive text-white hover:bg-destructive/90"
 					>
-						Delete
+						{t("common.delete")}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

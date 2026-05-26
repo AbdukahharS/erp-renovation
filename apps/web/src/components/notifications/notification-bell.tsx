@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { BellIcon } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/queries/notifications";
 
 export function NotificationBell() {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const unread = useUnreadCountQuery();
 	const list = useNotificationsQuery({});
@@ -26,7 +28,9 @@ export function NotificationBell() {
 					<Button
 						variant="ghost"
 						size="icon"
-						aria-label={count > 0 ? `${count} unread notifications` : "Notifications"}
+						aria-label={
+							count > 0 ? t("notifications.unreadAria", { count }) : t("notifications.plain")
+						}
 						className="relative"
 					/>
 				}
@@ -40,7 +44,7 @@ export function NotificationBell() {
 			</PopoverTrigger>
 			<PopoverContent align="end" className="w-[22rem] p-0">
 				<div className="flex items-center justify-between px-3 py-2">
-					<div className="text-sm font-medium">Notifications</div>
+					<div className="text-sm font-medium">{t("notifications.title")}</div>
 					<Button
 						variant="ghost"
 						size="sm"
@@ -48,13 +52,15 @@ export function NotificationBell() {
 						disabled={count === 0 || markRead.isPending}
 						onClick={() => markRead.mutate({ all: true })}
 					>
-						Mark all read
+						{t("notifications.markAllRead")}
 					</Button>
 				</div>
 				<Separator />
 				<ScrollArea className="max-h-[60vh]">
 					{list.isPending ? (
-						<div className="px-3 py-6 text-center text-sm text-muted-foreground">Loading…</div>
+						<div className="px-3 py-6 text-center text-sm text-muted-foreground">
+							{t("common.loading")}
+						</div>
 					) : list.data && list.data.items.length > 0 ? (
 						<ul className="py-1">
 							{list.data.items.slice(0, 12).map((n) => (
@@ -70,7 +76,7 @@ export function NotificationBell() {
 						</ul>
 					) : (
 						<div className="px-3 py-6 text-center text-sm text-muted-foreground">
-							No notifications yet.
+							{t("notifications.empty")}
 						</div>
 					)}
 				</ScrollArea>
@@ -81,7 +87,7 @@ export function NotificationBell() {
 						className="text-xs text-primary hover:underline"
 						onClick={() => setOpen(false)}
 					>
-						See all
+						{t("nav.seeAll")}
 					</Link>
 				</div>
 			</PopoverContent>
@@ -90,6 +96,7 @@ export function NotificationBell() {
 }
 
 function NotificationRow({ item, onClick }: { item: NotificationItem; onClick: () => void }) {
+	const { t } = useTranslation();
 	const body = (
 		<div className="flex flex-col gap-0.5">
 			<div className="flex items-center justify-between gap-2">
@@ -99,7 +106,9 @@ function NotificationRow({ item, onClick }: { item: NotificationItem; onClick: (
 				) : null}
 			</div>
 			<div className="line-clamp-2 text-xs text-muted-foreground">{item.body}</div>
-			<div className="text-[10px] text-muted-foreground/70">{formatRelative(item.createdAt)}</div>
+			<div className="text-[10px] text-muted-foreground/70">
+				{formatRelative(item.createdAt, t)}
+			</div>
 		</div>
 	);
 	if (item.targetUrl) {
@@ -128,16 +137,18 @@ function NotificationRow({ item, onClick }: { item: NotificationItem; onClick: (
 	);
 }
 
-function formatRelative(iso: string): string {
+type TFunction = (key: string, options?: Record<string, unknown>) => string;
+
+function formatRelative(iso: string, t: TFunction): string {
 	const date = new Date(iso);
 	const diff = Date.now() - date.getTime();
 	const s = Math.floor(diff / 1000);
-	if (s < 60) return "just now";
+	if (s < 60) return t("notifications.justNow");
 	const m = Math.floor(s / 60);
-	if (m < 60) return `${m}m ago`;
+	if (m < 60) return t("notifications.minutesAgo", { n: m });
 	const h = Math.floor(m / 60);
-	if (h < 24) return `${h}h ago`;
+	if (h < 24) return t("notifications.hoursAgo", { n: h });
 	const d = Math.floor(h / 24);
-	if (d < 30) return `${d}d ago`;
+	if (d < 30) return t("notifications.daysAgo", { n: d });
 	return date.toLocaleDateString();
 }

@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateStageInput } from "@repo/validators";
 import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTemplateMutations, useTemplateTree } from "@/lib/queries/templates";
@@ -11,6 +12,7 @@ import { moveStage, StageEditor } from "./components/stage-editor";
 type AddStageForm = { name: string };
 
 export function TemplateEditor({ templateId }: { templateId: string }) {
+	const { t } = useTranslation();
 	const { data: tree, isLoading, error } = useTemplateTree(templateId);
 	const m = useTemplateMutations(templateId);
 	const {
@@ -24,7 +26,8 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
 		mode: "onChange",
 	});
 
-	if (isLoading) return <p className="text-sm text-muted-foreground">Loading template…</p>;
+	if (isLoading)
+		return <p className="text-sm text-muted-foreground">{t("templates.loadingTemplate")}</p>;
 	if (error) return <p className="text-sm text-destructive">{String(error)}</p>;
 	if (!tree) return null;
 
@@ -32,6 +35,13 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
 		m.addStage.mutate(values.name.trim());
 		reset({ name: "" });
 	});
+
+	const stagesCount = tree.stages.length;
+	const subsCount = tree.stages.reduce((n, s) => n + s.subStages.length, 0);
+	const pointsCount = tree.stages.reduce(
+		(n, s) => n + s.subStages.reduce((m2, ss) => m2 + ss.checklistItems.length, 0),
+		0,
+	);
 
 	return (
 		<div className="space-y-6">
@@ -42,20 +52,18 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
 					className="text-2xl font-semibold"
 				/>
 				<p className="text-xs text-muted-foreground">
-					{tree.stages.length} stages · {tree.stages.reduce((n, s) => n + s.subStages.length, 0)}{" "}
-					sub-stages ·{" "}
-					{tree.stages.reduce(
-						(n, s) => n + s.subStages.reduce((m2, ss) => m2 + ss.checklistItems.length, 0),
-						0,
-					)}{" "}
-					control points
+					{t("templates.countSummary", {
+						stages: stagesCount,
+						subs: subsCount,
+						points: pointsCount,
+					})}
 				</p>
 			</header>
 
 			<form onSubmit={onAdd} className="flex gap-2">
-				<Input placeholder="New stage name…" {...register("name")} />
+				<Input placeholder={t("templates.newStagePlaceholder")} {...register("name")} />
 				<Button type="submit" disabled={!isValid}>
-					<Plus className="size-4" /> Add stage
+					<Plus className="size-4" /> {t("templates.addStage")}
 				</Button>
 			</form>
 

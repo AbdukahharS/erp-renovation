@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckSquareIcon, ChevronRightIcon, ClipboardCheckIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/layout/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -7,27 +8,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useInspectorQueue } from "@/lib/queries/acceptance";
 
 export const Route = createFileRoute("/inspector/")({
-	staticData: { crumb: "Home" },
+	staticData: { crumbKey: "common.home" },
 	component: InspectorQueueView,
 });
 
 function InspectorQueueView() {
+	const { t } = useTranslation();
 	const { data, isLoading } = useInspectorQueue();
 
 	return (
 		<div className="space-y-6">
 			<section>
 				<div className="mb-3">
-					<h2 className="text-lg font-semibold">Awaiting acceptance</h2>
-					<p className="text-xs text-muted-foreground">Submitted by masters — tap to review.</p>
+					<h2 className="text-lg font-semibold">{t("inspectorHome.awaitingTitle")}</h2>
+					<p className="text-xs text-muted-foreground">{t("inspectorHome.awaitingDesc")}</p>
 				</div>
 				{isLoading ? (
 					<Skeletons />
 				) : (data?.submitted.length ?? 0) === 0 ? (
 					<EmptyState
 						icon={ClipboardCheckIcon}
-						title="Queue is empty"
-						description="New submissions will appear here."
+						title={t("inspectorHome.emptyQueueTitle")}
+						description={t("inspectorHome.emptyQueueDesc")}
 					/>
 				) : (
 					<div className="space-y-2">
@@ -38,7 +40,11 @@ function InspectorQueueView() {
 								code={s.code}
 								title={s.name}
 								subtitle={`${s.propertyName} · ${s.stageName}`}
-								badge={<Badge className="text-[10px]">{s.status.toLowerCase()}</Badge>}
+								badge={
+									<Badge className="text-[10px]">
+										{t(`stageStatus.${s.status}`, { defaultValue: s.status.toLowerCase() })}
+									</Badge>
+								}
 							/>
 						))}
 					</div>
@@ -47,18 +53,16 @@ function InspectorQueueView() {
 
 			<section>
 				<div className="mb-3">
-					<h2 className="text-lg font-semibold">My direct stages</h2>
-					<p className="text-xs text-muted-foreground">
-						Inspector-performed stages (e.g. Sub-stage 1.1).
-					</p>
+					<h2 className="text-lg font-semibold">{t("inspectorHome.directTitle")}</h2>
+					<p className="text-xs text-muted-foreground">{t("inspectorHome.directDesc")}</p>
 				</div>
 				{isLoading ? (
 					<Skeletons />
 				) : (data?.direct.length ?? 0) === 0 ? (
 					<EmptyState
 						icon={CheckSquareIcon}
-						title="Nothing direct right now"
-						description="Initial property acceptances will land here."
+						title={t("inspectorHome.emptyDirectTitle")}
+						description={t("inspectorHome.emptyDirectDesc")}
 					/>
 				) : (
 					<div className="space-y-2">
@@ -71,7 +75,7 @@ function InspectorQueueView() {
 								subtitle={`${s.propertyName} · ${s.stageName}`}
 								badge={
 									<Badge variant="secondary" className="text-[10px]">
-										{s.status.toLowerCase()}
+										{t(`stageStatus.${s.status}`, { defaultValue: s.status.toLowerCase() })}
 									</Badge>
 								}
 							/>

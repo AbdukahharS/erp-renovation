@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/owner/properties/new")({
-	staticData: { crumb: "New" },
+	staticData: { crumbKey: "crumbs.new" },
 });

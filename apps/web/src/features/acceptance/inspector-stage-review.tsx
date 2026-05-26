@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,6 +22,7 @@ import { useApplyFine, useLatestRejection } from "@/lib/queries/finance";
 type Result = { passed: boolean; note: string };
 
 export function InspectorStageReview({ subStageId }: { subStageId: string }) {
+	const { t } = useTranslation();
 	const { data, isLoading, error } = useStageDetail("inspector", subStageId);
 	const presign = usePresignInspectorMedia(subStageId);
 	const attach = useAttachInspectorMedia(subStageId);
@@ -50,7 +52,8 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 		return items.every((i) => results[i.id]?.passed);
 	}, [items, results]);
 
-	if (isLoading || !data) return <p className="text-sm text-muted-foreground">loading…</p>;
+	if (isLoading || !data)
+		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
 	if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
 
 	const { subStage, stageName, property, media } = data;
@@ -87,11 +90,13 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 		<section className="space-y-5">
 			<div className="space-y-1">
 				<Link to="/inspector" className="text-xs text-muted-foreground hover:underline">
-					← Queue
+					{t("inspectorStage.queueBack")}
 				</Link>
 				<div className="flex items-baseline gap-2">
 					<span className="font-mono text-sm text-muted-foreground">{subStage.code}</span>
-					<Badge>{subStage.status}</Badge>
+					<Badge>
+						{t(`stageStatus.${subStage.status}`, subStage.status.replace("_", " ").toLowerCase())}
+					</Badge>
 					<Badge variant="secondary">{subStage.performerType}</Badge>
 				</div>
 				<h1 className="text-xl font-semibold">{subStage.name}</h1>
@@ -106,13 +111,10 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 			{/* INSPECTOR-PERFORMED stage (e.g. 1.1) — upload BEFORE_PHOTO + materials toggle, then submit-self */}
 			{isInspectorStage && subStage.status === "AVAILABLE" && (
 				<Card className="space-y-3 p-4">
-					<h2 className="text-sm font-semibold">Initial property acceptance</h2>
-					<p className="text-xs text-muted-foreground">
-						Upload "before" photos (meter readings, panoramas, riser condition) and confirm
-						materials availability.
-					</p>
+					<h2 className="text-sm font-semibold">{t("inspectorStage.initialAcceptance")}</h2>
+					<p className="text-xs text-muted-foreground">{t("inspectorStage.initialDesc")}</p>
 					<label className="block">
-						<span className="sr-only">Take a photo</span>
+						<span className="sr-only">{t("inspectorStage.takePhoto")}</span>
 						<input
 							type="file"
 							accept="image/*,video/*"
@@ -128,7 +130,7 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 					</label>
 					<div className="flex items-center gap-2">
 						<Switch id="materials" checked={materialsOnSite} onCheckedChange={setMaterialsOnSite} />
-						<Label htmlFor="materials">Materials on site</Label>
+						<Label htmlFor="materials">{t("inspectorStage.materialsOnSite")}</Label>
 					</div>
 					<Button
 						size="lg"
@@ -145,12 +147,12 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 						disabled={!canSubmitSelf || submitSelf.isPending}
 						className="w-full"
 					>
-						{submitSelf.isPending ? "Submitting…" : "Submit for acceptance"}
+						{submitSelf.isPending
+							? t("inspectorStage.submitting")
+							: t("inspectorStage.submitForAcceptance")}
 					</Button>
 					{!canSubmitSelf && (
-						<p className="text-xs text-muted-foreground">
-							Upload at least one photo to enable submit.
-						</p>
+						<p className="text-xs text-muted-foreground">{t("inspectorStage.needPhoto")}</p>
 					)}
 				</Card>
 			)}
@@ -158,7 +160,9 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 			{/* Media gallery — visible whenever any media exists */}
 			{media.length > 0 && (
 				<Card className="space-y-2 p-4">
-					<h2 className="text-sm font-semibold">Media ({media.length})</h2>
+					<h2 className="text-sm font-semibold">
+						{t("inspectorStage.mediaCount", { count: media.length })}
+					</h2>
 					<div className="grid grid-cols-3 gap-2">
 						{media.map((m) =>
 							m.contentType.startsWith("image/") && m.url ? (
@@ -181,7 +185,7 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 			{/* Checklist + Accept/Reject for SUBMITTED */}
 			{canResolve && (
 				<Card className="space-y-3 p-4">
-					<h2 className="text-sm font-semibold">Checklist</h2>
+					<h2 className="text-sm font-semibold">{t("inspectorStage.checklist")}</h2>
 					<ul className="space-y-3">
 						{items.map((item) => {
 							const r = results[item.id] ?? { passed: false, note: "" };
@@ -200,12 +204,12 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 												checked={r.passed}
 												onCheckedChange={(v) => setItemResult(item.id, { passed: v })}
 											/>
-											<Label htmlFor={`item-${item.id}`}>Pass</Label>
+											<Label htmlFor={`item-${item.id}`}>{t("inspectorStage.pass")}</Label>
 										</div>
 									</div>
 									{!r.passed && (
 										<Textarea
-											placeholder="Note (optional)"
+											placeholder={t("inspectorStage.noteOptional")}
 											className="mt-2"
 											value={r.note}
 											onChange={(e) => setItemResult(item.id, { note: e.target.value })}
@@ -233,7 +237,7 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 									})
 								}
 							>
-								{accept.isPending ? "Accepting…" : "Accept"}
+								{accept.isPending ? t("inspectorStage.accepting") : t("inspectorStage.accept")}
 							</Button>
 							<Button
 								size="lg"
@@ -241,19 +245,19 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 								className="flex-1"
 								onClick={() => setRejectMode(true)}
 							>
-								Reject
+								{t("inspectorStage.reject")}
 							</Button>
 						</div>
 					) : (
 						<div className="space-y-3 rounded border border-destructive/30 bg-destructive/5 p-3">
-							<Label>Defect comment (required)</Label>
+							<Label>{t("inspectorStage.defectComment")}</Label>
 							<Textarea
 								value={rejectComment}
 								onChange={(e) => setRejectComment(e.target.value)}
-								placeholder="What's wrong, what needs to be redone"
+								placeholder={t("inspectorStage.defectCommentPh")}
 								rows={3}
 							/>
-							<Label>Defect photo (optional)</Label>
+							<Label>{t("inspectorStage.defectPhotoOptional")}</Label>
 							<input
 								type="file"
 								accept="image/*"
@@ -266,7 +270,11 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 								}}
 								className="block w-full text-sm"
 							/>
-							{defectAssetId && <p className="text-xs text-emerald-700">Defect photo attached.</p>}
+							{defectAssetId && (
+								<p className="text-xs text-emerald-700">
+									{t("inspectorStage.defectPhotoAttached")}
+								</p>
+							)}
 							<div className="flex gap-2">
 								<Button
 									variant="destructive"
@@ -280,10 +288,12 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 										})
 									}
 								>
-									{reject.isPending ? "Rejecting…" : "Confirm reject"}
+									{reject.isPending
+										? t("inspectorStage.rejecting")
+										: t("inspectorStage.confirmReject")}
 								</Button>
 								<Button variant="outline" onClick={() => setRejectMode(false)}>
-									Cancel
+									{t("common.cancel")}
 								</Button>
 							</div>
 						</div>
@@ -294,19 +304,19 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 			{/* Manual block/unblock control — distinct from accept/reject */}
 			<Card className="space-y-2 p-4">
 				<div className="flex items-center justify-between">
-					<h2 className="text-sm font-semibold">Manual override</h2>
+					<h2 className="text-sm font-semibold">{t("inspectorStage.manualOverride")}</h2>
 					<Button size="sm" variant="ghost" onClick={() => setOverrideMode((v) => !v)}>
-						{overrideMode ? "Hide" : "Open"}
+						{overrideMode ? t("inspectorStage.hide") : t("inspectorStage.open")}
 					</Button>
 				</div>
 				{overrideMode && (
 					<div className="space-y-2">
-						<Label>Reason (recorded for audit)</Label>
+						<Label>{t("inspectorStage.overrideReason")}</Label>
 						<Textarea
 							rows={2}
 							value={overrideReason}
 							onChange={(e) => setOverrideReason(e.target.value)}
-							placeholder="Why are you overriding the automatic flow"
+							placeholder={t("inspectorStage.overrideReasonPh")}
 						/>
 						<div className="flex flex-wrap gap-2">
 							<Button
@@ -320,7 +330,7 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 									})
 								}
 							>
-								Block
+								{t("inspectorStage.block")}
 							</Button>
 							<Button
 								variant="outline"
@@ -333,7 +343,7 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 									})
 								}
 							>
-								Unblock
+								{t("inspectorStage.unblock")}
 							</Button>
 							<Button
 								variant="destructive"
@@ -346,7 +356,7 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 									})
 								}
 							>
-								Force unblock
+								{t("inspectorStage.forceUnblock")}
 							</Button>
 						</div>
 					</div>
@@ -359,15 +369,17 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 			{latestRejection.data && !latestRejection.data.fined && (
 				<Card className="space-y-3 p-4">
 					<div>
-						<h2 className="text-sm font-semibold">Apply fine for defects</h2>
+						<h2 className="text-sm font-semibold">{t("inspectorStage.applyFineTitle")}</h2>
 						<p className="text-xs text-muted-foreground">
-							Rejection on {new Date(latestRejection.data.rejectedAt).toISOString().slice(0, 10)}: "
-							{latestRejection.data.comment}"
+							{t("inspectorStage.rejectionOn", {
+								date: new Date(latestRejection.data.rejectedAt).toISOString().slice(0, 10),
+								comment: latestRejection.data.comment,
+							})}
 						</p>
 					</div>
 					<div className="grid gap-2 sm:grid-cols-2">
 						<div className="space-y-1">
-							<Label>Amount (USD)</Label>
+							<Label>{t("inspectorStage.amountUsd")}</Label>
 							<input
 								value={fineAmount}
 								onChange={(e) => setFineAmount(e.target.value)}
@@ -377,7 +389,7 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 							/>
 						</div>
 						<div className="space-y-1">
-							<Label>Reason</Label>
+							<Label>{t("inspectorStage.reason")}</Label>
 							<input
 								value={fineReason}
 								onChange={(e) => setFineReason(e.target.value)}
@@ -400,7 +412,7 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 							)
 						}
 					>
-						{applyFine.isPending ? "Applying…" : "Apply fine"}
+						{applyFine.isPending ? t("inspectorStage.applying") : t("inspectorStage.applyFine")}
 					</Button>
 					{applyFine.error && (
 						<p className="text-xs text-destructive">{(applyFine.error as Error).message}</p>
@@ -408,9 +420,7 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 				</Card>
 			)}
 			{latestRejection.data?.fined && (
-				<p className="text-xs text-muted-foreground">
-					Fine already applied to the latest rejection.
-				</p>
+				<p className="text-xs text-muted-foreground">{t("inspectorStage.fineAlreadyApplied")}</p>
 			)}
 
 			{uploadError && <p className="text-sm text-destructive">{uploadError}</p>}

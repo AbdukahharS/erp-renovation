@@ -20,33 +20,33 @@ export const Route = createFileRoute("/owner")({
 			throw redirect({ to: roleHomePath(context.me.activeRole) });
 		}
 	},
-	staticData: { crumb: "Owner" },
+	staticData: { crumbKey: "role.owner" },
 	component: OwnerShell,
 });
 
 const baseNav: NavGroup[] = [
 	{
-		label: "Operations",
+		labelKey: "nav.operations",
 		items: [
-			{ label: "Dashboard", to: "/owner", icon: LayoutDashboardIcon },
-			{ label: "Properties", to: "/owner/properties", icon: BuildingIcon },
-			{ label: "Templates", to: "/owner/templates", icon: ClipboardListIcon },
-			{ label: "Masters", to: "/owner/masters", icon: UsersIcon },
+			{ labelKey: "nav.dashboard", to: "/owner", icon: LayoutDashboardIcon },
+			{ labelKey: "nav.properties", to: "/owner/properties", icon: BuildingIcon },
+			{ labelKey: "nav.templates", to: "/owner/templates", icon: ClipboardListIcon },
+			{ labelKey: "nav.masters", to: "/owner/masters", icon: UsersIcon },
 		],
 	},
 	{
-		label: "Money",
-		items: [{ label: "Finance", to: "/owner/finance", icon: WalletIcon }],
+		labelKey: "nav.money",
+		items: [{ labelKey: "nav.finance", to: "/owner/finance", icon: WalletIcon }],
 	},
 	{
-		label: "Settings",
-		items: [{ label: "Settings", to: "/owner/settings", icon: SettingsIcon }],
+		labelKey: "nav.settingsGroup",
+		items: [{ labelKey: "nav.settings", to: "/owner/settings", icon: SettingsIcon }],
 	},
 ];
 
 const adminGroup: NavGroup = {
-	label: "Platform",
-	items: [{ label: "Super admin", to: "/tenants", icon: ShieldCheckIcon }],
+	labelKey: "nav.platform",
+	items: [{ labelKey: "nav.superAdmin", to: "/tenants", icon: ShieldCheckIcon }],
 };
 
 function OwnerShell() {

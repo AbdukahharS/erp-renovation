@@ -11,6 +11,7 @@ import {
 	PlusIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
@@ -46,7 +47,7 @@ import {
 import { apiBaseUrl } from "@/lib/api";
 
 export const Route = createFileRoute("/_admin/tenants")({
-	staticData: { crumb: "Tenants" },
+	staticData: { crumbKey: "nav.tenants" },
 	component: AdminTenants,
 });
 
@@ -82,6 +83,7 @@ function slugify(s: string) {
 }
 
 function AdminTenants() {
+	const { t } = useTranslation();
 	const qc = useQueryClient();
 	const { data: tenants, isLoading } = useQuery<TenantRow[]>({
 		queryKey: ["admin-tenants"],
@@ -97,7 +99,7 @@ function AdminTenants() {
 		mutationFn: (id: string) => adminFetch(`/admin/tenants/${id}/suspend`, { method: "POST" }),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["admin-tenants"] });
-			toast.success("Tenant suspended");
+			toast.success(t("tenants.suspended"));
 			setConfirm(null);
 		},
 		onError: (e: Error) => toast.error(e.message),
@@ -106,7 +108,7 @@ function AdminTenants() {
 		mutationFn: (id: string) => adminFetch(`/admin/tenants/${id}/resume`, { method: "POST" }),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: ["admin-tenants"] });
-			toast.success("Tenant resumed");
+			toast.success(t("tenants.resumed"));
 			setConfirm(null);
 		},
 		onError: (e: Error) => toast.error(e.message),
@@ -115,12 +117,12 @@ function AdminTenants() {
 	return (
 		<div className="space-y-6">
 			<PageHeader
-				title="Tenants"
-				description="Provision new client companies, suspend, resume, or export per-tenant data."
+				title={t("tenants.title")}
+				description={t("tenants.description")}
 				actions={
 					<Button onClick={() => setCreateOpen(true)}>
 						<PlusIcon className="mr-1 size-4" />
-						New tenant
+						{t("tenants.newTenant")}
 					</Button>
 				}
 			/>
@@ -134,12 +136,12 @@ function AdminTenants() {
 			) : !tenants?.length ? (
 				<EmptyState
 					icon={Building2Icon}
-					title="No tenants yet"
-					description="Provision your first tenant to get started."
+					title={t("tenants.emptyTitle")}
+					description={t("tenants.emptyDescription")}
 					action={
 						<Button onClick={() => setCreateOpen(true)}>
 							<PlusIcon className="mr-1 size-4" />
-							New tenant
+							{t("tenants.newTenant")}
 						</Button>
 					}
 				/>
@@ -148,61 +150,61 @@ function AdminTenants() {
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Name</TableHead>
-								<TableHead>Schema</TableHead>
-								<TableHead>Currency</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
+								<TableHead>{t("tenants.colName")}</TableHead>
+								<TableHead>{t("tenants.colSchema")}</TableHead>
+								<TableHead>{t("tenants.colCurrency")}</TableHead>
+								<TableHead>{t("tenants.colStatus")}</TableHead>
+								<TableHead className="text-right">{t("tenants.colActions")}</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{tenants.map((t) => (
-								<TableRow key={t.id}>
+							{tenants.map((row) => (
+								<TableRow key={row.id}>
 									<TableCell>
-										<div className="font-medium">{t.name}</div>
-										<div className="text-xs text-muted-foreground font-mono">{t.slug}</div>
+										<div className="font-medium">{row.name}</div>
+										<div className="text-xs text-muted-foreground font-mono">{row.slug}</div>
 									</TableCell>
-									<TableCell className="font-mono text-xs">{t.schemaName}</TableCell>
-									<TableCell className="text-xs">{t.currencyCode ?? "—"}</TableCell>
+									<TableCell className="font-mono text-xs">{row.schemaName}</TableCell>
+									<TableCell className="text-xs">{row.currencyCode ?? t("common.em")}</TableCell>
 									<TableCell>
 										<Badge
-											variant={t.status === "ACTIVE" ? "default" : "secondary"}
+											variant={row.status === "ACTIVE" ? "default" : "secondary"}
 											className="text-[10px]"
 										>
-											{t.status.toLowerCase()}
+											{t(`tenants.status.${row.status}`, row.status.toLowerCase())}
 										</Badge>
 									</TableCell>
 									<TableCell className="text-right">
 										<div className="flex items-center justify-end gap-1">
-											{t.status === "ACTIVE" ? (
+											{row.status === "ACTIVE" ? (
 												<Button
 													variant="ghost"
 													size="sm"
-													onClick={() => setConfirm({ kind: "suspend", tenant: t })}
+													onClick={() => setConfirm({ kind: "suspend", tenant: row })}
 												>
 													<PauseIcon className="mr-1 size-3.5" />
-													Suspend
+													{t("tenants.suspend")}
 												</Button>
 											) : (
 												<Button
 													variant="ghost"
 													size="sm"
-													onClick={() => setConfirm({ kind: "resume", tenant: t })}
+													onClick={() => setConfirm({ kind: "resume", tenant: row })}
 												>
 													<PlayIcon className="mr-1 size-3.5" />
-													Resume
+													{t("tenants.resume")}
 												</Button>
 											)}
 											<Button
 												variant="ghost"
 												size="sm"
 												onClick={() => {
-													window.location.href = `${apiBaseUrl}/admin/tenants/${t.id}/export`;
+													window.location.href = `${apiBaseUrl}/admin/tenants/${row.id}/export`;
 												}}
-												aria-label={`Export ${t.name}`}
+												aria-label={t("tenants.exportAria", { name: row.name })}
 											>
 												<DownloadIcon className="mr-1 size-3.5" />
-												Export
+												{t("tenants.export")}
 											</Button>
 										</div>
 									</TableCell>
@@ -223,17 +225,17 @@ function AdminTenants() {
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							{confirm?.kind === "suspend" ? "Suspend tenant?" : "Resume tenant?"}
+							{confirm?.kind === "suspend" ? t("tenants.suspendTitle") : t("tenants.resumeTitle")}
 						</AlertDialogTitle>
 						<AlertDialogDescription>
 							{confirm?.kind === "suspend"
-								? `${confirm.tenant.name} will be locked out until resumed. Their data is preserved.`
-								: `${confirm?.tenant.name} will regain access.`}
+								? t("tenants.suspendBody", { name: confirm.tenant.name })
+								: t("tenants.resumeBody", { name: confirm?.tenant.name ?? "" })}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<Button variant="outline" onClick={() => setConfirm(null)}>
-							Cancel
+							{t("common.cancel")}
 						</Button>
 						<Button
 							variant={confirm?.kind === "suspend" ? "destructive" : "default"}
@@ -244,7 +246,7 @@ function AdminTenants() {
 							}}
 							disabled={suspend.isPending || resume.isPending}
 						>
-							{confirm?.kind === "suspend" ? "Suspend" : "Resume"}
+							{confirm?.kind === "suspend" ? t("tenants.suspend") : t("tenants.resume")}
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -262,6 +264,7 @@ function CreateTenantDialog({
 	onOpenChange: (o: boolean) => void;
 	onCreated: () => void;
 }) {
+	const { t } = useTranslation();
 	const [draft, setDraft] = useState({
 		name: "",
 		slug: "",
@@ -292,7 +295,7 @@ function CreateTenantDialog({
 		mutationFn: (body: typeof draft) =>
 			adminFetch("/admin/tenants", { method: "POST", body: JSON.stringify(body) }),
 		onSuccess: () => {
-			toast.success(`Tenant "${draft.name}" provisioned`);
+			toast.success(t("tenants.provisioned", { name: draft.name }));
 			onCreated();
 			onOpenChange(false);
 		},
@@ -311,11 +314,8 @@ function CreateTenantDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
-					<DialogTitle>Provision new tenant</DialogTitle>
-					<DialogDescription>
-						Creates a Postgres schema, runs the tenant migrations, seeds the default template, and
-						creates the first Owner account.
-					</DialogDescription>
+					<DialogTitle>{t("tenants.provisionTitle")}</DialogTitle>
+					<DialogDescription>{t("tenants.provisionDesc")}</DialogDescription>
 				</DialogHeader>
 
 				<form
@@ -329,7 +329,7 @@ function CreateTenantDialog({
 					}}
 				>
 					<div className="space-y-2">
-						<Label htmlFor="t-name">Company name</Label>
+						<Label htmlFor="t-name">{t("tenants.companyName")}</Label>
 						<Input
 							id="t-name"
 							autoFocus
@@ -342,12 +342,12 @@ function CreateTenantDialog({
 									slug: slugDirty ? d.slug : slugify(name),
 								}));
 							}}
-							placeholder="Acme Renovations"
+							placeholder={t("tenants.companyPh")}
 						/>
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="t-slug">Slug</Label>
+						<Label htmlFor="t-slug">{t("tenants.slug")}</Label>
 						<Input
 							id="t-slug"
 							value={draft.slug}
@@ -355,51 +355,49 @@ function CreateTenantDialog({
 								setSlugDirty(true);
 								setDraft((d) => ({ ...d, slug: slugify(e.target.value) }));
 							}}
-							placeholder="acme-renovations"
+							placeholder={t("tenants.slugPh")}
 						/>
-						<p className="text-[11px] text-muted-foreground">
-							Lowercase letters, digits, hyphens. Used in the Postgres schema name.
-						</p>
+						<p className="text-[11px] text-muted-foreground">{t("tenants.slugHelp")}</p>
 					</div>
 
 					<div className="grid gap-3 sm:grid-cols-2">
 						<div className="space-y-2">
-							<Label htmlFor="t-oname">Owner name</Label>
+							<Label htmlFor="t-oname">{t("tenants.ownerName")}</Label>
 							<Input
 								id="t-oname"
 								value={draft.ownerName}
 								onChange={(e) => setDraft((d) => ({ ...d, ownerName: e.target.value }))}
-								placeholder="Jane Doe"
+								placeholder={t("tenants.ownerNamePh")}
 							/>
 						</div>
 						<div className="space-y-2">
-							<Label htmlFor="t-oemail">Owner email</Label>
+							<Label htmlFor="t-oemail">{t("tenants.ownerEmail")}</Label>
 							<Input
 								id="t-oemail"
 								type="email"
 								value={draft.ownerEmail}
 								onChange={(e) => setDraft((d) => ({ ...d, ownerEmail: e.target.value }))}
-								placeholder="jane@acme.com"
+								placeholder={t("tenants.ownerEmailPh")}
 							/>
 						</div>
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="t-opwd">Owner password</Label>
+						<Label htmlFor="t-opwd">{t("tenants.ownerPassword")}</Label>
 						<div className="relative">
 							<Input
 								id="t-opwd"
 								type={showPwd ? "text" : "password"}
 								value={draft.ownerPassword}
 								onChange={(e) => setDraft((d) => ({ ...d, ownerPassword: e.target.value }))}
-								placeholder="At least 12 characters"
+								placeholder={t("tenants.passwordPh")}
 								className="pr-10"
 							/>
 							<button
 								type="button"
 								onClick={() => setShowPwd((v) => !v)}
 								className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
-								aria-label={showPwd ? "Hide password" : "Show password"}
+								aria-label={showPwd ? t("tenants.hidePassword") : t("tenants.showPassword")}
 							>
 								{showPwd ? <EyeOffIcon className="size-4" /> : <EyeIcon className="size-4" />}
 							</button>
@@ -416,15 +414,15 @@ function CreateTenantDialog({
 
 				<DialogFooter>
 					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={create.isPending}>
-						Cancel
+						{t("common.cancel")}
 					</Button>
 					<Button type="submit" form="create-tenant-form" disabled={!canSubmit || create.isPending}>
 						{create.isPending ? (
-							"Provisioning…"
+							t("tenants.provisioning")
 						) : (
 							<>
 								<CheckCircle2Icon className="mr-1 size-4" />
-								Provision
+								{t("tenants.provision")}
 							</>
 						)}
 					</Button>
@@ -446,7 +444,14 @@ function scorePassword(pwd: string): number {
 }
 
 function PasswordMeter({ score, length }: { score: number; length: number }) {
-	const labels = ["Very weak", "Weak", "Fair", "Good", "Strong"];
+	const { t } = useTranslation();
+	const labels = [
+		t("tenants.password.veryWeak"),
+		t("tenants.password.weak"),
+		t("tenants.password.fair"),
+		t("tenants.password.good"),
+		t("tenants.password.strong"),
+	];
 	const colors = [
 		"bg-destructive",
 		"bg-destructive",
@@ -465,8 +470,10 @@ function PasswordMeter({ score, length }: { score: number; length: number }) {
 				))}
 			</div>
 			<div className="flex justify-between text-[10px] text-muted-foreground">
-				<span>{length === 0 ? "Enter a password" : (labels[score] ?? "")}</span>
-				<span className={length < 12 ? "text-destructive" : ""}>{length}/12 min</span>
+				<span>{length === 0 ? t("tenants.password.enter") : (labels[score] ?? "")}</span>
+				<span className={length < 12 ? "text-destructive" : ""}>
+					{t("tenants.password.meter", { length })}
+				</span>
 			</div>
 		</div>
 	);

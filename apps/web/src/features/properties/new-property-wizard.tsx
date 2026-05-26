@@ -5,6 +5,7 @@ import { Check, FileText, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +39,7 @@ const FormSchema = CreatePropertyInput.omit({ deadlineAt: true }).extend({
 type FormValues = z.infer<typeof FormSchema>;
 
 export function NewPropertyWizard() {
+	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const [step, setStep] = useState<Step>(1);
 	const [propertyId, setPropertyId] = useState<string | null>(null);
@@ -156,11 +158,11 @@ export function NewPropertyWizard() {
 		<section className="mx-auto max-w-2xl space-y-6">
 			<header className="flex items-center justify-between">
 				<div>
-					<h1 className="text-2xl font-semibold">New property</h1>
-					<p className="text-sm text-muted-foreground">Step {step} of 3</p>
+					<h1 className="text-2xl font-semibold">{t("newPropertyWizard.title")}</h1>
+					<p className="text-sm text-muted-foreground">{t("newPropertyWizard.stepOf", { step })}</p>
 				</div>
 				<Link to="/owner/properties" className="text-sm text-muted-foreground hover:underline">
-					Cancel
+					{t("newPropertyWizard.cancel")}
 				</Link>
 			</header>
 
@@ -197,34 +199,44 @@ export function NewPropertyWizard() {
 					}}
 				>
 					<div className="space-y-1.5">
-						<Label htmlFor="name">Name / unit label</Label>
-						<Input id="name" placeholder="Apt 14, Building A" {...register("name")} />
+						<Label htmlFor="name">{t("newPropertyWizard.nameLabel")}</Label>
+						<Input
+							id="name"
+							placeholder={t("newPropertyWizard.namePlaceholder")}
+							{...register("name")}
+						/>
 						{errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
 					</div>
 					<div className="space-y-1.5">
-						<Label htmlFor="address">Address</Label>
-						<Input id="address" placeholder="123 Main St, Floor 4" {...register("address")} />
+						<Label htmlFor="address">{t("newPropertyWizard.addressLabel")}</Label>
+						<Input
+							id="address"
+							placeholder={t("newPropertyWizard.addressPlaceholder")}
+							{...register("address")}
+						/>
 						{errors.address && <p className="text-sm text-destructive">{errors.address.message}</p>}
 					</div>
 					<div className="space-y-1.5">
-						<Label>Layout type</Label>
+						<Label>{t("newPropertyWizard.layoutLabel")}</Label>
 						<Controller
 							control={control}
 							name="layoutType"
 							render={({ field }) => (
 								<div className="flex gap-2">
-									{(["NEW_BUILD", "SECONDARY"] as const).map((t) => (
+									{(["NEW_BUILD", "SECONDARY"] as const).map((opt) => (
 										<button
 											type="button"
-											key={t}
-											onClick={() => field.onChange(t)}
+											key={opt}
+											onClick={() => field.onChange(opt)}
 											className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
-												field.value === t
+												field.value === opt
 													? "border-primary bg-primary/10 text-primary"
 													: "border-input hover:bg-muted"
 											}`}
 										>
-											{t === "NEW_BUILD" ? "New build" : "Secondary"}
+											{opt === "NEW_BUILD"
+												? t("newPropertyWizard.layoutNewBuild")
+												: t("newPropertyWizard.layoutSecondary")}
 										</button>
 									))}
 								</div>
@@ -232,7 +244,7 @@ export function NewPropertyWizard() {
 						/>
 					</div>
 					<div className="flex justify-end">
-						<Button type="submit">Next</Button>
+						<Button type="submit">{t("newPropertyWizard.next")}</Button>
 					</div>
 				</form>
 			)}
@@ -241,14 +253,14 @@ export function NewPropertyWizard() {
 				<form className="space-y-4" onSubmit={submitBasics}>
 					<div className="grid grid-cols-2 gap-4">
 						<div className="space-y-1.5">
-							<Label htmlFor="area">Area (m²)</Label>
+							<Label htmlFor="area">{t("newPropertyWizard.areaLabel")}</Label>
 							<Input id="area" type="number" step="0.01" min="0.01" {...register("areaSqm")} />
 							{errors.areaSqm && (
 								<p className="text-sm text-destructive">{errors.areaSqm.message}</p>
 							)}
 						</div>
 						<div className="space-y-1.5">
-							<Label htmlFor="puc">Planned unit cost</Label>
+							<Label htmlFor="puc">{t("newPropertyWizard.plannedUnitCostLabel")}</Label>
 							<Input id="puc" type="number" step="0.01" min="0" {...register("plannedUnitCost")} />
 							{errors.plannedUnitCost && (
 								<p className="text-sm text-destructive">{errors.plannedUnitCost.message}</p>
@@ -256,15 +268,17 @@ export function NewPropertyWizard() {
 						</div>
 					</div>
 					<div className="space-y-1.5">
-						<Label htmlFor="deadline">Deadline (optional)</Label>
+						<Label htmlFor="deadline">{t("newPropertyWizard.deadlineLabel")}</Label>
 						<Input id="deadline" type="datetime-local" {...register("deadlineAt")} />
 					</div>
 					<div className="flex justify-between">
 						<Button type="button" variant="outline" onClick={() => setStep(1)}>
-							Back
+							{t("newPropertyWizard.back")}
 						</Button>
 						<Button type="submit" disabled={createMut.isPending}>
-							{createMut.isPending ? "Creating…" : "Create & continue"}
+							{createMut.isPending
+								? t("newPropertyWizard.creating")
+								: t("newPropertyWizard.createAndContinue")}
 						</Button>
 					</div>
 				</form>
@@ -273,12 +287,12 @@ export function NewPropertyWizard() {
 			{step === 3 && (
 				<div className="space-y-5">
 					<div className="rounded-md border bg-muted/30 p-3 text-sm">
-						Property created. Optionally attach a floor plan now, or skip and add it later.
+						{t("newPropertyWizard.createdNotice")}
 					</div>
 
 					<div className="space-y-1.5">
 						<Label htmlFor="floorplan">
-							Floor plan (image or PDF, max {formatMb(FLOOR_PLAN_MAX_BYTES)})
+							{t("newPropertyWizard.floorPlanLabel", { size: formatMb(FLOOR_PLAN_MAX_BYTES) })}
 						</Label>
 						<Input
 							id="floorplan"
@@ -289,7 +303,10 @@ export function NewPropertyWizard() {
 								const f = e.target.files?.[0] ?? null;
 								if (f && f.size > FLOOR_PLAN_MAX_BYTES) {
 									setError(
-										`Floor plan is ${formatMb(f.size)}; maximum is ${formatMb(FLOOR_PLAN_MAX_BYTES)}.`,
+										t("newPropertyWizard.floorPlanTooLarge", {
+											actual: formatMb(f.size),
+											max: formatMb(FLOOR_PLAN_MAX_BYTES),
+										}),
 									);
 									setFloorPlanFile(null);
 									e.target.value = "";
@@ -358,11 +375,14 @@ export function NewPropertyWizard() {
 											)}
 											{upload.kind === "attaching" && (
 												<span className="ml-1.5 inline-flex items-center gap-1">
-													· <Loader2 className="h-3 w-3 animate-spin" /> linking to property
+													· <Loader2 className="h-3 w-3 animate-spin" />{" "}
+													{t("newPropertyWizard.linkingToProperty")}
 												</span>
 											)}
 											{upload.kind === "done" && (
-												<span className="ml-1.5 text-emerald-600">· attached</span>
+												<span className="ml-1.5 text-emerald-600">
+													· {t("newPropertyWizard.attached")}
+												</span>
 											)}
 										</div>
 									</div>
@@ -372,7 +392,7 @@ export function NewPropertyWizard() {
 											type="button"
 											onClick={cancelUpload}
 											className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-											aria-label="Cancel upload"
+											aria-label={t("newPropertyWizard.cancelUpload")}
 										>
 											<X className="h-4 w-4" />
 										</button>
@@ -433,13 +453,13 @@ export function NewPropertyWizard() {
 
 					<div className="flex justify-between">
 						<Button type="button" variant="outline" onClick={finish} disabled={isBusy}>
-							Skip
+							{t("newPropertyWizard.skip")}
 						</Button>
 						<Button type="button" onClick={uploadFloorPlan} disabled={!floorPlanFile || isBusy}>
-							{upload.kind === "uploading" && `Uploading… ${upload.pct}%`}
-							{upload.kind === "attaching" && "Linking…"}
-							{upload.kind === "done" && "Done"}
-							{upload.kind === "idle" && "Upload & finish"}
+							{upload.kind === "uploading" && t("newPropertyWizard.uploading", { pct: upload.pct })}
+							{upload.kind === "attaching" && t("newPropertyWizard.linking")}
+							{upload.kind === "done" && t("newPropertyWizard.done")}
+							{upload.kind === "idle" && t("newPropertyWizard.uploadAndFinish")}
 						</Button>
 					</div>
 				</div>

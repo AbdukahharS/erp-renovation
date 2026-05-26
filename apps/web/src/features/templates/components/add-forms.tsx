@@ -8,6 +8,7 @@ import {
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,6 +35,7 @@ const SubStageForm = CreateSubStageInput.omit({
 type SubStageFormValues = z.infer<typeof SubStageForm>;
 
 export function AddSubStageForm({ stageId, mutators }: { stageId: string; mutators: Mutators }) {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const {
 		register,
@@ -55,7 +57,7 @@ export function AddSubStageForm({ stageId, mutators }: { stageId: string; mutato
 	if (!open) {
 		return (
 			<Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-				<Plus className="size-4" /> Add sub-stage
+				<Plus className="size-4" /> {t("templates.addSubStage")}
 			</Button>
 		);
 	}
@@ -77,11 +79,11 @@ export function AddSubStageForm({ stageId, mutators }: { stageId: string; mutato
 		<form onSubmit={onSubmit} className="rounded-md border p-2 space-y-2">
 			<div className="grid grid-cols-2 gap-2">
 				<div>
-					<Input placeholder="code (e.g. 1.4)" {...register("code")} />
+					<Input placeholder={t("templates.codePlaceholder")} {...register("code")} />
 					{errors.code && <p className="text-xs text-destructive">{errors.code.message}</p>}
 				</div>
 				<div>
-					<Input placeholder="name" {...register("name")} />
+					<Input placeholder={t("templates.namePlaceholder")} {...register("name")} />
 					{errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
 				</div>
 				<Controller
@@ -100,13 +102,16 @@ export function AddSubStageForm({ stageId, mutators }: { stageId: string; mutato
 					)}
 				/>
 				<div>
-					<Input placeholder="days" {...register("standardDurationDays")} />
+					<Input
+						placeholder={t("templates.daysPlaceholder")}
+						{...register("standardDurationDays")}
+					/>
 					{errors.standardDurationDays && (
 						<p className="text-xs text-destructive">{errors.standardDurationDays.message}</p>
 					)}
 				</div>
 				<div className="col-span-2">
-					<Input placeholder="$ per m²" {...register("wageRatePerSqm")} />
+					<Input placeholder={t("templates.wagePlaceholder")} {...register("wageRatePerSqm")} />
 					{errors.wageRatePerSqm && (
 						<p className="text-xs text-destructive">{errors.wageRatePerSqm.message}</p>
 					)}
@@ -114,7 +119,7 @@ export function AddSubStageForm({ stageId, mutators }: { stageId: string; mutato
 			</div>
 			<div className="flex gap-2">
 				<Button type="submit" size="sm">
-					Create
+					{t("common.create")}
 				</Button>
 				<Button
 					type="button"
@@ -125,7 +130,7 @@ export function AddSubStageForm({ stageId, mutators }: { stageId: string; mutato
 						reset();
 					}}
 				>
-					Cancel
+					{t("common.cancel")}
 				</Button>
 			</div>
 		</form>
@@ -141,6 +146,7 @@ export function AddChecklistForm({
 	subStageId: string;
 	mutators: Mutators;
 }) {
+	const { t } = useTranslation();
 	const {
 		register,
 		handleSubmit,
@@ -159,7 +165,11 @@ export function AddChecklistForm({
 
 	return (
 		<form onSubmit={onSubmit} className="mt-2 flex gap-2">
-			<Input placeholder="Add control point…" className="text-xs" {...register("text")} />
+			<Input
+				placeholder={t("templates.addControlPoint")}
+				className="text-xs"
+				{...register("text")}
+			/>
 			<Button type="submit" size="sm" disabled={!isValid}>
 				<Plus className="size-3" />
 			</Button>
@@ -170,6 +180,7 @@ export function AddChecklistForm({
 type MediaFormValues = z.input<typeof CreateMediaRequirementInput>;
 
 export function AddMediaForm({ subStageId, mutators }: { subStageId: string; mutators: Mutators }) {
+	const { t } = useTranslation();
 	const {
 		register,
 		handleSubmit,
@@ -210,7 +221,7 @@ export function AddMediaForm({ subStageId, mutators }: { subStageId: string; mut
 				)}
 			/>
 			<Input
-				placeholder="Add media requirement…"
+				placeholder={t("templates.addMediaRequirement")}
 				className="text-xs"
 				{...register("description")}
 			/>
@@ -220,7 +231,7 @@ export function AddMediaForm({ subStageId, mutators }: { subStageId: string; mut
 				render={({ field }) => (
 					<span className="flex items-center gap-1 text-xs">
 						<Switch checked={field.value} onCheckedChange={(c) => field.onChange(!!c)} size="sm" />
-						req
+						{t("templates.req")}
 					</span>
 				)}
 			/>

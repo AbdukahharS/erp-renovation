@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/master/stages/$subStageId")({
 });
 
 function MasterStageDetail() {
+	const { t } = useTranslation();
 	const { subStageId } = Route.useParams();
 	const { data, isLoading, error } = useStageDetail("master", subStageId);
 	const take = useTakeStage();
@@ -26,7 +28,8 @@ function MasterStageDetail() {
 	const [uploading, setUploading] = useState(false);
 	const [uploadError, setUploadError] = useState<string | null>(null);
 
-	if (isLoading || !data) return <p className="text-sm text-muted-foreground">loading…</p>;
+	if (isLoading || !data)
+		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
 	if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
 
 	const { subStage, stageName, property, assignment, media } = data;
@@ -56,11 +59,13 @@ function MasterStageDetail() {
 		<section className="space-y-5">
 			<div className="space-y-1">
 				<Link to="/master" className="text-xs text-muted-foreground hover:underline">
-					← Back
+					{t("masterStage.back")}
 				</Link>
 				<div className="flex items-baseline gap-2">
 					<span className="font-mono text-sm text-muted-foreground">{subStage.code}</span>
-					<Badge>{subStage.status}</Badge>
+					<Badge>
+						{t(`stageStatus.${subStage.status}`, subStage.status.replace("_", " ").toLowerCase())}
+					</Badge>
 				</div>
 				<h1 className="text-xl font-semibold">{subStage.name}</h1>
 				<p className="text-sm text-muted-foreground">
@@ -78,14 +83,14 @@ function MasterStageDetail() {
 					disabled={take.isPending}
 					className="w-full"
 				>
-					{take.isPending ? "Claiming…" : "Take into Work"}
+					{take.isPending ? t("masterStage.claiming") : t("masterStage.takeIntoWork")}
 				</Button>
 			)}
 
 			{(subStage.status === "IN_PROGRESS" || subStage.status === "REJECTED") && (
 				<>
 					<Card className="space-y-3 p-4">
-						<h2 className="text-sm font-semibold">Required photos</h2>
+						<h2 className="text-sm font-semibold">{t("masterStage.requiredPhotos")}</h2>
 						<ul className="space-y-1 text-sm text-muted-foreground">
 							{subStage.mediaRequirements.map((r) => (
 								<li key={r.id} className="flex items-start gap-2">
@@ -94,13 +99,15 @@ function MasterStageDetail() {
 									/>
 									<span>
 										{r.description} <span className="text-xs">({r.mediaType})</span>
-										{r.required && <span className="text-xs"> — required</span>}
+										{r.required && (
+											<span className="text-xs">{t("masterStage.requiredSuffix")}</span>
+										)}
 									</span>
 								</li>
 							))}
 						</ul>
 						<label className="block">
-							<span className="sr-only">Take a photo</span>
+							<span className="sr-only">{t("masterStage.takePhoto")}</span>
 							<input
 								type="file"
 								accept="image/*,video/*"
@@ -114,13 +121,15 @@ function MasterStageDetail() {
 								className="block w-full text-sm"
 							/>
 						</label>
-						{uploading && <p className="text-sm">Uploading…</p>}
+						{uploading && <p className="text-sm">{t("masterStage.uploading")}</p>}
 						{uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
 					</Card>
 
 					{media.length > 0 && (
 						<Card className="space-y-2 p-4">
-							<h2 className="text-sm font-semibold">Uploaded ({media.length})</h2>
+							<h2 className="text-sm font-semibold">
+								{t("masterStage.uploadedCount", { count: media.length })}
+							</h2>
 							<div className="grid grid-cols-3 gap-2">
 								{media.map((m) =>
 									m.contentType.startsWith("image/") && m.url ? (
@@ -149,25 +158,23 @@ function MasterStageDetail() {
 						disabled={submitDisabled || submit.isPending}
 						className="w-full"
 					>
-						{submit.isPending ? "Submitting…" : "Complete"}
+						{submit.isPending ? t("masterStage.submitting") : t("masterStage.complete")}
 					</Button>
 					{submitDisabled && requiredCount > 0 && !hasMedia && (
-						<p className="text-xs text-muted-foreground">
-							Upload at least one photo to enable Complete.
-						</p>
+						<p className="text-xs text-muted-foreground">{t("masterStage.needPhoto")}</p>
 					)}
 				</>
 			)}
 
 			{subStage.status === "SUBMITTED" && (
 				<Card className="p-4">
-					<p className="text-sm">Submitted for acceptance. Waiting for inspector review.</p>
+					<p className="text-sm">{t("masterStage.submittedNotice")}</p>
 				</Card>
 			)}
 
 			{subStage.status === "ACCEPTED" && (
 				<Card className="border-emerald-200 bg-emerald-50 p-4">
-					<p className="text-sm">Accepted. Wage credited.</p>
+					<p className="text-sm">{t("masterStage.acceptedNotice")}</p>
 				</Card>
 			)}
 		</section>

@@ -2,6 +2,7 @@ import type { StageTree, TemplateTree } from "@repo/validators";
 import { ArrowDown, ArrowUp, ChevronDown } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import type { useTemplateMutations } from "@/lib/queries/templates";
 import { AddSubStageForm } from "./add-forms";
@@ -39,6 +40,7 @@ export function StageEditor({
 	onMoveDown: () => void;
 	mutators: Mutators;
 }) {
+	const { t } = useTranslation();
 	const [open, setOpen] = useState(true);
 	return (
 		<motion.div layout className="rounded-lg border bg-card overflow-hidden">
@@ -48,18 +50,20 @@ export function StageEditor({
 					type="button"
 					onClick={() => setOpen(!open)}
 					className="flex-1 flex items-center gap-2 text-left text-sm font-medium group cursor-pointer"
-					aria-label={open ? "Collapse stage" : "Expand stage"}
+					aria-label={open ? t("templates.collapseStage") : t("templates.expandStage")}
 					aria-expanded={open}
 				>
 					<span className="font-medium group-hover:underline decoration-dotted">{stage.name}</span>
 				</button>
-				<span className="text-xs text-muted-foreground">{stage.subStages.length} sub-stages</span>
+				<span className="text-xs text-muted-foreground">
+					{t("templates.subStagesCount", { count: stage.subStages.length })}
+				</span>
 				<Button
 					variant="ghost"
 					size="icon-sm"
 					onClick={onMoveUp}
 					disabled={isFirst}
-					aria-label="Move up"
+					aria-label={t("templates.moveUp")}
 				>
 					<ArrowUp className="size-4" />
 				</Button>
@@ -68,7 +72,7 @@ export function StageEditor({
 					size="icon-sm"
 					onClick={onMoveDown}
 					disabled={isLast}
-					aria-label="Move down"
+					aria-label={t("templates.moveDown")}
 				>
 					<ArrowDown className="size-4" />
 				</Button>
@@ -76,7 +80,7 @@ export function StageEditor({
 					variant="ghost"
 					size="icon-sm"
 					onClick={() => setOpen(!open)}
-					aria-label={open ? "Collapse stage" : "Expand stage"}
+					aria-label={open ? t("templates.collapseStage") : t("templates.expandStage")}
 				>
 					<motion.span
 						animate={{ rotate: open ? 180 : 0 }}
@@ -87,10 +91,10 @@ export function StageEditor({
 					</motion.span>
 				</Button>
 				<ConfirmDelete
-					title={`Delete stage "${stage.name}"?`}
-					description="This permanently removes the stage and all its sub-stages, checklists, and media requirements."
+					title={t("templates.deleteStageTitle", { name: stage.name })}
+					description={t("templates.deleteStageDesc")}
 					onConfirm={() => mutators.deleteStage.mutate(stage.id)}
-					ariaLabel="Delete stage"
+					ariaLabel={t("templates.deleteStageAria")}
 				/>
 			</motion.div>
 			<AnimatePresence initial={false}>

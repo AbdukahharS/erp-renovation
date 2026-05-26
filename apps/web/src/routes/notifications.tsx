@@ -1,5 +1,6 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { BellIcon, CheckCheckIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
@@ -14,19 +15,20 @@ export const Route = createFileRoute("/notifications")({
 	beforeLoad: ({ context }) => {
 		if (!context.me?.user) throw redirect({ to: "/login" });
 	},
-	staticData: { crumb: "Notifications" },
+	staticData: { crumbKey: "nav.notifications" },
 	component: NotificationsInbox,
 });
 
 function NotificationsInbox() {
+	const { t } = useTranslation();
 	const list = useNotificationsQuery({});
 	const markRead = useMarkReadMutation();
 
 	return (
 		<div className="mx-auto max-w-2xl px-4 py-6">
 			<PageHeader
-				title="Notifications"
-				description="Everything sent to you. Pushes and inbox are mirrors of the same record."
+				title={t("notifications.title")}
+				description={t("notifications.inboxDescription")}
 				actions={
 					<Button
 						variant="outline"
@@ -35,7 +37,7 @@ function NotificationsInbox() {
 						onClick={() => markRead.mutate({ all: true })}
 					>
 						<CheckCheckIcon className="mr-1 size-4" />
-						Mark all read
+						{t("notifications.markAllRead")}
 					</Button>
 				}
 			/>
@@ -50,8 +52,8 @@ function NotificationsInbox() {
 			) : (
 				<EmptyState
 					icon={BellIcon}
-					title="Nothing here yet"
-					description="When something is assigned, accepted, or rejected, it'll land here."
+					title={t("notifications.emptyTitle")}
+					description={t("notifications.emptyDescription")}
 				/>
 			)}
 		</div>
@@ -65,6 +67,7 @@ function NotificationGroups({
 	items: NotificationItem[];
 	markRead: (input: { ids?: string[]; all?: boolean }) => void;
 }) {
+	const { t } = useTranslation();
 	const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
 	const recent: NotificationItem[] = [];
 	const history: NotificationItem[] = [];
@@ -75,11 +78,11 @@ function NotificationGroups({
 		<div className="space-y-6">
 			<section>
 				<h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-					Recent
+					{t("notifications.recent")}
 				</h2>
 				<div className="divide-y rounded-lg border bg-card">
 					{recent.length === 0 ? (
-						<div className="p-4 text-sm text-muted-foreground">No recent notifications.</div>
+						<div className="p-4 text-sm text-muted-foreground">{t("notifications.noRecent")}</div>
 					) : (
 						recent.map((n) => (
 							<NotificationRow
@@ -96,7 +99,7 @@ function NotificationGroups({
 			{history.length > 0 ? (
 				<details>
 					<summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-muted-foreground">
-						History ({history.length})
+						{t("notifications.history", { count: history.length })}
 					</summary>
 					<div className="mt-2 divide-y rounded-lg border bg-card">
 						{history.map((n) => (

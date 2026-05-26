@@ -1,6 +1,7 @@
 import type { PropertyCostCategory } from "@repo/validators";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	Select,
 	SelectContent,
@@ -22,6 +23,7 @@ const CATEGORIES: PropertyCostCategory[] = [
 ];
 
 function PropertyFinance() {
+	const { t } = useTranslation();
 	const { propertyId } = Route.useParams();
 	const { data, isLoading } = usePropertyFinance(propertyId);
 	const addCost = useAddPropertyCost(propertyId);
@@ -31,7 +33,8 @@ function PropertyFinance() {
 	const [amount, setAmount] = useState("");
 	const [description, setDescription] = useState("");
 
-	if (isLoading || !data) return <p className="text-sm text-muted-foreground">loading…</p>;
+	if (isLoading || !data)
+		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
 	const { summary, costs } = data;
 	const positive = Number(summary.netProfit) >= 0;
 
@@ -58,26 +61,32 @@ function PropertyFinance() {
 						params={{ propertyId }}
 						className="hover:underline"
 					>
-						← Back to property
+						{t("propertyFinance.backToProperty")}
 					</Link>
 				</div>
-				<h1 className="text-2xl font-semibold">{summary.propertyName} — finance</h1>
+				<h1 className="text-2xl font-semibold">
+					{t("propertyFinance.title", { name: summary.propertyName })}
+				</h1>
 				<p className="text-sm text-muted-foreground">
-					{summary.areaSqm} m² · ${summary.plannedUnitCost}/m² · status {summary.status}
+					{t("propertyFinance.meta", {
+						area: summary.areaSqm,
+						cost: summary.plannedUnitCost,
+						status: t(`propertyStatus.${summary.status}`, summary.status),
+					})}
 				</p>
 				{summary.materialsEstimateMissing && (
 					<div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-						Materials estimate incomplete — record material costs to make Actual accurate.
+						{t("propertyFinance.materialsIncomplete")}
 					</div>
 				)}
 			</header>
 
 			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-				<Stat label="Planned total" value={`$${summary.plannedTotal}`} />
-				<Stat label="Wages credited" value={`$${summary.accruedWages}`} />
-				<Stat label="Other costs" value={`$${summary.costsTotal}`} />
+				<Stat label={t("propertyFinance.plannedTotal")} value={`$${summary.plannedTotal}`} />
+				<Stat label={t("propertyFinance.wagesCredited")} value={`$${summary.accruedWages}`} />
+				<Stat label={t("propertyFinance.otherCosts")} value={`$${summary.costsTotal}`} />
 				<Stat
-					label="Net profit"
+					label={t("propertyFinance.netProfit")}
 					value={`$${summary.netProfit}`}
 					tone={positive ? "positive" : "negative"}
 				/>
@@ -85,7 +94,12 @@ function PropertyFinance() {
 
 			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				{summary.costsByCategory.map((c) => (
-					<Stat key={c.category} label={c.category.replace("_", " ")} value={`$${c.total}`} muted />
+					<Stat
+						key={c.category}
+						label={t(`costCategory.${c.category}`, c.category.replace("_", " "))}
+						value={`$${c.total}`}
+						muted
+					/>
 				))}
 			</div>
 
@@ -93,11 +107,13 @@ function PropertyFinance() {
 				<form
 					onSubmit={submitCost}
 					className="space-y-3 rounded-lg border bg-card p-4"
-					aria-label="Record cost"
+					aria-label={t("propertyFinance.recordCostAria")}
 				>
-					<h2 className="text-sm font-semibold">Record cost</h2>
+					<h2 className="text-sm font-semibold">{t("propertyFinance.recordCost")}</h2>
 					<div className="block text-xs">
-						<span className="mb-1 block text-muted-foreground">Category</span>
+						<span className="mb-1 block text-muted-foreground">
+							{t("propertyFinance.category")}
+						</span>
 						<Select value={category} onValueChange={(v) => setCategory(v as PropertyCostCategory)}>
 							<SelectTrigger className="w-full">
 								<SelectValue />
@@ -105,14 +121,16 @@ function PropertyFinance() {
 							<SelectContent>
 								{CATEGORIES.map((c) => (
 									<SelectItem key={c} value={c}>
-										{c.replace("_", " ")}
+										{t(`costCategory.${c}`, c.replace("_", " "))}
 									</SelectItem>
 								))}
 							</SelectContent>
 						</Select>
 					</div>
 					<label className="block text-xs">
-						<span className="mb-1 block text-muted-foreground">Amount (USD)</span>
+						<span className="mb-1 block text-muted-foreground">
+							{t("propertyFinance.amountUsd")}
+						</span>
 						<input
 							value={amount}
 							onChange={(e) => setAmount(e.target.value)}
@@ -123,7 +141,9 @@ function PropertyFinance() {
 						/>
 					</label>
 					<label className="block text-xs">
-						<span className="mb-1 block text-muted-foreground">Description (optional)</span>
+						<span className="mb-1 block text-muted-foreground">
+							{t("propertyFinance.descriptionOptional")}
+						</span>
 						<input
 							value={description}
 							onChange={(e) => setDescription(e.target.value)}
@@ -135,7 +155,7 @@ function PropertyFinance() {
 						disabled={addCost.isPending || summary.status === "ARCHIVED"}
 						className="w-full rounded bg-foreground px-3 py-1.5 text-xs font-medium text-background disabled:opacity-50"
 					>
-						{addCost.isPending ? "Saving…" : "Add cost"}
+						{addCost.isPending ? t("common.saving") : t("propertyFinance.addCost")}
 					</button>
 					{addCost.error && (
 						<p className="text-xs text-rose-700">{(addCost.error as Error).message}</p>
@@ -143,14 +163,16 @@ function PropertyFinance() {
 				</form>
 
 				<div className="rounded-lg border">
-					<div className="border-b bg-muted/50 px-3 py-2 text-xs uppercase">Cost ledger</div>
+					<div className="border-b bg-muted/50 px-3 py-2 text-xs uppercase">
+						{t("propertyFinance.costLedger")}
+					</div>
 					<table className="w-full text-sm">
 						<thead className="text-left text-xs uppercase">
 							<tr>
-								<th className="px-3 py-2">Date</th>
-								<th className="px-3 py-2">Category</th>
-								<th className="px-3 py-2">Description</th>
-								<th className="px-3 py-2 text-right">Amount</th>
+								<th className="px-3 py-2">{t("propertyFinance.colDate")}</th>
+								<th className="px-3 py-2">{t("propertyFinance.colCategory")}</th>
+								<th className="px-3 py-2">{t("propertyFinance.colDescription")}</th>
+								<th className="px-3 py-2 text-right">{t("propertyFinance.colAmount")}</th>
 								<th className="px-3 py-2"></th>
 							</tr>
 						</thead>
@@ -163,8 +185,10 @@ function PropertyFinance() {
 									<td className="px-3 py-2 text-xs">
 										{new Date(c.incurredAt).toISOString().slice(0, 10)}
 									</td>
-									<td className="px-3 py-2 text-xs">{c.category}</td>
-									<td className="px-3 py-2 text-xs">{c.description ?? "—"}</td>
+									<td className="px-3 py-2 text-xs">
+										{t(`costCategory.${c.category}`, c.category)}
+									</td>
+									<td className="px-3 py-2 text-xs">{c.description ?? t("common.em")}</td>
 									<td className="px-3 py-2 text-right tabular-nums">${c.amount}</td>
 									<td className="px-3 py-2 text-right">
 										{!c.reversedAt && summary.status !== "ARCHIVED" && (
@@ -173,7 +197,7 @@ function PropertyFinance() {
 												onClick={() => reverseCost.mutate(c.id)}
 												className="text-xs underline"
 											>
-												reverse
+												{t("propertyFinance.reverse")}
 											</button>
 										)}
 									</td>
@@ -182,7 +206,7 @@ function PropertyFinance() {
 							{costs.length === 0 && (
 								<tr>
 									<td colSpan={5} className="px-3 py-6 text-center text-muted-foreground">
-										No costs recorded.
+										{t("propertyFinance.noCosts")}
 									</td>
 								</tr>
 							)}
@@ -193,24 +217,25 @@ function PropertyFinance() {
 
 			{summary.status === "COMPLETED" && (
 				<div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-					<h2 className="text-sm font-semibold text-emerald-900">Ready to close</h2>
-					<p className="mt-1 text-xs text-emerald-900">
-						All master stages accepted. Run the final audit to archive the property and generate the
-						handover certificate.
-					</p>
+					<h2 className="text-sm font-semibold text-emerald-900">
+						{t("propertyFinance.readyToClose")}
+					</h2>
+					<p className="mt-1 text-xs text-emerald-900">{t("propertyFinance.readyToCloseDesc")}</p>
 					<Link
 						to="/owner/properties/$propertyId/closing"
 						params={{ propertyId }}
 						className="mt-3 inline-block rounded bg-emerald-700 px-3 py-1.5 text-xs font-medium text-white"
 					>
-						Start closing
+						{t("propertyFinance.startClosing")}
 					</Link>
 				</div>
 			)}
 
 			{summary.status === "ARCHIVED" && summary.closedAt && (
 				<div className="rounded-lg border bg-muted/30 p-4 text-xs text-muted-foreground">
-					Archived on {new Date(summary.closedAt).toISOString().slice(0, 10)}.
+					{t("propertyFinance.archivedOn", {
+						date: new Date(summary.closedAt).toISOString().slice(0, 10),
+					})}
 				</div>
 			)}
 		</section>

@@ -1,4 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { FieldTabs } from "@/components/layout/field-tabs";
 import { InstallAndPermissionCard } from "@/components/notifications/install-and-permission-card";
 import { NotificationBell } from "@/components/notifications/notification-bell";
@@ -12,16 +14,18 @@ export const Route = createFileRoute("/master")({
 			throw redirect({ to: roleHomePath(context.me.activeRole) });
 		}
 	},
-	staticData: { crumb: "Master" },
+	staticData: { crumbKey: "role.master" },
 	component: MasterShell,
 });
 
 function MasterShell() {
+	const { t } = useTranslation();
 	return (
 		<div className="min-h-screen bg-background">
 			<header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-				<div className="text-base font-semibold">Master</div>
+				<div className="text-base font-semibold">{t("role.master")}</div>
 				<div className="flex items-center gap-1">
+					<LanguageSwitcher />
 					<ThemeToggle />
 					<NotificationBell />
 				</div>

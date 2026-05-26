@@ -1,5 +1,7 @@
 import { Link, useMatches } from "@tanstack/react-router";
 import { Fragment } from "react";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -13,14 +15,16 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
-type CrumbStatic = { crumb?: string };
+type CrumbStatic = { crumb?: string; crumbKey?: string };
 
 export function AppTopbar() {
+	const { t } = useTranslation();
 	const matches = useMatches();
 	const crumbs = matches
 		.map((m) => {
 			const data = (m.staticData ?? {}) as CrumbStatic;
-			return data.crumb ? { label: data.crumb, to: m.pathname } : null;
+			const label = data.crumbKey ? t(data.crumbKey) : data.crumb;
+			return label ? { label, to: m.pathname } : null;
 		})
 		.filter((x): x is { label: string; to: string } => x !== null);
 
@@ -32,7 +36,7 @@ export function AppTopbar() {
 				<BreadcrumbList>
 					{crumbs.length === 0 ? (
 						<BreadcrumbItem>
-							<BreadcrumbPage>Home</BreadcrumbPage>
+							<BreadcrumbPage>{t("common.home")}</BreadcrumbPage>
 						</BreadcrumbItem>
 					) : (
 						crumbs.map((c, i) => {
@@ -54,6 +58,7 @@ export function AppTopbar() {
 				</BreadcrumbList>
 			</Breadcrumb>
 			<div className="ml-auto flex items-center gap-1">
+				<LanguageSwitcher />
 				<ThemeToggle />
 				<NotificationBell />
 			</div>

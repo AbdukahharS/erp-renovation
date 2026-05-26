@@ -3,6 +3,8 @@ import { type LoginInput, LoginSchema } from "@repo/validators";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/login")({
 });
 
 function Login() {
+	const { t } = useTranslation();
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const {
 		register,
@@ -31,12 +34,12 @@ function Login() {
 		try {
 			const result = await signIn.email({ email: values.email, password: values.password });
 			if (result.error) {
-				setSubmitError(result.error.message ?? "sign-in failed");
+				setSubmitError(result.error.message ?? t("auth.signInFailed"));
 				return;
 			}
 			const me = await fetchMe();
 			if (!me?.user) {
-				setSubmitError("session lost after login");
+				setSubmitError(t("auth.sessionLost"));
 				return;
 			}
 			let role = me.activeRole;
@@ -49,39 +52,42 @@ function Login() {
 			// the cookie write and silently fails to redirect.
 			window.location.assign(roleHomePath(role));
 		} catch (e) {
-			setSubmitError((e as Error).message ?? "sign-in failed");
+			setSubmitError((e as Error).message ?? t("auth.signInFailed"));
 		}
 	};
 
 	return (
 		<main className="min-h-screen grid place-items-center bg-muted/30 p-6">
 			<div className="w-full max-w-sm space-y-6">
+				<div className="flex justify-end">
+					<LanguageSwitcher />
+				</div>
 				<div className="flex flex-col items-center gap-2">
 					<div className="flex size-12 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-sm">
 						E
 					</div>
 					<div className="text-center">
-						<h1 className="text-xl font-semibold">Welcome back</h1>
-						<p className="text-sm text-muted-foreground">Sign in to your tenant.</p>
+						<h1 className="text-xl font-semibold">{t("auth.welcomeBack")}</h1>
+						<p className="text-sm text-muted-foreground">{t("auth.signInToTenant")}</p>
 					</div>
 				</div>
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Sign in</CardTitle>
-						<CardDescription>Use the email and password your owner gave you.</CardDescription>
+						<CardTitle>{t("auth.signIn")}</CardTitle>
+						<CardDescription>{t("auth.signInDescription")}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 							<div className="space-y-2">
-								<Label htmlFor="email">Email</Label>
+								<Label htmlFor="email">{t("auth.email")}</Label>
 								<Input id="email" type="email" autoComplete="email" {...register("email")} />
 								{errors.email ? (
 									<p className="text-xs text-destructive">{errors.email.message}</p>
 								) : null}
 							</div>
 							<div className="space-y-2">
-								<Label htmlFor="password">Password</Label>
+								<Label htmlFor="password">{t("auth.password")}</Label>
 								<Input
 									id="password"
 									type="password"
@@ -98,7 +104,7 @@ function Login() {
 								</div>
 							) : null}
 							<Button type="submit" disabled={isSubmitting} className="w-full">
-								{isSubmitting ? "Signing in…" : "Sign in"}
+								{isSubmitting ? t("auth.signingIn") : t("auth.signIn")}
 							</Button>
 						</form>
 					</CardContent>

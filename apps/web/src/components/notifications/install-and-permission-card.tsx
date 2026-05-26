@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { isInstallAvailable, onInstallAvailableChange, promptInstall } from "@/lib/install-prompt";
 import { ensurePushSubscribed, isIos, isPwaInstalled } from "@/lib/push";
@@ -13,6 +14,7 @@ import { ensurePushSubscribed, isIos, isPwaInstalled } from "@/lib/push";
 const DISMISS_KEY = "notif-install-dismissed";
 
 export function InstallAndPermissionCard() {
+	const { t } = useTranslation();
 	const [installAvailable, setInstallAvailable] = useState(isInstallAvailable());
 	const [installed, setInstalled] = useState(isPwaInstalled());
 	const [permission, setPermission] = useState<NotificationPermission>(
@@ -46,11 +48,7 @@ export function InstallAndPermissionCard() {
 		try {
 			const outcome = await promptInstall();
 			if (outcome === "unavailable") {
-				setError(
-					isIos()
-						? "On iPhone/iPad: tap Share, then ‘Add to Home Screen’."
-						: "Install prompt isn’t available right now. Try again later.",
-				);
+				setError(isIos() ? t("installCard.iosInstructions") : t("installCard.installUnavailable"));
 			}
 		} finally {
 			setBusy(false);
@@ -63,7 +61,7 @@ export function InstallAndPermissionCard() {
 		try {
 			const result = await ensurePushSubscribed();
 			if (!result.ok) {
-				setError(`Couldn’t enable push (${result.reason}).`);
+				setError(t("installCard.pushError", { reason: result.reason }));
 			}
 			setPermission(typeof Notification !== "undefined" ? Notification.permission : "default");
 		} finally {
@@ -84,29 +82,30 @@ export function InstallAndPermissionCard() {
 		<div className="rounded-md border bg-card p-4 shadow-sm">
 			<div className="flex items-start justify-between gap-3">
 				<div>
-					<div className="text-base font-semibold">Get notified the moment work is ready</div>
-					<div className="mt-1 text-sm text-muted-foreground">
-						Install this app and enable notifications so you don’t miss assigned tasks or acceptance
-						updates. Your inbox keeps a copy of everything regardless.
-					</div>
+					<div className="text-base font-semibold">{t("installCard.title")}</div>
+					<div className="mt-1 text-sm text-muted-foreground">{t("installCard.description")}</div>
 				</div>
 				<button
 					type="button"
 					className="text-xs text-muted-foreground hover:text-foreground"
 					onClick={dismiss}
 				>
-					Dismiss
+					{t("common.dismiss")}
 				</button>
 			</div>
 			<div className="mt-3 flex flex-wrap gap-2">
 				{needsInstall ? (
 					<Button onClick={handleInstall} disabled={busy || (!installAvailable && !isIos())}>
-						{installAvailable ? "Install app" : isIos() ? "How to install on iOS" : "Install"}
+						{installAvailable
+							? t("installCard.install")
+							: isIos()
+								? t("installCard.iosHelp")
+								: t("installCard.installFallback")}
 					</Button>
 				) : null}
 				{needsPermission ? (
 					<Button variant="outline" onClick={handlePermission} disabled={busy}>
-						Enable notifications
+						{t("installCard.enableNotifications")}
 					</Button>
 				) : null}
 			</div>
