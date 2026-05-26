@@ -1,88 +1,115 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowRightIcon, WalletIcon } from "lucide-react";
+import { EmptyState } from "@/components/layout/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import { useAllPropertiesFinance } from "@/lib/queries/finance";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/owner/finance/")({
+	staticData: { crumb: "Finance" },
 	component: AllFinance,
 });
 
 function AllFinance() {
 	const { data, isLoading } = useAllPropertiesFinance();
-	if (isLoading || !data) return <p className="text-sm text-muted-foreground">loading…</p>;
 
 	return (
-		<section className="space-y-4">
-			<header>
-				<h1 className="text-2xl font-semibold">Finance</h1>
-				<p className="text-sm text-muted-foreground">
-					Plan-vs-Actual across all properties. Net profit per TZ §8.2: planned − wages − costs.
-				</p>
-			</header>
+		<div className="space-y-4">
+			<PageHeader
+				title="Finance"
+				description="Plan-vs-Actual across all properties. Net profit = planned − wages − costs."
+			/>
 
-			<div className="overflow-x-auto rounded-lg border">
-				<table className="w-full text-sm">
-					<thead className="bg-muted/50 text-left text-xs uppercase">
-						<tr>
-							<th className="px-3 py-2">Property</th>
-							<th className="px-3 py-2">Status</th>
-							<th className="px-3 py-2 text-right">Planned</th>
-							<th className="px-3 py-2 text-right">Wages</th>
-							<th className="px-3 py-2 text-right">Costs</th>
-							<th className="px-3 py-2 text-right">Net profit</th>
-							<th className="px-3 py-2"></th>
-						</tr>
-					</thead>
-					<tbody>
-						{data.map((r) => {
-							const positive = Number(r.netProfit) >= 0;
-							return (
-								<tr key={r.propertyId} className="border-t">
-									<td className="px-3 py-2">
-										<Link
-											to="/owner/properties/$propertyId/finance"
-											params={{ propertyId: r.propertyId }}
-											className="font-medium underline"
+			{isLoading ? (
+				<div className="space-y-2 rounded-lg border bg-card p-4">
+					<Skeleton className="h-8 w-full" />
+					<Skeleton className="h-8 w-full" />
+					<Skeleton className="h-8 w-full" />
+				</div>
+			) : !data || data.length === 0 ? (
+				<EmptyState
+					icon={WalletIcon}
+					title="No properties yet"
+					description="Finance rolls up once properties enter the pipeline."
+				/>
+			) : (
+				<div className="rounded-lg border bg-card">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Property</TableHead>
+								<TableHead>Status</TableHead>
+								<TableHead className="text-right">Planned</TableHead>
+								<TableHead className="text-right">Wages</TableHead>
+								<TableHead className="text-right">Costs</TableHead>
+								<TableHead className="text-right">Net profit</TableHead>
+								<TableHead className="w-12" />
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{data.map((r) => {
+								const positive = Number(r.netProfit) >= 0;
+								return (
+									<TableRow key={r.propertyId}>
+										<TableCell>
+											<Link
+												to="/owner/properties/$propertyId/finance"
+												params={{ propertyId: r.propertyId }}
+												className="font-medium hover:underline"
+											>
+												{r.propertyName}
+											</Link>
+											{r.materialsEstimateMissing ? (
+												<Badge variant="outline" className="ml-2 text-[10px]">
+													materials incomplete
+												</Badge>
+											) : null}
+										</TableCell>
+										<TableCell className="text-xs">
+											<Badge variant="outline" className="text-[10px]">
+												{r.status.replace(/_/g, " ").toLowerCase()}
+											</Badge>
+										</TableCell>
+										<TableCell className="text-right tabular-nums">${r.plannedTotal}</TableCell>
+										<TableCell className="text-right tabular-nums">${r.accruedWages}</TableCell>
+										<TableCell className="text-right tabular-nums">${r.costsTotal}</TableCell>
+										<TableCell
+											className={cn(
+												"text-right font-medium tabular-nums",
+												positive
+													? "text-emerald-700 dark:text-emerald-400"
+													: "text-rose-700 dark:text-rose-400",
+											)}
 										>
-											{r.propertyName}
-										</Link>
-										{r.materialsEstimateMissing && (
-											<span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900">
-												materials incomplete
-											</span>
-										)}
-									</td>
-									<td className="px-3 py-2 text-xs">{r.status}</td>
-									<td className="px-3 py-2 text-right tabular-nums">${r.plannedTotal}</td>
-									<td className="px-3 py-2 text-right tabular-nums">${r.accruedWages}</td>
-									<td className="px-3 py-2 text-right tabular-nums">${r.costsTotal}</td>
-									<td
-										className={`px-3 py-2 text-right font-medium tabular-nums ${
-											positive ? "text-emerald-700" : "text-rose-700"
-										}`}
-									>
-										${r.netProfit}
-									</td>
-									<td className="px-3 py-2 text-right">
-										<Link
-											to="/owner/properties/$propertyId/finance"
-											params={{ propertyId: r.propertyId }}
-											className="text-xs underline"
-										>
-											details
-										</Link>
-									</td>
-								</tr>
-							);
-						})}
-						{data.length === 0 && (
-							<tr>
-								<td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
-									No properties yet.
-								</td>
-							</tr>
-						)}
-					</tbody>
-				</table>
-			</div>
-		</section>
+											${r.netProfit}
+										</TableCell>
+										<TableCell className="text-right">
+											<Link
+												to="/owner/properties/$propertyId/finance"
+												params={{ propertyId: r.propertyId }}
+												aria-label="open"
+												className="inline-flex"
+											>
+												<ArrowRightIcon className="size-4 text-muted-foreground" />
+											</Link>
+										</TableCell>
+									</TableRow>
+								);
+							})}
+						</TableBody>
+					</Table>
+				</div>
+			)}
+		</div>
 	);
 }

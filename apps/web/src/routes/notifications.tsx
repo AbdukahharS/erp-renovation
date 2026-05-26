@@ -1,4 +1,9 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { BellIcon, CheckCheckIcon } from "lucide-react";
+import { EmptyState } from "@/components/layout/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
 	type NotificationItem,
 	useMarkReadMutation,
@@ -9,6 +14,7 @@ export const Route = createFileRoute("/notifications")({
 	beforeLoad: ({ context }) => {
 		if (!context.me?.user) throw redirect({ to: "/login" });
 	},
+	staticData: { crumb: "Notifications" },
 	component: NotificationsInbox,
 });
 
@@ -18,27 +24,35 @@ function NotificationsInbox() {
 
 	return (
 		<div className="mx-auto max-w-2xl px-4 py-6">
-			<div className="mb-4 flex items-center justify-between">
-				<h1 className="text-xl font-semibold">Notifications</h1>
-				<button
-					type="button"
-					className="text-sm text-muted-foreground hover:text-foreground disabled:opacity-50"
-					disabled={markRead.isPending}
-					onClick={() => markRead.mutate({ all: true })}
-				>
-					Mark all read
-				</button>
-			</div>
+			<PageHeader
+				title="Notifications"
+				description="Everything sent to you. Pushes and inbox are mirrors of the same record."
+				actions={
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={markRead.isPending}
+						onClick={() => markRead.mutate({ all: true })}
+					>
+						<CheckCheckIcon className="mr-1 size-4" />
+						Mark all read
+					</Button>
+				}
+			/>
 			{list.isPending ? (
-				<div className="rounded-md border bg-card p-8 text-center text-sm text-muted-foreground">
-					Loading…
+				<div className="space-y-2">
+					<Skeleton className="h-16 w-full" />
+					<Skeleton className="h-16 w-full" />
+					<Skeleton className="h-16 w-full" />
 				</div>
 			) : list.data && list.data.items.length > 0 ? (
 				<NotificationGroups items={list.data.items} markRead={markRead.mutate} />
 			) : (
-				<div className="rounded-md border bg-card p-8 text-center text-sm text-muted-foreground">
-					Nothing here yet.
-				</div>
+				<EmptyState
+					icon={BellIcon}
+					title="Nothing here yet"
+					description="When something is assigned, accepted, or rejected, it'll land here."
+				/>
 			)}
 		</div>
 	);
@@ -63,7 +77,7 @@ function NotificationGroups({
 				<h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
 					Recent
 				</h2>
-				<div className="divide-y rounded-md border bg-card">
+				<div className="divide-y rounded-lg border bg-card">
 					{recent.length === 0 ? (
 						<div className="p-4 text-sm text-muted-foreground">No recent notifications.</div>
 					) : (
@@ -84,7 +98,7 @@ function NotificationGroups({
 					<summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-muted-foreground">
 						History ({history.length})
 					</summary>
-					<div className="mt-2 divide-y rounded-md border bg-card">
+					<div className="mt-2 divide-y rounded-lg border bg-card">
 						{history.map((n) => (
 							<NotificationRow
 								key={n.id}
@@ -105,12 +119,10 @@ function NotificationRow({ item, onOpen }: { item: NotificationItem; onOpen: () 
 	const content = (
 		<div className="flex items-start gap-3 p-3">
 			<span
-				className={`mt-2 h-2 w-2 shrink-0 rounded-full ${
-					item.readAt ? "bg-transparent" : "bg-primary"
-				}`}
+				className={`mt-2 size-2 shrink-0 rounded-full ${item.readAt ? "bg-transparent" : "bg-primary"}`}
 				aria-hidden
 			/>
-			<div className="flex-1">
+			<div className="min-w-0 flex-1">
 				<div className="text-sm font-medium">{item.title}</div>
 				<div className="text-xs text-muted-foreground">{item.body}</div>
 				<div className="mt-1 text-[10px] text-muted-foreground/70">

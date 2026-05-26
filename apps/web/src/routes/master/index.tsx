@@ -1,9 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ChevronRightIcon, HardHatIcon, InboxIcon } from "lucide-react";
+import { EmptyState } from "@/components/layout/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAvailableStages, useMyStages } from "@/lib/queries/acceptance";
 
 export const Route = createFileRoute("/master/")({
+	staticData: { crumb: "Home" },
 	component: MasterHome,
 });
 
@@ -12,69 +16,139 @@ function MasterHome() {
 	const mine = useMyStages();
 
 	return (
-		<section className="space-y-6">
-			<div>
-				<h1 className="text-xl font-semibold">In progress</h1>
-				<p className="text-sm text-muted-foreground">
-					Stages you've claimed. Tap to open and upload photos.
-				</p>
-				<div className="mt-3 grid gap-3 md:grid-cols-2">
-					{mine.data?.length === 0 && (
-						<p className="text-sm text-muted-foreground">No active claims.</p>
-					)}
-					{mine.data?.map((s) => (
-						<Link
-							key={s.subStageInstanceId}
-							to="/master/stages/$subStageId"
-							params={{ subStageId: s.subStageInstanceId }}
-						>
-							<Card className="p-4 hover:bg-accent active:bg-accent/80">
-								<div className="flex items-baseline justify-between">
-									<span className="font-mono text-xs text-muted-foreground">{s.code}</span>
-									<Badge variant={statusVariant(s.status)}>{s.status}</Badge>
-								</div>
-								<div className="mt-1 text-base font-medium">{s.name}</div>
-								<div className="text-sm text-muted-foreground">
-									{s.propertyName} · {s.stageName}
-								</div>
-								<div className="mt-2 text-sm">wage ${s.wageAmount}</div>
-							</Card>
-						</Link>
-					))}
-				</div>
-			</div>
+		<div className="space-y-6">
+			<Section
+				title="In progress"
+				description="Stages you've claimed. Tap to upload photos."
+				loading={mine.isLoading}
+				empty={
+					(mine.data?.length ?? 0) === 0 ? (
+						<EmptyState
+							icon={HardHatIcon}
+							title="No active claims"
+							description="Pick something from the Available list below."
+						/>
+					) : null
+				}
+			>
+				{mine.data?.map((s) => (
+					<StageRow
+						key={s.subStageInstanceId}
+						to={s.subStageInstanceId}
+						code={s.code}
+						title={s.name}
+						subtitle={`${s.propertyName} · ${s.stageName}`}
+						right={
+							<Badge variant={statusVariant(s.status)} className="text-[10px]">
+								{s.status.toLowerCase()}
+							</Badge>
+						}
+						wage={s.wageAmount}
+					/>
+				))}
+			</Section>
 
-			<div>
-				<h2 className="text-xl font-semibold">Available</h2>
-				<p className="text-sm text-muted-foreground">
-					Open stages matching your specialization. Tap to claim.
-				</p>
-				<div className="mt-3 grid gap-3 md:grid-cols-2">
-					{available.data?.length === 0 && (
-						<p className="text-sm text-muted-foreground">Nothing available right now.</p>
-					)}
-					{available.data?.map((s) => (
-						<Link
-							key={s.subStageInstanceId}
-							to="/master/stages/$subStageId"
-							params={{ subStageId: s.subStageInstanceId }}
-						>
-							<Card className="p-4 hover:bg-accent active:bg-accent/80">
-								<div className="flex items-baseline justify-between">
-									<span className="font-mono text-xs text-muted-foreground">{s.code}</span>
-									{s.specialization && <Badge variant="secondary">{s.specialization}</Badge>}
-								</div>
-								<div className="mt-1 text-base font-medium">{s.name}</div>
-								<div className="text-sm text-muted-foreground">
-									{s.propertyName} · {s.stageName}
-								</div>
-								<div className="mt-2 text-sm">wage ${s.wageAmount}</div>
-							</Card>
-						</Link>
-					))}
-				</div>
+			<Section
+				title="Available"
+				description="Open stages matching your specialization."
+				loading={available.isLoading}
+				empty={
+					(available.data?.length ?? 0) === 0 ? (
+						<EmptyState
+							icon={InboxIcon}
+							title="Nothing available"
+							description="New tasks will appear here when masters before you finish."
+						/>
+					) : null
+				}
+			>
+				{available.data?.map((s) => (
+					<StageRow
+						key={s.subStageInstanceId}
+						to={s.subStageInstanceId}
+						code={s.code}
+						title={s.name}
+						subtitle={`${s.propertyName} · ${s.stageName}`}
+						right={
+							s.specialization ? (
+								<Badge variant="secondary" className="text-[10px]">
+									{s.specialization}
+								</Badge>
+							) : null
+						}
+						wage={s.wageAmount}
+					/>
+				))}
+			</Section>
+		</div>
+	);
+}
+
+function Section({
+	title,
+	description,
+	loading,
+	empty,
+	children,
+}: {
+	title: string;
+	description: string;
+	loading: boolean;
+	empty: React.ReactNode;
+	children: React.ReactNode;
+}) {
+	return (
+		<section>
+			<div className="mb-3">
+				<h2 className="text-lg font-semibold">{title}</h2>
+				<p className="text-xs text-muted-foreground">{description}</p>
 			</div>
+			{loading ? (
+				<div className="space-y-2">
+					<Skeleton className="h-20 w-full" />
+					<Skeleton className="h-20 w-full" />
+				</div>
+			) : empty ? (
+				empty
+			) : (
+				<div className="space-y-2">{children}</div>
+			)}
 		</section>
+	);
+}
+
+function StageRow({
+	to,
+	code,
+	title,
+	subtitle,
+	right,
+	wage,
+}: {
+	to: string;
+	code: string;
+	title: string;
+	subtitle: string;
+	right: React.ReactNode;
+	wage: string | number;
+}) {
+	return (
+		<Link to="/master/stages/$subStageId" params={{ subStageId: to }}>
+			<Card className="p-4 transition-colors hover:bg-accent active:bg-accent/80">
+				<div className="flex items-center gap-3">
+					<div className="min-w-0 flex-1">
+						<div className="flex items-center gap-2">
+							<span className="font-mono text-[10px] uppercase text-muted-foreground">{code}</span>
+							{right}
+						</div>
+						<div className="mt-0.5 truncate text-base font-medium">{title}</div>
+						<div className="truncate text-sm text-muted-foreground">{subtitle}</div>
+						<div className="mt-1 text-sm font-medium tabular-nums">${wage}</div>
+					</div>
+					<ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" />
+				</div>
+			</Card>
+		</Link>
 	);
 }
 

@@ -1,41 +1,171 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+	ArrowRightIcon,
+	BuildingIcon,
+	CheckCircle2Icon,
+	ClockIcon,
+	PlusIcon,
+	WalletIcon,
+} from "lucide-react";
+import { EmptyState } from "@/components/layout/empty-state";
+import { PageHeader } from "@/components/layout/page-header";
+import { StatCard } from "@/components/layout/stat-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProperties } from "@/lib/queries/properties";
 
 export const Route = createFileRoute("/owner/")({
+	staticData: { crumb: "Dashboard" },
 	component: OwnerHome,
 });
 
 function OwnerHome() {
+	const { data, isLoading } = useProperties();
+	const properties = data ?? [];
+
+	const inProgress = properties.filter((p) => p.status === "IN_PROGRESS").length;
+	const readyForAcceptance = properties.filter((p) => p.status === "READY_FOR_PRODUCTION").length;
+	const completed = properties.filter((p) => p.status === "COMPLETED").length;
+	const totalProgress = properties.reduce(
+		(acc, p) => {
+			acc.done += p.acceptedMasterSubStages;
+			acc.total += p.totalMasterSubStages;
+			return acc;
+		},
+		{ done: 0, total: 0 },
+	);
+	const overallPct =
+		totalProgress.total > 0 ? Math.round((totalProgress.done / totalProgress.total) * 100) : 0;
+
 	return (
-		<section className="space-y-4">
-			<h1 className="text-2xl font-semibold">Owner dashboard</h1>
-			<p className="text-sm text-muted-foreground">Properties, templates and finance live here.</p>
-			<ul className="space-y-1 text-sm">
-				<li>
-					<Link to="/owner/properties" className="underline">
-						Properties
-					</Link>
-				</li>
-				<li>
-					<Link to="/owner/templates" className="underline">
-						Templates
-					</Link>
-				</li>
-				<li>
-					<Link to="/owner/masters" className="underline">
-						Masters
-					</Link>
-				</li>
-				<li>
-					<Link to="/owner/finance" className="underline">
-						Finance
-					</Link>
-				</li>
-				<li>
-					<Link to="/owner/settings" className="underline">
-						Settings
-					</Link>
-				</li>
-			</ul>
-		</section>
+		<div className="space-y-6">
+			<PageHeader
+				title="Dashboard"
+				description="Overview of properties, pipeline and money."
+				actions={
+					<Button nativeButton={false} render={<Link to="/owner/properties/new" />}>
+						<PlusIcon className="mr-1 size-4" />
+						New property
+					</Button>
+				}
+			/>
+
+			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+				<StatCard
+					label="In progress"
+					value={isLoading ? "—" : inProgress}
+					hint="Active properties"
+					icon={ClockIcon}
+				/>
+				<StatCard
+					label="Ready for production"
+					value={isLoading ? "—" : readyForAcceptance}
+					hint="Awaiting first master stage"
+					icon={BuildingIcon}
+				/>
+				<StatCard
+					label="Completed"
+					value={isLoading ? "—" : completed}
+					hint="Closed units"
+					icon={CheckCircle2Icon}
+				/>
+				<StatCard
+					label="Pipeline progress"
+					value={`${overallPct}%`}
+					hint={`${totalProgress.done}/${totalProgress.total} sub-stages`}
+					icon={WalletIcon}
+				/>
+			</div>
+
+			<Card>
+				<CardHeader className="flex flex-row items-center justify-between">
+					<CardTitle>Active properties</CardTitle>
+					<Button
+						variant="ghost"
+						size="sm"
+						nativeButton={false}
+						render={<Link to="/owner/properties" />}
+					>
+						View all
+						<ArrowRightIcon className="ml-1 size-4" />
+					</Button>
+				</CardHeader>
+				<CardContent>
+					{isLoading ? (
+						<div className="space-y-3">
+							<Skeleton className="h-12 w-full" />
+							<Skeleton className="h-12 w-full" />
+							<Skeleton className="h-12 w-full" />
+						</div>
+					) : properties.length === 0 ? (
+						<EmptyState
+							icon={BuildingIcon}
+							title="No properties yet"
+							description="Create your first property to start the pipeline."
+							action={
+								<Button nativeButton={false} render={<Link to="/owner/properties/new" />}>
+									<PlusIcon className="mr-1 size-4" />
+									New property
+								</Button>
+							}
+						/>
+					) : (
+						<ul className="divide-y">
+							{properties.slice(0, 6).map((p) => {
+								const pct =
+									p.totalMasterSubStages > 0
+										? Math.round((p.acceptedMasterSubStages / p.totalMasterSubStages) * 100)
+										: 0;
+								return (
+									<li key={p.id}>
+										<Link
+											to="/owner/properties/$propertyId"
+											params={{ propertyId: p.id }}
+											className="flex items-center gap-4 py-3 hover:bg-muted/40"
+										>
+											<div className="min-w-0 flex-1">
+												<div className="flex items-center gap-2">
+													<span className="truncate font-medium">{p.name}</span>
+													<StatusBadge status={p.status} />
+												</div>
+												<div className="truncate text-xs text-muted-foreground">{p.address}</div>
+											</div>
+											<div className="hidden w-48 shrink-0 sm:block">
+												<div className="flex items-center gap-2">
+													<Progress value={pct} className="h-1.5" />
+													<span className="w-9 text-right text-xs tabular-nums text-muted-foreground">
+														{pct}%
+													</span>
+												</div>
+											</div>
+											<ArrowRightIcon className="size-4 shrink-0 text-muted-foreground" />
+										</Link>
+									</li>
+								);
+							})}
+						</ul>
+					)}
+				</CardContent>
+			</Card>
+		</div>
+	);
+}
+
+const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
+	PENDING: "outline",
+	READY_FOR_PRODUCTION: "secondary",
+	IN_PROGRESS: "default",
+	COMPLETED: "secondary",
+	ARCHIVED: "outline",
+};
+
+function StatusBadge({ status }: { status: string }) {
+	return (
+		<Badge variant={STATUS_VARIANT[status] ?? "outline"} className="text-[10px]">
+			{status.replace(/_/g, " ").toLowerCase()}
+		</Badge>
 	);
 }

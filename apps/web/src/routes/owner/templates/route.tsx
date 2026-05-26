@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useTemplatesList } from "@/lib/queries/templates";
 
 export const Route = createFileRoute("/owner/templates")({
+	staticData: { crumb: "Templates" },
 	component: TemplatesShell,
 });
 

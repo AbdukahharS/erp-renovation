@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useProperty } from "@/lib/queries/properties";
 
 export const Route = createFileRoute("/owner/properties/$propertyId")({
+	staticData: { crumb: "Detail" },
 	component: PropertyDetail,
 });
 

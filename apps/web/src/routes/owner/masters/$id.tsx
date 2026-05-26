@@ -1,3 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-export const Route = createFileRoute("/owner/masters/$id")({});
+export const Route = createFileRoute("/owner/masters/$id")({
+	staticData: { crumb: "Master" },
+});

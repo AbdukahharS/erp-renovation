@@ -4,7 +4,6 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { DefaultError, DefaultPending } from "./components/route-boundaries";
-import { startRealtime } from "./lib/realtime";
 import { routeTree } from "./routeTree.gen";
 
 const queryClient = new QueryClient();
@@ -34,8 +33,3 @@ createRoot(rootEl).render(
 		</QueryClientProvider>
 	</StrictMode>,
 );
-
-// Phase 8: kick off the realtime socket once the app mounts. Tenant scoping
-// is enforced at the server's handshake; the client only sees its tenant's
-// events. Falls back gracefully when the API is unreachable.
-startRealtime(queryClient);

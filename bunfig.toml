@@ -3,3 +3,5 @@ preload = ["./apps/api/src/tests/setup.ts"]
 [install]
 # Only install package versions published at least 7 days ago
 minimumReleaseAge = 604800
+# shadcn pulls in deps (sonner, cmdk, etc.) at install time; allow them through.
+minimumReleaseAgeExcludes = ["shadcn", "sonner", "cmdk", "next-themes"]

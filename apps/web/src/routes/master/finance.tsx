@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useSelfMasterFinance } from "@/lib/queries/finance";
 
 export const Route = createFileRoute("/master/finance")({
+	staticData: { crumb: "Wallet" },
 	component: MasterFinance,
 });
 

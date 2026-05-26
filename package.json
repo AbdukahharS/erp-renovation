@@ -14,6 +14,10 @@
 		"db:migrate:control": "turbo run db:migrate:control",
 		"db:migrate:tenants": "turbo run db:migrate:tenants"
 	},
+	"dependencies": {
+		"@repo/db": "workspace:*",
+		"drizzle-orm": "^0.45.2"
+	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.15",
 		"turbo": "^2.9.14",
