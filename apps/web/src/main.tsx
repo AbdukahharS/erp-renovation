@@ -3,15 +3,20 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import { DefaultError, DefaultPending } from "./components/route-boundaries";
 import { startRealtime } from "./lib/realtime";
 import { routeTree } from "./routeTree.gen";
 
+const queryClient = new QueryClient();
 const router = createRouter({
 	routeTree,
-	context: { me: null },
+	context: { me: null, queryClient },
 	defaultPreload: "intent",
+	defaultPendingComponent: DefaultPending,
+	defaultErrorComponent: DefaultError,
+	defaultPendingMs: 200,
+	defaultPendingMinMs: 500,
 });
-const queryClient = new QueryClient();
 
 declare module "@tanstack/react-router" {
 	interface Register {

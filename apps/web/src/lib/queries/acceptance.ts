@@ -1,15 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiBaseUrl } from "../api";
-
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
-	const res = await fetch(`${apiBaseUrl}${path}`, {
-		credentials: "include",
-		...init,
-		headers: { "content-type": "application/json", ...(init.headers ?? {}) },
-	});
-	if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-	return (await res.json()) as T;
-}
+import { api, unwrap } from "../api";
 
 export type MasterAvailableStage = {
 	subStageInstanceId: string;
@@ -115,21 +105,29 @@ export const acceptanceKeys = {
 export function useAvailableStages() {
 	return useQuery({
 		queryKey: acceptanceKeys.masterAvailable,
-		queryFn: () => call<MasterAvailableStage[]>("/master/available-stages"),
+		queryFn: () =>
+			unwrap(api.master["available-stages"].get()) as unknown as Promise<MasterAvailableStage[]>,
 	});
 }
 
 export function useMyStages() {
 	return useQuery({
 		queryKey: acceptanceKeys.masterMy,
-		queryFn: () => call<MasterMyStage[]>("/master/my-stages"),
+		queryFn: () => unwrap(api.master["my-stages"].get()) as unknown as Promise<MasterMyStage[]>,
 	});
 }
 
 export function useStageDetail(scope: "master" | "inspector", id: string | undefined) {
 	return useQuery({
 		queryKey: id ? acceptanceKeys.stage(id) : ["stage", "none"],
-		queryFn: () => call<StageDetail>(`/${scope}/stages/${id}`),
+		queryFn: () => {
+			const stageId = id as string;
+			const endpoint =
+				scope === "master"
+					? api.master.stages({ subStageId: stageId })
+					: api.inspector.stages({ subStageId: stageId });
+			return unwrap(endpoint.get()) as unknown as Promise<StageDetail>;
+		},
 		enabled: !!id,
 	});
 }
@@ -137,7 +135,7 @@ export function useStageDetail(scope: "master" | "inspector", id: string | undef
 export function useTakeStage() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) => call<{ ok: true }>(`/master/stages/${id}/take`, { method: "POST" }),
+		mutationFn: (id: string) => unwrap(api.master.stages({ subStageId: id }).take.post({})),
 		onSuccess: (_, id) => {
 			qc.invalidateQueries({ queryKey: acceptanceKeys.masterAvailable });
 			qc.invalidateQueries({ queryKey: acceptanceKeys.masterMy });
@@ -157,10 +155,9 @@ export type PresignResponse = {
 export function usePresignStageMedia(stageId: string | undefined) {
 	return useMutation({
 		mutationFn: (vars: { mediaType: "PHOTO" | "VIDEO"; contentType: string }) =>
-			call<PresignResponse>(`/master/stages/${stageId}/media/presign`, {
-				method: "POST",
-				body: JSON.stringify(vars),
-			}),
+			unwrap(
+				api.master.stages({ subStageId: stageId as string }).media.presign.post(vars),
+			) as unknown as Promise<PresignResponse>,
 	});
 }
 
@@ -168,10 +165,7 @@ export function useAttachStageMedia(stageId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (assetId: string) =>
-			call<{ ok: true; assetId: string }>(`/master/stages/${stageId}/media/attach`, {
-				method: "POST",
-				body: JSON.stringify({ assetId }),
-			}),
+			unwrap(api.master.stages({ subStageId: stageId as string }).media.attach.post({ assetId })),
 		onSuccess: () => {
 			if (stageId) qc.invalidateQueries({ queryKey: acceptanceKeys.stage(stageId) });
 		},
@@ -181,11 +175,7 @@ export function useAttachStageMedia(stageId: string | undefined) {
 export function useSubmitStage() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) =>
-			call<{ ok: true }>(`/master/stages/${id}/submit`, {
-				method: "POST",
-				body: JSON.stringify({}),
-			}),
+		mutationFn: (id: string) => unwrap(api.master.stages({ subStageId: id }).submit.post({})),
 		onSuccess: (_, id) => {
 			qc.invalidateQueries({ queryKey: acceptanceKeys.masterMy });
 			qc.invalidateQueries({ queryKey: acceptanceKeys.inspectorQueue });
@@ -212,17 +202,16 @@ export async function uploadToPresignedUrl(url: string, file: File): Promise<voi
 export function useInspectorQueue() {
 	return useQuery({
 		queryKey: acceptanceKeys.inspectorQueue,
-		queryFn: () => call<InspectorQueue>("/inspector/queue"),
+		queryFn: () => unwrap(api.inspector.queue.get()) as unknown as Promise<InspectorQueue>,
 	});
 }
 
 export function usePresignInspectorMedia(stageId: string | undefined) {
 	return useMutation({
 		mutationFn: (vars: { kind: "BEFORE_PHOTO" | "DEFECT_PHOTO"; contentType: string }) =>
-			call<PresignResponse>(`/inspector/stages/${stageId}/media/presign`, {
-				method: "POST",
-				body: JSON.stringify(vars),
-			}),
+			unwrap(
+				api.inspector.stages({ subStageId: stageId as string }).media.presign.post(vars),
+			) as unknown as Promise<PresignResponse>,
 	});
 }
 
@@ -230,10 +219,7 @@ export function useAttachInspectorMedia(stageId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (vars: { assetId: string; kind: "BEFORE_PHOTO" | "DEFECT_PHOTO" }) =>
-			call<{ ok: true; assetId: string }>(`/inspector/stages/${stageId}/media/attach`, {
-				method: "POST",
-				body: JSON.stringify(vars),
-			}),
+			unwrap(api.inspector.stages({ subStageId: stageId as string }).media.attach.post(vars)),
 		onSuccess: () => {
 			if (stageId) qc.invalidateQueries({ queryKey: acceptanceKeys.stage(stageId) });
 		},
@@ -244,10 +230,11 @@ export function useSubmitSelfStage() {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (vars: { id: string; materialsOnSite?: boolean }) =>
-			call<{ ok: true }>(`/inspector/stages/${vars.id}/submit-self`, {
-				method: "POST",
-				body: JSON.stringify({ materialsOnSite: vars.materialsOnSite }),
-			}),
+			unwrap(
+				api.inspector
+					.stages({ subStageId: vars.id })
+					["submit-self"].post({ materialsOnSite: vars.materialsOnSite }),
+			),
 		onSuccess: (_, vars) => {
 			qc.invalidateQueries({ queryKey: acceptanceKeys.inspectorQueue });
 			qc.invalidateQueries({ queryKey: acceptanceKeys.stage(vars.id) });
@@ -262,10 +249,7 @@ export function useAcceptStage() {
 			id: string;
 			results: Array<{ checklistItemInstanceId: string; passed: boolean; note?: string | null }>;
 		}) =>
-			call<{ ok: true }>(`/inspector/stages/${vars.id}/accept`, {
-				method: "POST",
-				body: JSON.stringify({ results: vars.results }),
-			}),
+			unwrap(api.inspector.stages({ subStageId: vars.id }).accept.post({ results: vars.results })),
 		onSuccess: (_, vars) => {
 			qc.invalidateQueries({ queryKey: acceptanceKeys.inspectorQueue });
 			qc.invalidateQueries({ queryKey: acceptanceKeys.stage(vars.id) });
@@ -278,10 +262,12 @@ export function useRejectStage() {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (vars: { id: string; comment: string; defectAssetId?: string | null }) =>
-			call<{ ok: true }>(`/inspector/stages/${vars.id}/reject`, {
-				method: "POST",
-				body: JSON.stringify({ comment: vars.comment, defectAssetId: vars.defectAssetId ?? null }),
-			}),
+			unwrap(
+				api.inspector.stages({ subStageId: vars.id }).reject.post({
+					comment: vars.comment,
+					defectAssetId: vars.defectAssetId ?? null,
+				}),
+			),
 		onSuccess: (_, vars) => {
 			qc.invalidateQueries({ queryKey: acceptanceKeys.inspectorQueue });
 			qc.invalidateQueries({ queryKey: acceptanceKeys.stage(vars.id) });
@@ -297,10 +283,11 @@ export function useManualOverride() {
 			action: "BLOCK" | "UNBLOCK" | "FORCE_UNBLOCK";
 			reason: string;
 		}) =>
-			call<{ ok: true }>(`/inspector/stages/${vars.id}/manual-override`, {
-				method: "POST",
-				body: JSON.stringify({ action: vars.action, reason: vars.reason }),
-			}),
+			unwrap(
+				api.inspector
+					.stages({ subStageId: vars.id })
+					["manual-override"].post({ action: vars.action, reason: vars.reason }),
+			),
 		onSuccess: (_, vars) => {
 			qc.invalidateQueries({ queryKey: acceptanceKeys.stage(vars.id) });
 			qc.invalidateQueries({ queryKey: ["properties"] });

@@ -176,7 +176,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/tenant/notifications" 
 		{ body: zodBody(PushSubscriptionInputSchema) },
 	)
 
-	.delete("/subscriptions/:id", async ({ user, params, runInTenant, set }) => {
+	.delete("/subscriptions/:subscriptionId", async ({ user, params, runInTenant, set }) => {
 		if (!runInTenant || !user) {
 			set.status = 401;
 			return { error: "unauthorized" };
@@ -184,7 +184,12 @@ export const notificationsRoutes = new Elysia({ prefix: "/tenant/notifications" 
 		return await runInTenant(async (tx) => {
 			const result = await tx
 				.delete(pushSubscriptions)
-				.where(and(eq(pushSubscriptions.id, params.id), eq(pushSubscriptions.userId, user.id)))
+				.where(
+					and(
+						eq(pushSubscriptions.id, params.subscriptionId),
+						eq(pushSubscriptions.userId, user.id),
+					),
+				)
 				.returning({ id: pushSubscriptions.id });
 			if (result.length === 0) {
 				set.status = 404;

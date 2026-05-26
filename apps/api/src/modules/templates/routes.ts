@@ -107,13 +107,17 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 		});
 	})
 
-	.get("/templates/:id", async ({ params, runInTenant, set }) => {
+	.get("/templates/:templateId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
 		return await runInTenant(async (tx) => {
-			const [tpl] = await tx.select().from(templates).where(eq(templates.id, params.id)).limit(1);
+			const [tpl] = await tx
+				.select()
+				.from(templates)
+				.where(eq(templates.id, params.templateId))
+				.limit(1);
 			if (!tpl) {
 				set.status = 404;
 				return { error: "template not found" };
@@ -195,7 +199,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 	)
 
 	.patch(
-		"/templates/:id",
+		"/templates/:templateId",
 		async ({ params, body, runInTenant, set }) => {
 			if (!runInTenant) {
 				set.status = 401;
@@ -205,7 +209,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 				const [row] = await tx
 					.update(templates)
 					.set({ ...body, updatedAt: new Date() })
-					.where(eq(templates.id, params.id))
+					.where(eq(templates.id, params.templateId))
 					.returning();
 				if (!row) {
 					set.status = 404;
@@ -255,7 +259,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 	)
 
 	.patch(
-		"/stages/:id",
+		"/stages/:stageId",
 		async ({ params, body, runInTenant, set }) => {
 			if (!runInTenant) {
 				set.status = 401;
@@ -265,7 +269,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 				const [row] = await tx
 					.update(stages)
 					.set({ name: body.name })
-					.where(eq(stages.id, params.id))
+					.where(eq(stages.id, params.stageId))
 					.returning();
 				if (!row) {
 					set.status = 404;
@@ -277,14 +281,14 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 		{ body: zodBody(UpdateStageInput) },
 	)
 
-	.delete("/stages/:id", async ({ params, runInTenant, set }) => {
+	.delete("/stages/:stageId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
 		return await runInTenant(async (tx) => {
-			const templateId = await templateIdForStage(tx, params.id);
-			const [row] = await tx.delete(stages).where(eq(stages.id, params.id)).returning();
+			const templateId = await templateIdForStage(tx, params.stageId);
+			const [row] = await tx.delete(stages).where(eq(stages.id, params.stageId)).returning();
 			if (!row) {
 				set.status = 404;
 				return { error: "not found" };
@@ -373,7 +377,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 	)
 
 	.patch(
-		"/sub-stages/:id",
+		"/sub-stages/:subStageId",
 		async ({ params, body, runInTenant, set }) => {
 			if (!runInTenant) {
 				set.status = 401;
@@ -383,7 +387,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 				const [row] = await tx
 					.update(subStages)
 					.set(body)
-					.where(eq(subStages.id, params.id))
+					.where(eq(subStages.id, params.subStageId))
 					.returning();
 				if (!row) {
 					set.status = 404;
@@ -395,14 +399,17 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 		{ body: zodBody(UpdateSubStageInput) },
 	)
 
-	.delete("/sub-stages/:id", async ({ params, runInTenant, set }) => {
+	.delete("/sub-stages/:subStageId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
 		return await runInTenant(async (tx) => {
-			const templateId = await templateIdForSubStage(tx, params.id);
-			const [row] = await tx.delete(subStages).where(eq(subStages.id, params.id)).returning();
+			const templateId = await templateIdForSubStage(tx, params.subStageId);
+			const [row] = await tx
+				.delete(subStages)
+				.where(eq(subStages.id, params.subStageId))
+				.returning();
 			if (!row) {
 				set.status = 404;
 				return { error: "not found" };
@@ -487,7 +494,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 	)
 
 	.patch(
-		"/checklist-items/:id",
+		"/checklist-items/:checklistItemId",
 		async ({ params, body, runInTenant, set }) => {
 			if (!runInTenant) {
 				set.status = 401;
@@ -497,7 +504,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 				const [row] = await tx
 					.update(checklistItems)
 					.set(body)
-					.where(eq(checklistItems.id, params.id))
+					.where(eq(checklistItems.id, params.checklistItemId))
 					.returning();
 				if (!row) {
 					set.status = 404;
@@ -509,7 +516,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 		{ body: zodBody(UpdateChecklistItemInput) },
 	)
 
-	.delete("/checklist-items/:id", async ({ params, runInTenant, set }) => {
+	.delete("/checklist-items/:checklistItemId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
@@ -517,7 +524,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 		return await runInTenant(async (tx) => {
 			const [row] = await tx
 				.delete(checklistItems)
-				.where(eq(checklistItems.id, params.id))
+				.where(eq(checklistItems.id, params.checklistItemId))
 				.returning();
 			if (!row) {
 				set.status = 404;
@@ -598,7 +605,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 	)
 
 	.patch(
-		"/media-requirements/:id",
+		"/media-requirements/:mediaRequirementId",
 		async ({ params, body, runInTenant, set }) => {
 			if (!runInTenant) {
 				set.status = 401;
@@ -608,7 +615,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 				const [row] = await tx
 					.update(mediaRequirements)
 					.set(body)
-					.where(eq(mediaRequirements.id, params.id))
+					.where(eq(mediaRequirements.id, params.mediaRequirementId))
 					.returning();
 				if (!row) {
 					set.status = 404;
@@ -620,7 +627,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 		{ body: zodBody(UpdateMediaRequirementInput) },
 	)
 
-	.delete("/media-requirements/:id", async ({ params, runInTenant, set }) => {
+	.delete("/media-requirements/:mediaRequirementId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
@@ -628,7 +635,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 		return await runInTenant(async (tx) => {
 			const [row] = await tx
 				.delete(mediaRequirements)
-				.where(eq(mediaRequirements.id, params.id))
+				.where(eq(mediaRequirements.id, params.mediaRequirementId))
 				.returning();
 			if (!row) {
 				set.status = 404;
@@ -656,7 +663,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 	// inherits the module-level OWNER-only guard; when the Inspector PWA lands
 	// (Phase 4), Inspector becomes the primary caller of manual block/unblock.
 	.post(
-		"/stage-dependencies/:id/override",
+		"/stage-dependencies/:dependencyId/override",
 		async ({ params, body, user, runInTenant, set }) => {
 			if (!runInTenant) {
 				set.status = 401;
@@ -671,7 +678,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 						overrideAt: body.manualOverride === "NONE" ? null : new Date(),
 						overrideReason: body.manualOverride === "NONE" ? null : (body.reason ?? null),
 					})
-					.where(eq(stageDependencies.id, params.id))
+					.where(eq(stageDependencies.id, params.dependencyId))
 					.returning();
 				if (!row) {
 					set.status = 404;
@@ -721,7 +728,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 		{ body: zodBody(CreateSpecializationInput) },
 	)
 
-	.delete("/specializations/:id", async ({ params, runInTenant, set }) => {
+	.delete("/specializations/:specializationId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
@@ -729,7 +736,7 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 		return await runInTenant(async (tx) => {
 			const [row] = await tx
 				.delete(specializations)
-				.where(eq(specializations.id, params.id))
+				.where(eq(specializations.id, params.specializationId))
 				.returning();
 			if (!row) {
 				set.status = 404;

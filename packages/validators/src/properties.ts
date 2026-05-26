@@ -146,7 +146,7 @@ export const UpdatePropertyInput = z.object({
 });
 
 export const PresignAssetUploadInput = z.object({
-	kind: z.literal("FLOOR_PLAN"),
+	kind: z.enum(["FLOOR_PLAN", "PORTFOLIO_PHOTO"]),
 	contentType: z.string().min(1),
 });
 

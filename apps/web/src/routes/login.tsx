@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { type LoginInput, LoginSchema } from "@repo/validators";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
 	const router = useRouter();
+	const queryClient = useQueryClient();
 	const [submitError, setSubmitError] = useState<string | null>(null);
 	const {
 		register,
@@ -39,10 +41,12 @@ function Login() {
 		}
 		if (!me.activeTenantId && me.memberships[0]) {
 			const switched = await switchTenant(me.memberships[0].tenantId);
+			await queryClient.invalidateQueries({ queryKey: ["me"] });
 			await router.invalidate();
 			await router.navigate({ to: roleHomePath(switched.role) });
 			return;
 		}
+		queryClient.setQueryData(["me"], me);
 		await router.invalidate();
 		await router.navigate({ to: roleHomePath(me.activeRole) });
 	};

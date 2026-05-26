@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/invite/$token")({
 function RedeemInvite() {
 	const { token } = Route.useParams();
 	const router = useRouter();
+	const queryClient = useQueryClient();
 	const preview = useInvitationPreview(token);
 	const redeem = useRedeemInvitation();
 
@@ -48,6 +50,7 @@ function RedeemInvite() {
 			}
 			await switchTenant(result.tenantId);
 			const me = await fetchMe();
+			queryClient.setQueryData(["me"], me);
 			await router.invalidate();
 			await router.navigate({ to: roleHomePath(me?.activeRole ?? null) });
 		} catch (e) {

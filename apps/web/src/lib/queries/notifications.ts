@@ -1,21 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiBaseUrl } from "../api";
-
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
-	const res = await fetch(`${apiBaseUrl}${path}`, {
-		credentials: "include",
-		...init,
-		headers: {
-			"content-type": "application/json",
-			...(init.headers ?? {}),
-		},
-	});
-	if (!res.ok) {
-		const text = await res.text();
-		throw new Error(`${res.status} ${text}`);
-	}
-	return (await res.json()) as T;
-}
+import { api, unwrap } from "../api";
 
 export interface NotificationItem {
 	id: string;
@@ -43,20 +27,19 @@ export const notificationsKeys = {
 export function useNotificationsQuery(params: { unreadOnly?: boolean } = {}) {
 	return useQuery({
 		queryKey: notificationsKeys.list(params),
-		queryFn: async () => {
-			const q = new URLSearchParams();
-			if (params.unreadOnly) q.set("unreadOnly", "true");
-			return await call<{ items: NotificationItem[]; nextCursor: string | null }>(
-				`/tenant/notifications/?${q.toString()}`,
-			);
-		},
+		queryFn: () =>
+			unwrap(
+				api.tenant.notifications.get({
+					query: { unreadOnly: params.unreadOnly ? "true" : undefined },
+				}),
+			) as unknown as Promise<{ items: NotificationItem[]; nextCursor: string | null }>,
 	});
 }
 
 export function useUnreadCountQuery() {
 	return useQuery({
 		queryKey: notificationsKeys.unreadCount(),
-		queryFn: () => call<{ count: number }>("/tenant/notifications/unread-count"),
+		queryFn: () => unwrap(api.tenant.notifications["unread-count"].get()),
 		refetchInterval: 60_000,
 	});
 }
@@ -64,11 +47,8 @@ export function useUnreadCountQuery() {
 export function useMarkReadMutation() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: async (input: { ids?: string[]; all?: boolean }) =>
-			await call<{ updated: number }>("/tenant/notifications/mark-read", {
-				method: "POST",
-				body: JSON.stringify(input),
-			}),
+		mutationFn: (input: { ids?: string[]; all?: boolean }) =>
+			unwrap(api.tenant.notifications["mark-read"].post(input)),
 		onSuccess: () => {
 			qc.invalidateQueries({ queryKey: notificationsKeys.all });
 		},

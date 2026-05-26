@@ -1,22 +1,6 @@
 import type { PropertyAssetRow, PropertyListItem, PropertyTree } from "@repo/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiBaseUrl } from "../api";
-
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
-	const res = await fetch(`${apiBaseUrl}${path}`, {
-		credentials: "include",
-		...init,
-		headers: {
-			"content-type": "application/json",
-			...(init.headers ?? {}),
-		},
-	});
-	if (!res.ok) {
-		const text = await res.text();
-		throw new Error(`${res.status} ${text}`);
-	}
-	return (await res.json()) as T;
-}
+import { api, unwrap } from "../api";
 
 export const propertyKeys = {
 	all: ["properties"] as const,
@@ -24,17 +8,25 @@ export const propertyKeys = {
 	detail: (id: string) => [...propertyKeys.all, "detail", id] as const,
 };
 
+// Eden infers `Date` for Drizzle timestamp columns even though the wire
+// format is an ISO string; validators model the wire shape correctly. The
+// `as unknown as Promise<…>` casts below bridge that single divergence;
+// the rest of the call site remains fully Eden-typed.
+
 export function useProperties() {
 	return useQuery({
 		queryKey: propertyKeys.list(),
-		queryFn: () => call<PropertyListItem[]>("/properties"),
+		queryFn: () => unwrap(api.properties.get()) as unknown as Promise<PropertyListItem[]>,
 	});
 }
 
 export function useProperty(id: string | undefined) {
 	return useQuery({
 		queryKey: id ? propertyKeys.detail(id) : ["properties", "detail", "none"],
-		queryFn: () => call<PropertyTree>(`/properties/${id}`),
+		queryFn: () =>
+			unwrap(
+				api.properties({ propertyId: id as string }).get(),
+			) as unknown as Promise<PropertyTree>,
 		enabled: !!id,
 	});
 }
@@ -51,11 +43,7 @@ export type CreatePropertyVars = {
 export function useCreateProperty() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (vars: CreatePropertyVars) =>
-			call<{ id: string }>("/properties", {
-				method: "POST",
-				body: JSON.stringify(vars),
-			}),
+		mutationFn: (vars: CreatePropertyVars) => unwrap(api.properties.post(vars)),
 		onSuccess: () => qc.invalidateQueries({ queryKey: propertyKeys.list() }),
 	});
 }
@@ -70,10 +58,11 @@ export type PresignResponse = {
 export function usePresignFloorPlan(propertyId: string | undefined) {
 	return useMutation({
 		mutationFn: (contentType: string) =>
-			call<PresignResponse>(`/properties/${propertyId}/floor-plan/presign`, {
-				method: "POST",
-				body: JSON.stringify({ kind: "FLOOR_PLAN", contentType }),
-			}),
+			unwrap(
+				api
+					.properties({ propertyId: propertyId as string })
+					["floor-plan"].presign.post({ kind: "FLOOR_PLAN", contentType }),
+			),
 	});
 }
 
@@ -81,10 +70,9 @@ export function useAttachFloorPlan(propertyId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (assetId: string) =>
-			call<{ asset: PropertyAssetRow }>(`/properties/${propertyId}/floor-plan/attach`, {
-				method: "POST",
-				body: JSON.stringify({ assetId }),
-			}),
+			unwrap(
+				api.properties({ propertyId: propertyId as string })["floor-plan"].attach.post({ assetId }),
+			) as unknown as Promise<{ asset: PropertyAssetRow }>,
 		onSuccess: () => {
 			if (propertyId) qc.invalidateQueries({ queryKey: propertyKeys.detail(propertyId) });
 		},

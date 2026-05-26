@@ -104,7 +104,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner/masters" })
 		return await runInTenant((tx) => loadRoster(tx));
 	})
 
-	.get("/:id", async ({ params, runInTenant, set }) => {
+	.get("/:masterId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
@@ -113,7 +113,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner/masters" })
 			const [profile] = await tx
 				.select()
 				.from(masterProfiles)
-				.where(eq(masterProfiles.id, params.id))
+				.where(eq(masterProfiles.id, params.masterId))
 				.limit(1);
 			if (!profile) {
 				set.status = 404;
@@ -159,7 +159,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner/masters" })
 	})
 
 	.patch(
-		"/:id",
+		"/:masterId",
 		async ({ params, body, runInTenant, set }) => {
 			if (!runInTenant) {
 				set.status = 401;
@@ -173,7 +173,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner/masters" })
 				const [row] = await tx
 					.update(masterProfiles)
 					.set(updates)
-					.where(eq(masterProfiles.id, params.id))
+					.where(eq(masterProfiles.id, params.masterId))
 					.returning();
 				if (!row) {
 					set.status = 404;
@@ -186,7 +186,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner/masters" })
 	)
 
 	.patch(
-		"/:id/availability",
+		"/:masterId/availability",
 		async ({ params, body, runInTenant, set }) => {
 			if (!runInTenant) {
 				set.status = 401;
@@ -202,7 +202,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner/masters" })
 							: null,
 						updatedAt: new Date(),
 					})
-					.where(eq(masterProfiles.id, params.id))
+					.where(eq(masterProfiles.id, params.masterId))
 					.returning();
 				if (!row) {
 					set.status = 404;

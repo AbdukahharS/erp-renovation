@@ -1,16 +1,6 @@
 import type { InvitationPreview, InvitationRow, Role } from "@repo/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiBaseUrl } from "../api";
-
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
-	const res = await fetch(`${apiBaseUrl}${path}`, {
-		credentials: "include",
-		...init,
-		headers: { "content-type": "application/json", ...(init.headers ?? {}) },
-	});
-	if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-	return (await res.json()) as T;
-}
+import { api, unwrap } from "../api";
 
 export type MasterRosterRow = {
 	id: string;
@@ -40,7 +30,7 @@ export const hrKeys = {
 export function useInvitations() {
 	return useQuery({
 		queryKey: hrKeys.invitations,
-		queryFn: () => call<InvitationRow[]>("/owner/invitations"),
+		queryFn: () => unwrap(api.owner.invitations.get()) as unknown as Promise<InvitationRow[]>,
 	});
 }
 
@@ -48,14 +38,13 @@ export function useCreateInvitation() {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (vars: { role: Role; email?: string; expiresInDays?: number }) =>
-			call<InvitationRow>("/owner/invitations", {
-				method: "POST",
-				body: JSON.stringify({
+			unwrap(
+				api.owner.invitations.post({
 					role: vars.role,
 					email: vars.email,
 					expiresInDays: vars.expiresInDays ?? 14,
 				}),
-			}),
+			) as unknown as Promise<InvitationRow>,
 		onSuccess: () => qc.invalidateQueries({ queryKey: hrKeys.invitations }),
 	});
 }
@@ -63,8 +52,7 @@ export function useCreateInvitation() {
 export function useRevokeInvitation() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (token: string) =>
-			call<{ ok: true }>(`/owner/invitations/${token}`, { method: "DELETE" }),
+		mutationFn: (token: string) => unwrap(api.owner.invitations({ token }).delete()),
 		onSuccess: () => qc.invalidateQueries({ queryKey: hrKeys.invitations }),
 	});
 }
@@ -74,7 +62,10 @@ export function useRevokeInvitation() {
 export function useInvitationPreview(token: string | undefined) {
 	return useQuery({
 		queryKey: ["invitation", token],
-		queryFn: () => call<InvitationPreview>(`/invitations/${token}`),
+		queryFn: () =>
+			unwrap(
+				api.invitations({ token: token as string }).get(),
+			) as unknown as Promise<InvitationPreview>,
 		enabled: !!token,
 	});
 }
@@ -90,20 +81,16 @@ export function useRedeemInvitation() {
 			phone?: string;
 			specializations?: string[];
 		}) =>
-			call<{ ok: true; userId: string; tenantId: string; role: Role }>(
-				`/invitations/${vars.token}/redeem`,
-				{
-					method: "POST",
-					body: JSON.stringify({
-						name: vars.name,
-						email: vars.email,
-						password: vars.password,
-						displayName: vars.displayName,
-						phone: vars.phone,
-						specializations: vars.specializations,
-					}),
-				},
-			),
+			unwrap(
+				api.invitations({ token: vars.token }).redeem.post({
+					name: vars.name,
+					email: vars.email,
+					password: vars.password,
+					displayName: vars.displayName,
+					phone: vars.phone,
+					specializations: vars.specializations,
+				}),
+			) as unknown as Promise<{ ok: true; userId: string; tenantId: string; role: Role }>,
 	});
 }
 
@@ -112,14 +99,14 @@ export function useRedeemInvitation() {
 export function useMasters() {
 	return useQuery({
 		queryKey: hrKeys.masters,
-		queryFn: () => call<MasterRosterRow[]>("/owner/masters"),
+		queryFn: () => unwrap(api.owner.masters.get()) as unknown as Promise<MasterRosterRow[]>,
 	});
 }
 
 export function useMaster(id: string | undefined) {
 	return useQuery({
 		queryKey: id ? hrKeys.master(id) : ["owner", "masters", "none"],
-		queryFn: () => call<unknown>(`/owner/masters/${id}`),
+		queryFn: () => unwrap(api.owner.masters({ masterId: id as string }).get()),
 		enabled: !!id,
 	});
 }
@@ -133,14 +120,13 @@ export function useUpdateMaster() {
 			phone?: string | null;
 			specializations?: string[];
 		}) =>
-			call<MasterRosterRow>(`/owner/masters/${vars.id}`, {
-				method: "PATCH",
-				body: JSON.stringify({
+			unwrap(
+				api.owner.masters({ masterId: vars.id }).patch({
 					displayName: vars.displayName,
 					phone: vars.phone,
 					specializations: vars.specializations,
 				}),
-			}),
+			) as unknown as Promise<MasterRosterRow>,
 		onSuccess: (_, vars) => {
 			qc.invalidateQueries({ queryKey: hrKeys.masters });
 			qc.invalidateQueries({ queryKey: hrKeys.master(vars.id) });
@@ -156,13 +142,12 @@ export function useUpdateMasterAvailability() {
 			availabilityOverride: string | null;
 			availabilityOverrideUntil: string | null;
 		}) =>
-			call<MasterRosterRow>(`/owner/masters/${vars.id}/availability`, {
-				method: "PATCH",
-				body: JSON.stringify({
+			unwrap(
+				api.owner.masters({ masterId: vars.id }).availability.patch({
 					availabilityOverride: vars.availabilityOverride,
 					availabilityOverrideUntil: vars.availabilityOverrideUntil,
 				}),
-			}),
+			) as unknown as Promise<MasterRosterRow>,
 		onSuccess: (_, vars) => {
 			qc.invalidateQueries({ queryKey: hrKeys.masters });
 			qc.invalidateQueries({ queryKey: hrKeys.master(vars.id) });

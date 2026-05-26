@@ -7,23 +7,7 @@ import type {
 	PropertyFinanceSummary,
 } from "@repo/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiBaseUrl } from "../api";
-
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
-	const res = await fetch(`${apiBaseUrl}${path}`, {
-		credentials: "include",
-		...init,
-		headers: {
-			"content-type": "application/json",
-			...(init.headers ?? {}),
-		},
-	});
-	if (!res.ok) {
-		const text = await res.text();
-		throw new Error(`${res.status} ${text}`);
-	}
-	return (await res.json()) as T;
-}
+import { api, unwrap } from "../api";
 
 export const financeKeys = {
 	all: ["finance"] as const,
@@ -41,7 +25,10 @@ export type PropertyFinancePayload = {
 export function usePropertyFinance(propertyId: string | undefined) {
 	return useQuery({
 		queryKey: propertyId ? financeKeys.property(propertyId) : [...financeKeys.all, "noop"],
-		queryFn: () => call<PropertyFinancePayload>(`/owner/properties/${propertyId}/finance`),
+		queryFn: () =>
+			unwrap(
+				api.owner.properties({ propertyId: propertyId as string }).finance.get(),
+			) as unknown as Promise<PropertyFinancePayload>,
 		enabled: !!propertyId,
 	});
 }
@@ -49,7 +36,7 @@ export function usePropertyFinance(propertyId: string | undefined) {
 export function useAllPropertiesFinance() {
 	return useQuery({
 		queryKey: financeKeys.list(),
-		queryFn: () => call<PropertyFinanceSummary[]>("/owner/finance"),
+		queryFn: () => unwrap(api.owner.finance.get()) as unknown as Promise<PropertyFinanceSummary[]>,
 	});
 }
 
@@ -63,10 +50,7 @@ export function useAddPropertyCost(propertyId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (vars: AddCostVars) =>
-			call<{ costId: string; transactionId: string }>(`/owner/properties/${propertyId}/costs`, {
-				method: "POST",
-				body: JSON.stringify(vars),
-			}),
+			unwrap(api.owner.properties({ propertyId: propertyId as string }).costs.post(vars)),
 		onSuccess: () => {
 			if (propertyId) qc.invalidateQueries({ queryKey: financeKeys.property(propertyId) });
 			qc.invalidateQueries({ queryKey: financeKeys.list() });
@@ -78,9 +62,12 @@ export function useReverseCost(propertyId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (costId: string) =>
-			call<{ ok: true }>(`/owner/properties/${propertyId}/costs/${costId}`, {
-				method: "DELETE",
-			}),
+			unwrap(
+				api.owner
+					.properties({ propertyId: propertyId as string })
+					.costs({ costId })
+					.delete(),
+			),
 		onSuccess: () => {
 			if (propertyId) qc.invalidateQueries({ queryKey: financeKeys.property(propertyId) });
 		},
@@ -88,24 +75,17 @@ export function useReverseCost(propertyId: string | undefined) {
 }
 
 export type CloseUnitVars = {
-	materialsHandoverChecked: boolean;
-	clientHandoverChecked: boolean;
+	materialsHandoverChecked: true;
+	clientHandoverChecked: true;
+	portfolioAssetIds: string[];
 	notes?: string;
-	portfolioAssetIds?: string[];
 };
 
 export function useCloseProperty(propertyId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (vars: CloseUnitVars) =>
-			call<{
-				id: string;
-				certificateAssetId: string | null;
-				finalReportAssetId: string | null;
-			}>(`/owner/properties/${propertyId}/close`, {
-				method: "POST",
-				body: JSON.stringify(vars),
-			}),
+			unwrap(api.owner.properties({ propertyId: propertyId as string }).close.post(vars)),
 		onSuccess: () => {
 			if (propertyId) {
 				qc.invalidateQueries({ queryKey: financeKeys.property(propertyId) });
@@ -126,10 +106,11 @@ export type PortfolioPresignResponse = {
 export function usePresignPortfolio(propertyId: string | undefined) {
 	return useMutation({
 		mutationFn: (contentType: string) =>
-			call<PortfolioPresignResponse>(`/owner/properties/${propertyId}/portfolio/presign`, {
-				method: "POST",
-				body: JSON.stringify({ kind: "PORTFOLIO_PHOTO", contentType }),
-			}),
+			unwrap(
+				api.owner
+					.properties({ propertyId: propertyId as string })
+					.portfolio.presign.post({ kind: "PORTFOLIO_PHOTO", contentType }),
+			),
 	});
 }
 
@@ -137,7 +118,7 @@ export function useReopenProperty(propertyId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: () =>
-			call<{ ok: true }>(`/owner/properties/${propertyId}/reopen`, { method: "POST" }),
+			unwrap(api.owner.properties({ propertyId: propertyId as string }).reopen.post({})),
 		onSuccess: () => {
 			if (propertyId) {
 				qc.invalidateQueries({ queryKey: financeKeys.property(propertyId) });
@@ -160,7 +141,10 @@ export type MasterFinancePayload = {
 export function useMasterFinance(masterUserId: string | undefined) {
 	return useQuery({
 		queryKey: masterUserId ? financeKeys.master(masterUserId) : [...financeKeys.all, "noop"],
-		queryFn: () => call<MasterFinancePayload>(`/owner/masters/${masterUserId}/finance`),
+		queryFn: () =>
+			unwrap(
+				api.owner["master-finance"]({ masterUserId: masterUserId as string }).get(),
+			) as unknown as Promise<MasterFinancePayload>,
 		enabled: !!masterUserId,
 	});
 }
@@ -168,7 +152,7 @@ export function useMasterFinance(masterUserId: string | undefined) {
 export function useSelfMasterFinance() {
 	return useQuery({
 		queryKey: financeKeys.masterSelf(),
-		queryFn: () => call<MasterFinanceView>("/master/finance"),
+		queryFn: () => unwrap(api.master.finance.get()) as unknown as Promise<MasterFinanceView>,
 	});
 }
 
@@ -176,10 +160,9 @@ export function useMarkPayout(masterUserId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (vars: { amount: string; note?: string }) =>
-			call<{ settlementId: string }>(`/owner/masters/${masterUserId}/payouts`, {
-				method: "POST",
-				body: JSON.stringify(vars),
-			}),
+			unwrap(
+				api.owner["master-finance"]({ masterUserId: masterUserId as string }).payouts.post(vars),
+			),
 		onSuccess: () => {
 			if (masterUserId) qc.invalidateQueries({ queryKey: financeKeys.master(masterUserId) });
 		},
@@ -198,7 +181,10 @@ export function useLatestRejection(subStageId: string | undefined) {
 		queryKey: subStageId
 			? [...financeKeys.all, "latest-rejection", subStageId]
 			: [...financeKeys.all, "noop"],
-		queryFn: () => call<LatestRejection | null>(`/inspector/stages/${subStageId}/latest-rejection`),
+		queryFn: () =>
+			unwrap(
+				api.inspector.stages({ subStageId: subStageId as string })["latest-rejection"].get(),
+			) as unknown as Promise<LatestRejection | null>,
 		enabled: !!subStageId,
 	});
 }
@@ -207,10 +193,7 @@ export function useApplyFine(rejectionId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (vars: { amount: string; reason: string }) =>
-			call<{ fineId: string }>(`/inspector/rejections/${rejectionId}/fine`, {
-				method: "POST",
-				body: JSON.stringify(vars),
-			}),
+			unwrap(api.inspector.rejections({ rejectionId: rejectionId as string }).fine.post(vars)),
 		onSuccess: () => qc.invalidateQueries({ queryKey: financeKeys.all }),
 	});
 }
@@ -219,9 +202,10 @@ export function useGrantClosingPermission(userId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (closingPermission: boolean) =>
-			call<{ ok: true; closingPermission: boolean }>(
-				`/owner/memberships/${userId}/closing-permission`,
-				{ method: "POST", body: JSON.stringify({ closingPermission }) },
+			unwrap(
+				api.owner
+					.memberships({ userId: userId as string })
+					["closing-permission"].post({ closingPermission }),
 			),
 		onSuccess: () => qc.invalidateQueries({ queryKey: financeKeys.all }),
 	});

@@ -1,0 +1,299 @@
+import type { StageTree, SubStageTree } from "@repo/validators";
+import { ArrowDown, ArrowUp, ChevronDown, Trash2 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { useSpecializations, type useTemplateMutations } from "@/lib/queries/templates";
+import { AddChecklistForm, AddMediaForm } from "./add-forms";
+import { ConfirmDelete, Field, InlineText, InlineTextarea } from "./primitives";
+
+type Mutators = ReturnType<typeof useTemplateMutations>;
+
+export function moveSub(stage: StageTree, subId: string, delta: number, m: Mutators) {
+	const ordered = [...stage.subStages].sort((a, b) => a.order - b.order);
+	const i = ordered.findIndex((s) => s.id === subId);
+	const j = i + delta;
+	if (i < 0 || j < 0 || j >= ordered.length) return;
+	const a = ordered[i];
+	const b = ordered[j];
+	if (!a || !b) return;
+	ordered[i] = b;
+	ordered[j] = a;
+	m.reorderSubStages.mutate({
+		stageId: stage.id,
+		order: ordered.map((s, idx) => ({ id: s.id, order: idx + 1 })),
+	});
+}
+
+export function SubStageEditor({
+	sub,
+	isFirst,
+	isLast,
+	onMoveUp,
+	onMoveDown,
+	mutators,
+}: {
+	sub: SubStageTree;
+	isFirst: boolean;
+	isLast: boolean;
+	onMoveUp: () => void;
+	onMoveDown: () => void;
+	mutators: Mutators;
+}) {
+	const { data: specs } = useSpecializations();
+	const [expanded, setExpanded] = useState(false);
+	const patch = (p: Record<string, unknown>) =>
+		mutators.updateSubStage.mutate({ id: sub.id, patch: p });
+
+	return (
+		<motion.div layout className="rounded-md border bg-background overflow-hidden">
+			<motion.div layout="position" className="flex items-center gap-2 p-2">
+				<button
+					type="button"
+					onClick={() => setExpanded(!expanded)}
+					className="flex-1 text-left flex items-center gap-2 text-sm cursor-pointer group"
+					aria-expanded={expanded}
+				>
+					<span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{sub.code}</span>
+					<span className="font-medium group-hover:underline decoration-dotted">{sub.name}</span>
+					<span
+						className={
+							sub.performerType === "INSPECTOR"
+								? "rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] uppercase text-blue-600"
+								: "rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground"
+						}
+					>
+						{sub.performerType}
+					</span>
+					{sub.specialization && (
+						<span className="text-xs text-muted-foreground">{sub.specialization}</span>
+					)}
+				</button>
+				<span className="text-xs text-muted-foreground">
+					{sub.checklistItems.length} checks · {sub.mediaRequirements.length} media
+				</span>
+				<Button variant="ghost" size="icon-sm" onClick={onMoveUp} disabled={isFirst}>
+					<ArrowUp className="size-4" />
+				</Button>
+				<Button variant="ghost" size="icon-sm" onClick={onMoveDown} disabled={isLast}>
+					<ArrowDown className="size-4" />
+				</Button>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onClick={() => setExpanded(!expanded)}
+					aria-label={expanded ? "Collapse sub-stage" : "Expand sub-stage"}
+				>
+					<motion.span
+						animate={{ rotate: expanded ? 180 : 0 }}
+						transition={{ duration: 0.2, ease: "easeOut" }}
+						className="inline-flex"
+					>
+						<ChevronDown className="size-4" />
+					</motion.span>
+				</Button>
+				<ConfirmDelete
+					title={`Delete sub-stage "${sub.name}"?`}
+					description="This permanently removes the sub-stage and its checklists and media requirements."
+					onConfirm={() => mutators.deleteSubStage.mutate(sub.id)}
+					ariaLabel="Delete sub-stage"
+				/>
+			</motion.div>
+			<AnimatePresence initial={false}>
+				{expanded && (
+					<motion.div
+						key="content"
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: "auto", opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+						style={{ overflow: "hidden" }}
+					>
+						<div className="border-t p-3 grid grid-cols-1 lg:grid-cols-2 gap-4">
+							<div className="space-y-3">
+								<Field label="Code">
+									<InlineText value={sub.code} onSave={(v) => patch({ code: v })} />
+								</Field>
+								<Field label="Name">
+									<InlineText value={sub.name} onSave={(v) => patch({ name: v })} />
+								</Field>
+								<Field label="Performer">
+									<Select
+										value={sub.performerType}
+										onValueChange={(v) => patch({ performerType: v })}
+									>
+										<SelectTrigger className="h-9">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="MASTER">MASTER</SelectItem>
+											<SelectItem value="INSPECTOR">INSPECTOR</SelectItem>
+										</SelectContent>
+									</Select>
+								</Field>
+								<Field label="Specialization">
+									<Select
+										value={sub.specialization ?? "__none__"}
+										onValueChange={(v) => patch({ specialization: v === "__none__" ? null : v })}
+									>
+										<SelectTrigger className="h-9">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="__none__">— none —</SelectItem>
+											{(specs ?? []).map((s) => (
+												<SelectItem key={s.id} value={s.name}>
+													{s.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</Field>
+								<Field label="Standard duration (days)">
+									<InlineText
+										value={String(sub.standardDurationDays)}
+										onSave={(v) => {
+											const n = Number(v);
+											if (!Number.isNaN(n) && n >= 0)
+												patch({ standardDurationDays: Math.floor(n) });
+										}}
+									/>
+								</Field>
+								<Field label="Wage rate per m² ($)">
+									<InlineText
+										value={sub.wageRatePerSqm}
+										onSave={(v) => {
+											if (/^\d+(\.\d{1,2})?$/.test(v)) patch({ wageRatePerSqm: v });
+										}}
+									/>
+								</Field>
+								<Field label="Description">
+									<InlineTextarea
+										value={sub.description ?? ""}
+										onSave={(v) => patch({ description: v || null })}
+									/>
+								</Field>
+							</div>
+
+							<div className="space-y-4">
+								<div>
+									<h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+										Media requirements
+									</h4>
+									<ul className="space-y-1.5">
+										{sub.mediaRequirements.map((mr) => (
+											<li
+												key={mr.id}
+												className="flex items-center gap-2 rounded border px-2 py-1.5 text-sm"
+											>
+												<Select
+													value={mr.mediaType}
+													onValueChange={(v) =>
+														mutators.updateMediaRequirement.mutate({
+															id: mr.id,
+															patch: { mediaType: v as "PHOTO" | "VIDEO" },
+														})
+													}
+												>
+													<SelectTrigger size="sm" className="text-xs">
+														<SelectValue />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="PHOTO">PHOTO</SelectItem>
+														<SelectItem value="VIDEO">VIDEO</SelectItem>
+													</SelectContent>
+												</Select>
+												<InlineText
+													value={mr.description}
+													onSave={(v) =>
+														mutators.updateMediaRequirement.mutate({
+															id: mr.id,
+															patch: { description: v },
+														})
+													}
+													className="flex-1 text-xs"
+												/>
+												<span className="flex items-center gap-1 text-xs">
+													<Switch
+														checked={mr.required}
+														onCheckedChange={(checked) =>
+															mutators.updateMediaRequirement.mutate({
+																id: mr.id,
+																patch: { required: !!checked },
+															})
+														}
+														size="sm"
+													/>
+													required
+												</span>
+												<Button
+													variant="ghost"
+													size="icon-xs"
+													onClick={() => mutators.deleteMediaRequirement.mutate(mr.id)}
+												>
+													<Trash2 className="size-3 text-destructive" />
+												</Button>
+											</li>
+										))}
+									</ul>
+									<AddMediaForm subStageId={sub.id} mutators={mutators} />
+								</div>
+
+								<div>
+									<h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">
+										Checklist control points ({sub.checklistItems.length})
+									</h4>
+									<ul className="space-y-1.5">
+										{sub.checklistItems.map((ci) => (
+											<li key={ci.id} className="rounded border px-2 py-1.5 text-sm space-y-1">
+												<div className="flex items-start gap-2">
+													<InlineTextarea
+														value={ci.text}
+														onSave={(v) =>
+															mutators.updateChecklistItem.mutate({
+																id: ci.id,
+																patch: { text: v },
+															})
+														}
+														className="flex-1 text-sm"
+													/>
+													<Button
+														variant="ghost"
+														size="icon-xs"
+														onClick={() => mutators.deleteChecklistItem.mutate(ci.id)}
+													>
+														<Trash2 className="size-3 text-destructive" />
+													</Button>
+												</div>
+												<InlineTextarea
+													value={ci.criteria ?? ""}
+													onSave={(v) =>
+														mutators.updateChecklistItem.mutate({
+															id: ci.id,
+															patch: { criteria: v || null },
+														})
+													}
+													placeholder="Criteria / threshold (optional)…"
+													className="text-xs text-muted-foreground"
+												/>
+											</li>
+										))}
+									</ul>
+									<AddChecklistForm subStageId={sub.id} mutators={mutators} />
+								</div>
+							</div>
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</motion.div>
+	);
+}

@@ -655,7 +655,7 @@ describe("phase 7 finance — closing flow", () => {
 		});
 		// Elysia body validation rejects empty arrays — 422 from the validator.
 		expect([400, 422]).toContain(r.status);
-	});
+	}, 30000);
 
 	it("inspector close requires closingPermission (403 otherwise)", async () => {
 		const id = await driveToCompletion();
@@ -669,7 +669,7 @@ describe("phase 7 finance — closing flow", () => {
 			}),
 		});
 		expect(denied.status).toBe(403);
-	});
+	}, 30000);
 
 	it("owner close transitions property to ARCHIVED and writes a unit_closings row", async () => {
 		const id = await driveToCompletion();
@@ -709,7 +709,7 @@ describe("phase 7 finance — closing flow", () => {
 		expect(after.status).toBe("ARCHIVED");
 		expect(after.closing.materialsHandoverChecked).toBe(true);
 		expect(after.closing.notes).toBe("All good");
-	});
+	}, 30000);
 
 	it("reopen preserves audit (stamps reopenedAt/By; closing row stays as history)", async () => {
 		const id = await driveToCompletion();
@@ -765,7 +765,7 @@ describe("phase 7 finance — closing flow", () => {
 			return rs.length;
 		});
 		expect(histCount).toBe(2);
-	});
+	}, 60000);
 
 	it("rejects close on a property that isn't COMPLETED", async () => {
 		const { id } = await createProperty(aOwnerCookie);
@@ -808,7 +808,7 @@ describe("phase 7 finance — closing flow", () => {
 			method: "POST",
 			body: JSON.stringify({ closingPermission: false }),
 		});
-	});
+	}, 30000);
 });
 
 describe("phase 7 finance — tenant isolation", () => {

@@ -35,18 +35,18 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 	.use(tenancy)
 	.use(requireRole("OWNER"))
 
-	.get("/properties/:id/finance", async ({ params, runInTenant, set }) => {
+	.get("/properties/:propertyId/finance", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
 		return await runInTenant(async (tx) => {
-			const summary = await buildPropertyFinanceSummary(tx, params.id);
+			const summary = await buildPropertyFinanceSummary(tx, params.propertyId);
 			if (!summary) {
 				set.status = 404;
 				return { error: "property not found" };
 			}
-			const costs = await listPropertyCosts(tx, params.id);
+			const costs = await listPropertyCosts(tx, params.propertyId);
 			return { summary, costs };
 		});
 	})
@@ -60,7 +60,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 	})
 
 	.post(
-		"/properties/:id/costs",
+		"/properties/:propertyId/costs",
 		async ({ params, body, user, runInTenant, set }) => {
 			if (!runInTenant || !user) {
 				set.status = 401;
@@ -70,7 +70,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 				const [prop] = await tx
 					.select({ id: properties.id, status: properties.status })
 					.from(properties)
-					.where(eq(properties.id, params.id))
+					.where(eq(properties.id, params.propertyId))
 					.limit(1);
 				if (!prop) {
 					set.status = 404;
@@ -91,7 +91,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 		{ body: zodBody(CreatePropertyCostInput) },
 	)
 
-	.delete("/properties/:id/costs/:costId", async ({ params, user, runInTenant, set }) => {
+	.delete("/properties/:propertyId/costs/:costId", async ({ params, user, runInTenant, set }) => {
 		if (!runInTenant || !user) {
 			set.status = 401;
 			return { error: "no tenant" };
@@ -100,7 +100,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 			const [prop] = await tx
 				.select({ status: properties.status })
 				.from(properties)
-				.where(eq(properties.id, params.id))
+				.where(eq(properties.id, params.propertyId))
 				.limit(1);
 			if (!prop) {
 				set.status = 404;
@@ -111,7 +111,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 				return { error: "cannot reverse cost on archived property" };
 			}
 			const ok = await reversePropertyCost(tx, {
-				propertyId: params.id,
+				propertyId: params.propertyId,
 				costId: params.costId,
 				reversedBy: user.id,
 			});
@@ -123,16 +123,16 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 		});
 	})
 
-	.get("/masters/:id/finance", async ({ params, runInTenant, set }) => {
+	.get("/master-finance/:masterUserId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
-		return await runInTenant((tx) => buildMasterFinanceView(tx, params.id));
+		return await runInTenant((tx) => buildMasterFinanceView(tx, params.masterUserId));
 	})
 
 	.post(
-		"/masters/:id/payouts",
+		"/master-finance/:masterUserId/payouts",
 		async ({ params, body, user, runInTenant, set }) => {
 			if (!runInTenant || !user) {
 				set.status = 401;
@@ -142,7 +142,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 				const [bal] = await tx
 					.select()
 					.from(masterBalances)
-					.where(eq(masterBalances.masterUserId, params.id))
+					.where(eq(masterBalances.masterUserId, params.masterUserId))
 					.limit(1);
 				if (!bal) {
 					set.status = 404;
@@ -153,7 +153,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 					return { error: "payout exceeds current balance" };
 				}
 				const r = await markPayoutSettled(tx, {
-					masterUserId: params.id,
+					masterUserId: params.masterUserId,
 					input: body,
 					settledBy: user.id,
 				});
@@ -170,7 +170,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 	// path due to shared tenancy, but route role-guard is OWNER here. If we
 	// surface inspector closing in UI later, add a parallel inspector route).
 	.post(
-		"/properties/:id/portfolio/presign",
+		"/properties/:propertyId/portfolio/presign",
 		async ({ params, body, tenant, runInTenant, set }) => {
 			if (!runInTenant || !tenant) {
 				set.status = 401;
@@ -184,7 +184,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 				const [prop] = await tx
 					.select({ id: properties.id })
 					.from(properties)
-					.where(eq(properties.id, params.id))
+					.where(eq(properties.id, params.propertyId))
 					.limit(1);
 				if (!prop) {
 					set.status = 404;
@@ -224,7 +224,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 	)
 
 	.post(
-		"/properties/:id/close",
+		"/properties/:propertyId/close",
 		async ({ params, body, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !tenant || !user) {
 				set.status = 401;
@@ -238,7 +238,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 				return { error: parsed.error.issues[0]?.message ?? "invalid body" };
 			}
 			return await finalizeClosing({
-				propertyId: params.id,
+				propertyId: params.propertyId,
 				input: parsed.data,
 				closedBy: user.id,
 				tenantSchema: tenant.schemaName,
@@ -249,7 +249,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 		{ body: zodBody(CloseUnitInput) },
 	)
 
-	.post("/properties/:id/reopen", async ({ params, user, runInTenant, set }) => {
+	.post("/properties/:propertyId/reopen", async ({ params, user, runInTenant, set }) => {
 		if (!runInTenant || !user) {
 			set.status = 401;
 			return { error: "no tenant" };
@@ -258,7 +258,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 			const [prop] = await tx
 				.select({ status: properties.status })
 				.from(properties)
-				.where(eq(properties.id, params.id))
+				.where(eq(properties.id, params.propertyId))
 				.limit(1);
 			if (!prop) {
 				set.status = 404;
@@ -268,7 +268,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner" })
 				set.status = 409;
 				return { error: "property is not archived" };
 			}
-			const ok = await reopenClosing(tx, { propertyId: params.id, reopenedBy: user.id });
+			const ok = await reopenClosing(tx, { propertyId: params.propertyId, reopenedBy: user.id });
 			if (!ok) {
 				set.status = 409;
 				return { error: "closing not found or already reopened" };
@@ -348,7 +348,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 	// Returns null when none exists (e.g. stage was rejected, fined, then a new
 	// rejection occurred → still returns the latest; the unique index prevents
 	// duplicate fines on the same rejection).
-	.get("/stages/:id/latest-rejection", async ({ params, runInTenant, set }) => {
+	.get("/stages/:subStageId/latest-rejection", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
@@ -359,7 +359,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 					exists(SELECT 1 FROM fines f WHERE f.rejection_id = r.id) AS fined
 					FROM rejections r
 					JOIN acceptance_requests ar ON ar.id = r.acceptance_request_id
-					WHERE ar.sub_stage_instance_id = ${params.id}
+					WHERE ar.sub_stage_instance_id = ${params.subStageId}
 					ORDER BY r.rejected_at DESC LIMIT 1`,
 			)) as Array<{ id: string; comment: string; rejected_at: Date; fined: boolean }>;
 			const r = rows[0];
@@ -368,7 +368,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 	})
 
 	.post(
-		"/properties/:id/close",
+		"/properties/:propertyId/close",
 		async ({ params, body, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !tenant || !user) {
 				set.status = 401;
@@ -394,7 +394,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 				return { error: parsed.error.issues[0]?.message ?? "invalid body" };
 			}
 			return await finalizeClosing({
-				propertyId: params.id,
+				propertyId: params.propertyId,
 				input: parsed.data,
 				closedBy: user.id,
 				tenantSchema: tenant.schemaName,

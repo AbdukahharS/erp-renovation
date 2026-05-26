@@ -174,13 +174,13 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 		});
 	})
 
-	.get("/stages/:id", async ({ params, user, runInTenant, set }) => {
+	.get("/stages/:subStageId", async ({ params, user, runInTenant, set }) => {
 		if (!runInTenant || !user) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
 		return await runInTenant(async (tx) => {
-			const detail = await loadStageDetail(tx, params.id);
+			const detail = await loadStageDetail(tx, params.subStageId);
 			if (!detail) {
 				set.status = 404;
 				return { error: "sub-stage not found" };
@@ -189,13 +189,13 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 		});
 	})
 
-	.post("/stages/:id/take", async ({ params, user, tenant, runInTenant, set }) => {
+	.post("/stages/:subStageId/take", async ({ params, user, tenant, runInTenant, set }) => {
 		if (!runInTenant || !user || !tenant) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
 		return await runInTenant(async (tx) => {
-			const ss = await lockSubStage(tx, params.id);
+			const ss = await lockSubStage(tx, params.subStageId);
 			if (!ss) {
 				set.status = 404;
 				return { error: "sub-stage not found" };
@@ -208,7 +208,7 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 				set.status = 409;
 				return { error: `sub-stage is ${ss.status}, not AVAILABLE` };
 			}
-			if (!(await isUnlocked(tx, params.id))) {
+			if (!(await isUnlocked(tx, params.subStageId))) {
 				set.status = 409;
 				return { error: "predecessor not accepted or stage manually blocked" };
 			}
@@ -229,7 +229,7 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 			try {
 				await tx
 					.insert(subStageAssignments)
-					.values({ subStageInstanceId: params.id, masterUserId: user.id });
+					.values({ subStageInstanceId: params.subStageId, masterUserId: user.id });
 			} catch (_err) {
 				set.status = 409;
 				return { error: "another master has already claimed this stage" };
@@ -237,12 +237,12 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 			await tx
 				.update(subStageInstances)
 				.set({ status: "IN_PROGRESS" })
-				.where(eq(subStageInstances.id, params.id));
+				.where(eq(subStageInstances.id, params.subStageId));
 
-			const propertyId = await propertyIdForSubStage(tx, params.id);
+			const propertyId = await propertyIdForSubStage(tx, params.subStageId);
 			await writeStageEvent(tx, tenant.schemaName, {
 				type: "TAKEN_INTO_WORK",
-				subStageInstanceId: params.id,
+				subStageInstanceId: params.subStageId,
 				propertyId,
 				actorUserId: user.id,
 			});
@@ -254,7 +254,7 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 	})
 
 	.post(
-		"/stages/:id/media/presign",
+		"/stages/:subStageId/media/presign",
 		async ({ params, body, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !user || !tenant) {
 				set.status = 401;
@@ -265,12 +265,12 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 				return { error: "object storage not configured" };
 			}
 			return await runInTenant(async (tx) => {
-				const propertyId = await propertyIdForSubStage(tx, params.id);
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
 				if (!propertyId) {
 					set.status = 404;
 					return { error: "sub-stage not found" };
 				}
-				const assignment = await activeAssignment(tx, params.id);
+				const assignment = await activeAssignment(tx, params.subStageId);
 				if (!assignment || assignment.master_user_id !== user.id) {
 					set.status = 403;
 					return { error: "not your active claim" };
@@ -311,19 +311,19 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 	)
 
 	.post(
-		"/stages/:id/media/attach",
+		"/stages/:subStageId/media/attach",
 		async ({ params, body, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !user || !tenant) {
 				set.status = 401;
 				return { error: "no tenant" };
 			}
 			return await runInTenant(async (tx) => {
-				const propertyId = await propertyIdForSubStage(tx, params.id);
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
 				if (!propertyId) {
 					set.status = 404;
 					return { error: "sub-stage not found" };
 				}
-				const assignment = await activeAssignment(tx, params.id);
+				const assignment = await activeAssignment(tx, params.subStageId);
 				if (!assignment || assignment.master_user_id !== user.id) {
 					set.status = 403;
 					return { error: "not your active claim" };
@@ -358,7 +358,7 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 					.where(eq(propertyAssets.id, asset.id));
 				try {
 					await tx.insert(stageMediaAssets).values({
-						subStageInstanceId: params.id,
+						subStageInstanceId: params.subStageId,
 						assetId: asset.id,
 						uploadedBy: user.id,
 					});
@@ -372,19 +372,19 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 	)
 
 	.post(
-		"/stages/:id/submit",
+		"/stages/:subStageId/submit",
 		async ({ params, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !user || !tenant) {
 				set.status = 401;
 				return { error: "no tenant" };
 			}
 			return await runInTenant(async (tx) => {
-				const ss = await lockSubStage(tx, params.id);
+				const ss = await lockSubStage(tx, params.subStageId);
 				if (!ss) {
 					set.status = 404;
 					return { error: "sub-stage not found" };
 				}
-				const assignment = await activeAssignment(tx, params.id);
+				const assignment = await activeAssignment(tx, params.subStageId);
 				if (!assignment || assignment.master_user_id !== user.id) {
 					set.status = 403;
 					return { error: "not your active claim" };
@@ -393,14 +393,14 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 					set.status = 409;
 					return { error: `cannot submit from ${ss.status}` };
 				}
-				const missing = await missingRequiredMedia(tx, params.id);
+				const missing = await missingRequiredMedia(tx, params.subStageId);
 				if (missing.length > 0) {
 					set.status = 400;
 					return { error: "required media missing", missing };
 				}
 				try {
 					await tx.insert(acceptanceRequests).values({
-						subStageInstanceId: params.id,
+						subStageInstanceId: params.subStageId,
 						submittedBy: user.id,
 					});
 				} catch {
@@ -410,18 +410,18 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 				await tx
 					.update(subStageInstances)
 					.set({ status: "SUBMITTED" })
-					.where(eq(subStageInstances.id, params.id));
+					.where(eq(subStageInstances.id, params.subStageId));
 
-				const propertyId = await propertyIdForSubStage(tx, params.id);
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
 				await writeStageEvent(tx, tenant.schemaName, {
 					type: "SUBMITTED",
-					subStageInstanceId: params.id,
+					subStageInstanceId: params.subStageId,
 					propertyId,
 					actorUserId: user.id,
 				});
 				const intentIds = await emitAcceptanceNotificationIntents(tx, tenant.schemaName, {
 					type: "STAGE_SUBMITTED",
-					subStageInstanceId: params.id,
+					subStageInstanceId: params.subStageId,
 					propertyId,
 				});
 				// Phase 8 audit #4: enqueue MUST run after the tenant tx commits
@@ -499,13 +499,13 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 		});
 	})
 
-	.get("/stages/:id", async ({ params, runInTenant, set }) => {
+	.get("/stages/:subStageId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
 		return await runInTenant(async (tx) => {
-			const detail = await loadStageDetail(tx, params.id);
+			const detail = await loadStageDetail(tx, params.subStageId);
 			if (!detail) {
 				set.status = 404;
 				return { error: "sub-stage not found" };
@@ -515,7 +515,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 	})
 
 	.post(
-		"/stages/:id/media/presign",
+		"/stages/:subStageId/media/presign",
 		async ({ params, body, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !user || !tenant) {
 				set.status = 401;
@@ -526,7 +526,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 				return { error: "object storage not configured" };
 			}
 			return await runInTenant(async (tx) => {
-				const propertyId = await propertyIdForSubStage(tx, params.id);
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
 				if (!propertyId) {
 					set.status = 404;
 					return { error: "sub-stage not found" };
@@ -567,14 +567,14 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 	)
 
 	.post(
-		"/stages/:id/media/attach",
+		"/stages/:subStageId/media/attach",
 		async ({ params, body, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !user || !tenant) {
 				set.status = 401;
 				return { error: "no tenant" };
 			}
 			return await runInTenant(async (tx) => {
-				const propertyId = await propertyIdForSubStage(tx, params.id);
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
 				if (!propertyId) {
 					set.status = 404;
 					return { error: "sub-stage not found" };
@@ -610,7 +610,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 				if (body.kind === "BEFORE_PHOTO") {
 					try {
 						await tx.insert(stageMediaAssets).values({
-							subStageInstanceId: params.id,
+							subStageInstanceId: params.subStageId,
 							assetId: asset.id,
 							uploadedBy: user.id,
 						});
@@ -625,14 +625,14 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 	)
 
 	.post(
-		"/stages/:id/submit-self",
+		"/stages/:subStageId/submit-self",
 		async ({ params, body, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !user || !tenant) {
 				set.status = 401;
 				return { error: "no tenant" };
 			}
 			return await runInTenant(async (tx) => {
-				const ss = await lockSubStage(tx, params.id);
+				const ss = await lockSubStage(tx, params.subStageId);
 				if (!ss) {
 					set.status = 404;
 					return { error: "sub-stage not found" };
@@ -645,18 +645,18 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 					set.status = 409;
 					return { error: `cannot submit from ${ss.status}` };
 				}
-				if (!(await isUnlocked(tx, params.id))) {
+				if (!(await isUnlocked(tx, params.subStageId))) {
 					set.status = 409;
 					return { error: "predecessor not accepted or stage manually blocked" };
 				}
-				const missing = await missingRequiredMedia(tx, params.id);
+				const missing = await missingRequiredMedia(tx, params.subStageId);
 				if (missing.length > 0) {
 					set.status = 400;
 					return { error: "required media missing", missing };
 				}
 				try {
 					await tx.insert(acceptanceRequests).values({
-						subStageInstanceId: params.id,
+						subStageInstanceId: params.subStageId,
 						submittedBy: user.id,
 					});
 				} catch {
@@ -666,9 +666,9 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 				await tx
 					.update(subStageInstances)
 					.set({ status: "SUBMITTED" })
-					.where(eq(subStageInstances.id, params.id));
+					.where(eq(subStageInstances.id, params.subStageId));
 
-				const propertyId = await propertyIdForSubStage(tx, params.id);
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
 				if (propertyId && body.materialsOnSite !== undefined) {
 					await tx
 						.update(properties)
@@ -677,7 +677,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 				}
 				await writeStageEvent(tx, tenant.schemaName, {
 					type: "SUBMITTED",
-					subStageInstanceId: params.id,
+					subStageInstanceId: params.subStageId,
 					propertyId,
 					actorUserId: user.id,
 				});
@@ -685,7 +685,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 				// inspectors so any of them can pick up the acceptance.
 				const intentIds = await emitAcceptanceNotificationIntents(tx, tenant.schemaName, {
 					type: "STAGE_SUBMITTED",
-					subStageInstanceId: params.id,
+					subStageInstanceId: params.subStageId,
 					propertyId,
 				});
 				// Phase 8 audit #4: enqueue MUST run after the tenant tx commits
@@ -700,14 +700,14 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 	)
 
 	.post(
-		"/stages/:id/accept",
+		"/stages/:subStageId/accept",
 		async ({ params, body, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !user || !tenant) {
 				set.status = 401;
 				return { error: "no tenant" };
 			}
 			return await runInTenant(async (tx) => {
-				const ss = await lockSubStage(tx, params.id);
+				const ss = await lockSubStage(tx, params.subStageId);
 				if (!ss) {
 					set.status = 404;
 					return { error: "sub-stage not found" };
@@ -716,7 +716,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 					set.status = 409;
 					return { error: `cannot accept from ${ss.status}` };
 				}
-				const request = await activeAcceptanceRequest(tx, params.id);
+				const request = await activeAcceptanceRequest(tx, params.subStageId);
 				if (!request) {
 					set.status = 409;
 					return { error: "no active acceptance request" };
@@ -726,7 +726,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 				const items = await tx
 					.select()
 					.from(checklistItemInstances)
-					.where(eq(checklistItemInstances.subStageInstanceId, params.id));
+					.where(eq(checklistItemInstances.subStageInstanceId, params.subStageId));
 				const passedById = new Map<string, { passed: boolean; note?: string | null }>();
 				for (const r of body.results) {
 					passedById.set(r.checklistItemInstanceId, { passed: r.passed, note: r.note ?? null });
@@ -765,25 +765,25 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 				await tx
 					.update(subStageInstances)
 					.set({ status: "ACCEPTED" })
-					.where(eq(subStageInstances.id, params.id));
+					.where(eq(subStageInstances.id, params.subStageId));
 				// Release the master claim, if any.
 				await tx
 					.update(subStageAssignments)
 					.set({ releasedAt: new Date() })
 					.where(
 						and(
-							eq(subStageAssignments.subStageInstanceId, params.id),
+							eq(subStageAssignments.subStageInstanceId, params.subStageId),
 							isNull(subStageAssignments.releasedAt),
 						),
 					);
 
-				const propertyId = await propertyIdForSubStage(tx, params.id);
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
 				// Phase 5: the ACCEPTED event is the seam BullMQ subscribes to.
 				// The wage-credit + stage-propagate jobs run async; this route
 				// returns as soon as the row updates commit.
 				await writeStageEvent(tx, tenant.schemaName, {
 					type: "ACCEPTED",
-					subStageInstanceId: params.id,
+					subStageInstanceId: params.subStageId,
 					propertyId,
 					actorUserId: user.id,
 				});
@@ -794,14 +794,14 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 	)
 
 	.post(
-		"/stages/:id/reject",
+		"/stages/:subStageId/reject",
 		async ({ params, body, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !user || !tenant) {
 				set.status = 401;
 				return { error: "no tenant" };
 			}
 			return await runInTenant(async (tx) => {
-				const ss = await lockSubStage(tx, params.id);
+				const ss = await lockSubStage(tx, params.subStageId);
 				if (!ss) {
 					set.status = 404;
 					return { error: "sub-stage not found" };
@@ -810,7 +810,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 					set.status = 409;
 					return { error: `cannot reject from ${ss.status}` };
 				}
-				const request = await activeAcceptanceRequest(tx, params.id);
+				const request = await activeAcceptanceRequest(tx, params.subStageId);
 				if (!request) {
 					set.status = 409;
 					return { error: "no active acceptance request" };
@@ -860,28 +860,28 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 				await tx
 					.update(subStageInstances)
 					.set({ status: nextStatus })
-					.where(eq(subStageInstances.id, params.id));
+					.where(eq(subStageInstances.id, params.subStageId));
 
-				const propertyId = await propertyIdForSubStage(tx, params.id);
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
 				// Phase 6: recompute the assigned master's rating counters on REJECTED.
 				// Accept flows recompute via the stage-propagate worker; reject has no
 				// downstream worker, so do it inline.
 				if (ss.performer_type === "MASTER") {
-					const assignment = await activeAssignment(tx, params.id);
+					const assignment = await activeAssignment(tx, params.subStageId);
 					if (assignment) {
 						await recomputeMasterRating(tx, assignment.master_user_id);
 					}
 				}
 				await writeStageEvent(tx, tenant.schemaName, {
 					type: "REJECTED",
-					subStageInstanceId: params.id,
+					subStageInstanceId: params.subStageId,
 					propertyId,
 					actorUserId: user.id,
 					payload: { comment: body.comment },
 				});
 				const intentIds = await emitAcceptanceNotificationIntents(tx, tenant.schemaName, {
 					type: "STAGE_REJECTED",
-					subStageInstanceId: params.id,
+					subStageInstanceId: params.subStageId,
 					propertyId,
 					payload: { comment: body.comment },
 				});
@@ -897,19 +897,19 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 	)
 
 	.post(
-		"/stages/:id/manual-override",
+		"/stages/:subStageId/manual-override",
 		async ({ params, body, user, tenant, runInTenant, set }) => {
 			if (!runInTenant || !user || !tenant) {
 				set.status = 401;
 				return { error: "no tenant" };
 			}
 			return await runInTenant(async (tx) => {
-				const ss = await lockSubStage(tx, params.id);
+				const ss = await lockSubStage(tx, params.subStageId);
 				if (!ss) {
 					set.status = 404;
 					return { error: "sub-stage not found" };
 				}
-				const propertyId = await propertyIdForSubStage(tx, params.id);
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
 				const eventType: "MANUAL_BLOCKED" | "MANUAL_UNBLOCKED" =
 					body.action === "BLOCK" ? "MANUAL_BLOCKED" : "MANUAL_UNBLOCKED";
 
@@ -924,12 +924,12 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 							manualBlockedAt: new Date(),
 							manualBlockedReason: body.reason,
 						})
-						.where(eq(subStageInstances.id, params.id));
+						.where(eq(subStageInstances.id, params.subStageId));
 					if (ss.status === "AVAILABLE") {
 						await tx
 							.update(subStageInstances)
 							.set({ status: "LOCKED" })
-							.where(eq(subStageInstances.id, params.id));
+							.where(eq(subStageInstances.id, params.subStageId));
 					}
 				} else if (body.action === "UNBLOCK") {
 					await tx
@@ -940,12 +940,12 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 							manualBlockedAt: null,
 							manualBlockedReason: null,
 						})
-						.where(eq(subStageInstances.id, params.id));
-					if (ss.status === "LOCKED" && (await isUnlocked(tx, params.id))) {
+						.where(eq(subStageInstances.id, params.subStageId));
+					if (ss.status === "LOCKED" && (await isUnlocked(tx, params.subStageId))) {
 						await tx
 							.update(subStageInstances)
 							.set({ status: "AVAILABLE" })
-							.where(eq(subStageInstances.id, params.id));
+							.where(eq(subStageInstances.id, params.subStageId));
 					}
 				} else {
 					// FORCE_UNBLOCK: skip predecessor checks by flagging every incoming
@@ -958,7 +958,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 							manualBlockedAt: null,
 							manualBlockedReason: null,
 						})
-						.where(eq(subStageInstances.id, params.id));
+						.where(eq(subStageInstances.id, params.subStageId));
 					await tx
 						.update(stageInstanceDependencies)
 						.set({
@@ -967,17 +967,17 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 							overrideAt: new Date(),
 							overrideReason: body.reason,
 						})
-						.where(eq(stageInstanceDependencies.subStageInstanceId, params.id));
-					if (ss.status === "LOCKED" && (await isUnlocked(tx, params.id))) {
+						.where(eq(stageInstanceDependencies.subStageInstanceId, params.subStageId));
+					if (ss.status === "LOCKED" && (await isUnlocked(tx, params.subStageId))) {
 						await tx
 							.update(subStageInstances)
 							.set({ status: "AVAILABLE" })
-							.where(eq(subStageInstances.id, params.id));
+							.where(eq(subStageInstances.id, params.subStageId));
 					}
 				}
 				await writeStageEvent(tx, tenant.schemaName, {
 					type: eventType,
-					subStageInstanceId: params.id,
+					subStageInstanceId: params.subStageId,
 					propertyId,
 					actorUserId: user.id,
 					payload: { action: body.action, reason: body.reason },
@@ -985,7 +985,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 				const intentType = eventType === "MANUAL_BLOCKED" ? "STAGE_BLOCKED" : "STAGE_UNBLOCKED";
 				const intentIds = await emitAcceptanceNotificationIntents(tx, tenant.schemaName, {
 					type: intentType,
-					subStageInstanceId: params.id,
+					subStageInstanceId: params.subStageId,
 					propertyId,
 					payload: { reason: body.reason },
 				});

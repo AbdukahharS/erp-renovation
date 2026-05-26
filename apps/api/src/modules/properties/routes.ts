@@ -70,7 +70,7 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 		});
 	})
 
-	.get("/properties/:id", async ({ params, runInTenant, set }) => {
+	.get("/properties/:propertyId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
@@ -79,7 +79,7 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 			const [prop] = await tx
 				.select()
 				.from(properties)
-				.where(eq(properties.id, params.id))
+				.where(eq(properties.id, params.propertyId))
 				.limit(1);
 			if (!prop) {
 				set.status = 404;
@@ -198,7 +198,7 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 	)
 
 	.patch(
-		"/properties/:id",
+		"/properties/:propertyId",
 		async ({ params, body, runInTenant, set }) => {
 			if (!runInTenant) {
 				set.status = 401;
@@ -215,7 +215,7 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 				const [row] = await tx
 					.update(properties)
 					.set(updates)
-					.where(eq(properties.id, params.id))
+					.where(eq(properties.id, params.propertyId))
 					.returning();
 				if (!row) {
 					set.status = 404;
@@ -227,7 +227,7 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 		{ body: zodBody(UpdatePropertyInput) },
 	)
 
-	.delete("/properties/:id", async ({ params, runInTenant, set }) => {
+	.delete("/properties/:propertyId", async ({ params, runInTenant, set }) => {
 		if (!runInTenant) {
 			set.status = 401;
 			return { error: "no tenant" };
@@ -236,7 +236,7 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 			const [prop] = await tx
 				.select({ status: properties.status })
 				.from(properties)
-				.where(eq(properties.id, params.id))
+				.where(eq(properties.id, params.propertyId))
 				.limit(1);
 			if (!prop) {
 				set.status = 404;
@@ -246,13 +246,13 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 				set.status = 409;
 				return { error: "only PENDING properties can be deleted" };
 			}
-			await tx.delete(properties).where(eq(properties.id, params.id));
+			await tx.delete(properties).where(eq(properties.id, params.propertyId));
 			return { ok: true };
 		});
 	})
 
 	.post(
-		"/properties/:id/floor-plan/presign",
+		"/properties/:propertyId/floor-plan/presign",
 		async ({ params, body, tenant, runInTenant, set }) => {
 			if (!runInTenant || !tenant) {
 				set.status = 401;
@@ -266,7 +266,7 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 				const [prop] = await tx
 					.select({ id: properties.id })
 					.from(properties)
-					.where(eq(properties.id, params.id))
+					.where(eq(properties.id, params.propertyId))
 					.limit(1);
 				if (!prop) {
 					set.status = 404;
@@ -306,7 +306,7 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 	)
 
 	.post(
-		"/properties/:id/floor-plan/attach",
+		"/properties/:propertyId/floor-plan/attach",
 		async ({ params, body, tenant, runInTenant, set }) => {
 			if (!runInTenant || !tenant) {
 				set.status = 401;
@@ -319,7 +319,7 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 					.where(
 						and(
 							eq(propertyAssets.id, body.assetId),
-							eq(propertyAssets.propertyId, params.id),
+							eq(propertyAssets.propertyId, params.propertyId),
 							eq(propertyAssets.kind, "FLOOR_PLAN"),
 						),
 					)
@@ -349,7 +349,7 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 				const [prop] = await tx
 					.update(properties)
 					.set({ floorPlanAssetId: asset.id, updatedAt: new Date() })
-					.where(eq(properties.id, params.id))
+					.where(eq(properties.id, params.propertyId))
 					.returning();
 				return { property: prop, asset: updatedAsset ?? asset };
 			});
