@@ -18,6 +18,7 @@ export type SessionMe = {
 	}>;
 	activeTenantId: string | null;
 	activeRole: "OWNER" | "INSPECTOR" | "MASTER" | "PROCUREMENT" | null;
+	isSuperAdmin: boolean;
 };
 
 export async function fetchMe(): Promise<SessionMe | null> {

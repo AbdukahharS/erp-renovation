@@ -9,6 +9,8 @@ const trustedOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:3000")
 	.map((s) => s.trim())
 	.filter(Boolean);
 
+const isProd = process.env.NODE_ENV === "production";
+
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -20,8 +22,21 @@ export const auth = betterAuth({
 		},
 	}),
 	secret,
-	emailAndPassword: { enabled: true },
+	// Phase 9: enforce a minimum password length so the bootstrap path and
+	// per-tenant invitations can't seed accounts with weak credentials.
+	emailAndPassword: { enabled: true, minPasswordLength: 12 },
 	trustedOrigins,
+	// Secure cookies in prod; sameSite=lax keeps OAuth flows working while
+	// blocking cross-site form posts. Better Auth defaults work in dev.
+	advanced: isProd
+		? {
+				cookies: {
+					sessionToken: {
+						attributes: { secure: true, sameSite: "lax", httpOnly: true },
+					},
+				},
+			}
+		: undefined,
 	session: {
 		additionalFields: {
 			activeTenantId: { type: "string", required: false, input: false },

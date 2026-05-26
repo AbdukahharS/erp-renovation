@@ -2,7 +2,7 @@ import { sql as dsql } from "drizzle-orm";
 import type { DbClient } from "./client.ts";
 import { applyTenantMigrations } from "./migrations/fanout.ts";
 import type { Role } from "./schema/control.ts";
-import { tenantMemberships, tenants } from "./schema/control.ts";
+import { tenantConfig, tenantMemberships, tenants } from "./schema/control.ts";
 
 export interface ProvisionTenantInput {
 	name: string;
@@ -32,6 +32,10 @@ export async function provisionTenant(
 		await tx
 			.insert(tenantMemberships)
 			.values({ userId: input.ownerUserId, tenantId: id, role: ownerRole });
+		// Phase 9: every tenant gets a default config row (currency, retention,
+		// rating weights). Read-only by default; OWNER role can edit via
+		// /tenant/config.
+		await tx.insert(tenantConfig).values({ tenantId: id }).onConflictDoNothing();
 	});
 
 	// Apply tenant migrations against the new schema.

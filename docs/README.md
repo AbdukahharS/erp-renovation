@@ -118,10 +118,10 @@ Every phase file uses the same structure:
 
 Not blocking, but will need answers by the phase noted:
 
-- **Fines model** (TZ §2 Inspector "apply fines for defects") — flat fine? deduction from balance? Needed by Phase 7.
+- ~~**Fines model**~~ — **Resolved (2026-05-26)**: fine is a negative `FINE` transaction against the master's balance, paired one-to-one with a `fines` row. Implemented in Phase 7; see `docs/decisions/fines.md`.
 - ~~**Telegram vs PWA push priority for field roles**~~ — **Resolved (2026-05-25).** The TZ says "PWA *or* Telegram bot" (alternatives, not both) and uses Telegram only as an *example* of a notification channel ("например, в Telegram"); the inspector notification is specified as "пуш-уведомление" outright. We commit to **installed PWA + Web Push** as the sole channel, with an **in-app notification center** (unread badge, history, read/unread state) inside the PWA so dismissed pushes are recoverable. Telegram is dropped from scope; if a future tenant has an iOS-heavy fleet where Web Push reliability becomes a real problem, Telegram can be reintroduced as an optional second channel against the dispatch seam Phase 5 already provides.
-- **"Before" photo storage retention** — how long do we keep construction-site photos? Cost driver on R2. Needed by Phase 9.
-- **Multi-level screed / multi-currency** — the spec uses $; SaaS clients may not. Currency-per-tenant? Needed by Phase 9.
+- ~~**"Before" photo storage retention**~~ — **Resolved (2026-05-26)**: default 365d after archival, per-tenant configurable via `tenant_config.photo_retention_days`, enforced by daily `RETENTION_SWEEP` job. See `docs/decisions/photo-retention.md`.
+- ~~**Multi-level screed / multi-currency**~~ — **Resolved (2026-05-26)**: one currency per tenant via `tenant_config.currency_code` (display-only; amounts stay unit-less). Changing currency requires all properties archived. See `docs/decisions/multi-currency.md`.
 
 ### Verification flags (claims to confirm, not assume)
 

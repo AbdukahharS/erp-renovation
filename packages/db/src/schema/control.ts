@@ -1,6 +1,9 @@
 import {
 	boolean,
 	index,
+	integer,
+	jsonb,
+	numeric,
 	pgEnum,
 	pgTable,
 	primaryKey,
@@ -24,6 +27,8 @@ export const user = pgTable("user", {
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").notNull().default(false),
 	image: text("image"),
+	// Phase 9: flips to true via the promote-super-admin script. Gates /admin/*.
+	isSuperAdmin: boolean("is_super_admin").notNull().default(false),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -80,6 +85,30 @@ export const tenants = pgTable("tenants", {
 	schemaName: text("schema_name").notNull().unique(),
 	status: tenantStatusEnum("status").notNull().default("ACTIVE"),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
+	// Phase 9: soft-delete; physical schema drop is a separate confirmed step.
+	deletedAt: timestamp("deleted_at"),
+});
+
+// Phase 9: per-tenant configuration. One row per tenant, auto-inserted by
+// provisionTenant(). Currency is display-only (no per-row currency column).
+// Retention values drive the daily RETENTION_SWEEP worker.
+export const tenantConfig = pgTable("tenant_config", {
+	tenantId: uuid("tenant_id")
+		.primaryKey()
+		.references(() => tenants.id, { onDelete: "cascade" }),
+	currencyCode: text("currency_code").notNull().default("USD"),
+	targetUnitCost: numeric("target_unit_cost", { precision: 14, scale: 2 }),
+	ratingWeights: jsonb("rating_weights")
+		.notNull()
+		.$type<{ speed: number; defect: number }>()
+		.default({ speed: 0.5, defect: 0.5 }),
+	branding: jsonb("branding")
+		.notNull()
+		.$type<{ displayName?: string; primaryColor?: string; logoKey?: string }>()
+		.default({}),
+	photoRetentionDays: integer("photo_retention_days").notNull().default(365),
+	notificationRetentionDays: integer("notification_retention_days").notNull().default(90),
+	updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const tenantMemberships = pgTable(

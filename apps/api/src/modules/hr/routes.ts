@@ -1,3 +1,5 @@
+import { computeRatingScore } from "@repo/acceptance/rating";
+import { tenantConfig } from "@repo/db/schema/control";
 import {
 	masterBalances,
 	masterProfiles,
@@ -8,13 +10,40 @@ import {
 	subStageInstances,
 } from "@repo/db/schema/tenant";
 
-// (no rating compute here; that lives in @repo/acceptance/rating)
 import { UpdateAvailabilityInput, UpdateMasterInput } from "@repo/validators";
 import { desc, eq, isNull } from "drizzle-orm";
 import { Elysia } from "elysia";
+import { db } from "../../db.ts";
 import { zodBody } from "../../lib/zod-body.ts";
 import { requireRole } from "../auth/guards.ts";
 import { tenancy } from "../tenancy/plugin.ts";
+
+const DEFAULT_WEIGHTS = { speed: 0.5, defect: 0.5 };
+
+async function loadRatingWeights(tenantId: string): Promise<{ speed: number; defect: number }> {
+	const [cfg] = await db
+		.select({ ratingWeights: tenantConfig.ratingWeights })
+		.from(tenantConfig)
+		.where(eq(tenantConfig.tenantId, tenantId))
+		.limit(1);
+	return cfg?.ratingWeights ?? DEFAULT_WEIGHTS;
+}
+
+function withScore(
+	rating: { acceptedCount: number; rejectedCount: number; avgDurationRatio: string | null } | null,
+	weights: { speed: number; defect: number },
+) {
+	if (!rating) return null;
+	const score = computeRatingScore(
+		{
+			acceptedCount: rating.acceptedCount,
+			rejectedCount: rating.rejectedCount,
+			avgDurationRatio: rating.avgDurationRatio !== null ? Number(rating.avgDurationRatio) : null,
+		},
+		weights,
+	);
+	return { ...rating, score };
+}
 
 // biome-ignore lint/suspicious/noExplicitAny: drizzle row types
 type AnyRow = any;
@@ -24,7 +53,7 @@ type AnyRow = any;
  * an active assignment or the manual override window. Used by both the owner
  * (full read/edit) and inspector (read-only) endpoints.
  */
-async function loadRoster(tx: AnyRow) {
+async function loadRoster(tx: AnyRow, weights: { speed: number; defect: number }) {
 	const profiles = await tx.select().from(masterProfiles).orderBy(desc(masterProfiles.createdAt));
 	if (profiles.length === 0) return [];
 
@@ -81,7 +110,7 @@ async function loadRoster(tx: AnyRow) {
 			phone: p.phone,
 			specializations: p.specializations,
 			availability,
-			rating: ratingByUser.get(p.userId) ?? null,
+			rating: withScore(ratingByUser.get(p.userId) ?? null, weights),
 			balance: balanceByUser.get(p.userId)?.balance ?? "0",
 		};
 	});
@@ -96,19 +125,21 @@ const ownerRoutes = new Elysia({ prefix: "/owner/masters" })
 	.use(tenancy)
 	.use(requireRole("OWNER"))
 
-	.get("", async ({ runInTenant, set }) => {
-		if (!runInTenant) {
+	.get("", async ({ tenant, runInTenant, set }) => {
+		if (!runInTenant || !tenant) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
-		return await runInTenant((tx) => loadRoster(tx));
+		const weights = await loadRatingWeights(tenant.id);
+		return await runInTenant((tx) => loadRoster(tx, weights));
 	})
 
-	.get("/:masterId", async ({ params, runInTenant, set }) => {
-		if (!runInTenant) {
+	.get("/:masterId", async ({ tenant, params, runInTenant, set }) => {
+		if (!runInTenant || !tenant) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
+		const weights = await loadRatingWeights(tenant.id);
 		return await runInTenant(async (tx) => {
 			const [profile] = await tx
 				.select()
@@ -151,7 +182,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner/masters" })
 				.limit(20);
 			return {
 				profile,
-				rating: rating ?? null,
+				rating: withScore(rating ?? null, weights),
 				balance: balance?.balance ?? "0",
 				recentAssignments,
 			};
@@ -220,12 +251,13 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector/masters" })
 	.use(tenancy)
 	.use(requireRole("INSPECTOR"))
 
-	.get("", async ({ runInTenant, set }) => {
-		if (!runInTenant) {
+	.get("", async ({ tenant, runInTenant, set }) => {
+		if (!runInTenant || !tenant) {
 			set.status = 401;
 			return { error: "no tenant" };
 		}
-		return await runInTenant((tx) => loadRoster(tx));
+		const weights = await loadRatingWeights(tenant.id);
+		return await runInTenant((tx) => loadRoster(tx, weights));
 	});
 
 export const hrRoutes = new Elysia().use(ownerRoutes).use(inspectorRoutes);

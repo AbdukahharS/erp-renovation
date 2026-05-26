@@ -5,13 +5,16 @@ import {
 	PushDeliveryJobData,
 	QUEUE_NAMES,
 	StagePropagateJobData,
+	scheduleDailyRetentionSweep,
 	WageCreditJobData,
 } from "@repo/queue";
 import { Worker } from "bullmq";
 import { processNotificationDispatch } from "./jobs/notification-dispatch.ts";
 import { processPushDelivery } from "./jobs/push-delivery.ts";
+import { processRetentionSweep } from "./jobs/retention-sweep.ts";
 import { processStagePropagate } from "./jobs/stage-propagate.ts";
 import { processWageCredit } from "./jobs/wage-credit.ts";
+import { log, reportError } from "./lib/log.ts";
 import { startOutboxPoller, stopOutboxPoller } from "./outbox-poller.ts";
 
 /**
@@ -58,26 +61,44 @@ const pushDeliveryWorker = new Worker(
 	{ connection, concurrency: 8 },
 );
 
+// Phase 9 retention sweep — single concurrency since it iterates every tenant.
+const retentionSweepWorker = new Worker(
+	QUEUE_NAMES.RETENTION_SWEEP,
+	async () => {
+		const totals = await processRetentionSweep();
+		console.log(`[retention] sweep done: ${JSON.stringify(totals)}`);
+	},
+	{ connection, concurrency: 1 },
+);
+
 const allWorkers = [
 	wageCreditWorker,
 	stagePropagateWorker,
 	notificationDispatchWorker,
 	pushDeliveryWorker,
+	retentionSweepWorker,
 ];
 
 for (const w of allWorkers) {
 	w.on("completed", (job) => {
-		console.log(`[worker:${w.name}] job ${job.id} completed`);
+		log.info("worker.job.completed", { worker: w.name, jobId: job.id });
 	});
 	w.on("failed", (job, err) => {
-		console.error(`[worker:${w.name}] job ${job?.id} failed:`, err.message);
+		reportError(err, { service: "worker", worker: w.name, jobId: job?.id });
 	});
 }
 
 startOutboxPoller();
 
+// Phase 9: ensure the daily retention sweep is scheduled. Idempotent.
+try {
+	await scheduleDailyRetentionSweep();
+} catch (err) {
+	console.error("[worker] failed to schedule retention sweep:", (err as Error).message);
+}
+
 console.log(
-	"[worker] ready: wage-credit + stage-propagate + notification-dispatch + push-delivery + outbox-poller",
+	"[worker] ready: wage-credit + stage-propagate + notification-dispatch + push-delivery + retention-sweep + outbox-poller",
 );
 
 let shuttingDown = false;

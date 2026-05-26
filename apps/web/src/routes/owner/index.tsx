@@ -30,6 +30,11 @@ function OwnerHome() {
 						Finance
 					</Link>
 				</li>
+				<li>
+					<Link to="/owner/settings" className="underline">
+						Settings
+					</Link>
+				</li>
 			</ul>
 		</section>
 	);

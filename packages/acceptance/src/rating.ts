@@ -90,3 +90,44 @@ export async function recomputeMasterRating(tx: Tx, masterUserId: string): Promi
 			},
 		});
 }
+
+/**
+ * Phase 9 composite rating score derived from raw counters + tenant-configured
+ * weights. Returns a 0–100 score where 100 is best.
+ *
+ * Formula (transparent on purpose — masters dispute opaque ratings):
+ *   acceptanceRate = accepted / (accepted + rejected)
+ *   speedScore     = clamp(2 - avgDurationRatio, 0, 1)   // 1.0 = on time, 0.0 = ≥2x late
+ *   defectScore    = acceptanceRate                       // 1.0 = no rejections
+ *   composite      = 100 * ((wSpeed * speedScore + wDefect * defectScore) / (wSpeed + wDefect))
+ *
+ * When there are no resolved requests, score is null (not zero) so the UI can
+ * distinguish "unrated" from "rated badly."
+ */
+export interface RatingCounters {
+	acceptedCount: number;
+	rejectedCount: number;
+	avgDurationRatio: number | null;
+}
+
+export interface RatingWeights {
+	speed: number;
+	defect: number;
+}
+
+export function computeRatingScore(
+	counters: RatingCounters,
+	weights: RatingWeights,
+): number | null {
+	const total = counters.acceptedCount + counters.rejectedCount;
+	if (total === 0) return null;
+	const acceptanceRate = counters.acceptedCount / total;
+	const speedScore =
+		counters.avgDurationRatio === null
+			? acceptanceRate
+			: Math.min(1, Math.max(0, 2 - counters.avgDurationRatio));
+	const defectScore = acceptanceRate;
+	const wSum = weights.speed + weights.defect;
+	if (wSum <= 0) return Math.round(100 * acceptanceRate);
+	return Math.round((100 * (weights.speed * speedScore + weights.defect * defectScore)) / wSum);
+}

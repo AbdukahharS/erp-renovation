@@ -1,4 +1,9 @@
-import { session as sessionTable, tenantMemberships, tenants } from "@repo/db/schema/control";
+import {
+	session as sessionTable,
+	tenantMemberships,
+	tenants,
+	user as userTable,
+} from "@repo/db/schema/control";
 import { SwitchTenantSchema } from "@repo/validators";
 import { and, eq } from "drizzle-orm";
 import { Elysia, t } from "elysia";
@@ -18,7 +23,19 @@ export const authRoutes = new Elysia()
 	.all("/api/auth/*", async ({ request }) => auth.handler(request))
 	.use(requireAuth)
 	.get("/auth/me", async ({ user, activeTenantId, activeRole }) => {
-		if (!user) return { user: null, memberships: [], activeTenantId: null, activeRole: null };
+		if (!user)
+			return {
+				user: null,
+				memberships: [],
+				activeTenantId: null,
+				activeRole: null,
+				isSuperAdmin: false,
+			};
+		const [userRow] = await db
+			.select({ isSuperAdmin: userTable.isSuperAdmin })
+			.from(userTable)
+			.where(eq(userTable.id, user.id))
+			.limit(1);
 		const memberships = await db
 			.select({
 				tenantId: tenants.id,
@@ -34,6 +51,7 @@ export const authRoutes = new Elysia()
 			memberships,
 			activeTenantId,
 			activeRole,
+			isSuperAdmin: userRow?.isSuperAdmin ?? false,
 		};
 	})
 	.post(

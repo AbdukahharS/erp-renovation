@@ -8,6 +8,6 @@
 		"startCommand": "bun run --filter api start",
 		"restartPolicyType": "ON_FAILURE",
 		"restartPolicyMaxRetries": 5,
-		"healthcheckPath": "/health"
+		"healthcheckPath": "/ready"
 	}
 }

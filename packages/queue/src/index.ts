@@ -16,6 +16,10 @@ export const QUEUE_NAMES = {
 	STAGE_PROPAGATE: "stage-propagate",
 	NOTIFICATION_DISPATCH: "notification-dispatch",
 	PUSH_DELIVERY: "push-delivery",
+	// Phase 9: daily retention sweep. Iterates tenants and prunes old photos,
+	// notifications, and dead push subscriptions per tenant_config retention
+	// values.
+	RETENTION_SWEEP: "retention-sweep",
 } as const;
 
 export const WageCreditJobData = z.object({
@@ -46,6 +50,10 @@ export const PushDeliveryJobData = z.object({
 	subscriptionId: z.string().uuid(),
 });
 export type PushDeliveryJobData = z.infer<typeof PushDeliveryJobData>;
+
+// Empty payload — the job enumerates every tenant on its own.
+export const RetentionSweepJobData = z.object({});
+export type RetentionSweepJobData = z.infer<typeof RetentionSweepJobData>;
 
 let redisSingleton: Redis | null = null;
 
@@ -91,6 +99,29 @@ export function getNotificationDispatchQueue(): Queue<NotificationDispatchJobDat
 
 export function getPushDeliveryQueue(): Queue<PushDeliveryJobData> {
 	return getQueue(QUEUE_NAMES.PUSH_DELIVERY) as Queue<PushDeliveryJobData>;
+}
+
+export function getRetentionSweepQueue(): Queue<RetentionSweepJobData> {
+	return getQueue(QUEUE_NAMES.RETENTION_SWEEP) as Queue<RetentionSweepJobData>;
+}
+
+/**
+ * Ensure a daily repeatable job is scheduled on the retention queue. Idempotent
+ * — BullMQ deduplicates by `jobId` + `repeat.pattern`.
+ */
+export async function scheduleDailyRetentionSweep(): Promise<void> {
+	const q = getRetentionSweepQueue();
+	await q.add(
+		"daily",
+		{},
+		{
+			// 03:00 UTC every day
+			repeat: { pattern: "0 3 * * *" },
+			jobId: "retention-sweep-daily",
+			removeOnComplete: { age: 7 * 24 * 60 * 60 },
+			removeOnFail: { age: 30 * 24 * 60 * 60 },
+		},
+	);
 }
 
 export async function closeAllQueues(): Promise<void> {
