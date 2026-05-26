@@ -61,7 +61,7 @@ Per `tech-stack-and-monorepo.md`. Quick reference:
 - **Runtime/PM/test**: Bun · **Backend**: Elysia · **API types**: Eden Treaty · **ORM**: Drizzle · **DB**: PostgreSQL (schema-per-tenant)
 - **Queue**: BullMQ + Redis · **Frontend**: React + Vite (PWA) · **Routing**: TanStack Router · **Server state**: TanStack Query
 - **Forms/validation**: React Hook Form + Zod (`packages/validators` shared) · **UI**: shadcn/ui + Tailwind
-- **Monorepo**: Turborepo over Bun workspaces · **Storage**: Cloudflare R2 via presigned URLs · **Notifications**: Web Push (installed PWA) + in-app notification center · **Auth**: Better Auth · **Infra**: Docker Compose (local) → Railway
+- **Monorepo**: Turborepo over Bun workspaces · **Storage**: Cloudflare R2 via presigned URLs · **Notifications**: Web Push (installed PWA) + in-app notification center · **Auth**: Better Auth · **Infra**: Docker Compose (local); prod target TBD
 
 ---
 

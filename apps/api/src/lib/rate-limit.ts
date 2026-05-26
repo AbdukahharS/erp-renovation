@@ -27,7 +27,7 @@ const RATE_PREFIX = "rl:";
  * Resolve the caller's IP. `x-forwarded-for` is appended to by every hop, so
  * the *last* entry is the most-trusted (our edge proxy); the first entry is
  * client-provided and trivially spoofable. We trust the last
- * `TRUSTED_PROXY_HOPS` entries (default 1 = Railway's edge) and read the IP
+ * `TRUSTED_PROXY_HOPS` entries (default 1 = your edge proxy) and read the IP
  * just before them.
  */
 export function clientIp(request: Request): string {

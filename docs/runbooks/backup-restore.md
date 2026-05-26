@@ -2,9 +2,9 @@
 
 ## Strategy
 
-- **Daily full database dump** to off-site object storage (Railway Postgres → S3/R2/Backblaze).
+- **Daily full database dump** to off-site object storage (Managed Postgres → S3/R2/Backblaze).
 - **Per-tenant schema dumps** are the right granularity for client offboarding ("give me my data") — D2's schema-per-tenant lets these be clean.
-- **Quarterly restore drill** against a fresh Railway environment to prove backups actually restore.
+- **Quarterly restore drill** against a fresh staging environment to prove backups actually restore.
 
 ## Full database backup
 
@@ -71,7 +71,7 @@ Then re-insert the corresponding `tenants` and `tenant_memberships` rows in the 
 
 ## Quarterly drill checklist
 
-- [ ] Provision a clean Railway env from staging templates.
+- [ ] Provision a clean restore-target env from staging templates.
 - [ ] Restore the most recent full backup.
 - [ ] Run the migration fan-out (dry-run + apply).
 - [ ] Sign in as a known tenant owner; walk one property through one acceptance.

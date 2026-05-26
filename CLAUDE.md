@@ -82,7 +82,7 @@ Use **IORedis** (not `Bun.redis`) for BullMQ connections — this is the maintai
 | Auth | Better Auth |
 | Storage | Cloudflare R2 — **Bun native S3 client** (`Bun.s3`) for presigned URLs and server-side object ops |
 | Notifications | Web Push (installed PWA) + in-app notification center |
-| Infra (local) | Docker Compose → Railway (prod) |
+| Infra (local) | Docker Compose (prod target TBD) |
 
 ## Definition of Done
 

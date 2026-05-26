@@ -4,7 +4,7 @@
 
 ## Goal
 
-A running monorepo skeleton. `bun install` at the root works, `turbo watch` brings up the API and web dev server together, a `docker-compose up` gives you Postgres + Redis locally, and a trivial "hello" endpoint is reachable from the React app *through the Eden Treaty client*. Nothing in this phase does renovation work — it proves the plumbing of the whole stack end-to-end before any feature rides on it. By the end, a deploy to Railway exists even if it serves almost nothing.
+A running monorepo skeleton. `bun install` at the root works, `turbo watch` brings up the API and web dev server together, a `docker-compose up` gives you Postgres + Redis locally, and a trivial "hello" endpoint is reachable from the React app *through the Eden Treaty client*. Nothing in this phase does renovation work — it proves the plumbing of the whole stack end-to-end before any feature rides on it. By the end, a public deploy exists even if it serves almost nothing.
 
 ## Why now
 
@@ -38,7 +38,7 @@ Every later phase assumes the workspace graph, the shared-package wiring, and th
 - `.env` handling and a documented `.env.example`.
 
 ### 0.6 Deploy skeleton & CI
-- Railway project: API + Postgres + Redis provisioned. Web served (static or alongside).
+- Hosting target (TBD): API + Postgres + Redis provisioned. Web served (static or alongside).
 - A minimal CI pipeline on Bun: install, typecheck, test, build. Green on the hello-world.
 
 ## Out of scope
@@ -59,5 +59,5 @@ Every later phase assumes the workspace graph, the shared-package wiring, and th
 - [ ] `bun install` + `docker-compose up` + `bun dev` brings up everything from a clean clone.
 - [ ] React app displays data fetched from `/health` via Eden Treaty, fully typed (break the API return type → web typecheck fails).
 - [ ] `turbo build` caches correctly; CI is green.
-- [ ] A deploy to Railway is reachable on the public internet.
+- [ ] A public deploy is reachable on the internet.
 - [ ] `db:push` applies cleanly to local Postgres.

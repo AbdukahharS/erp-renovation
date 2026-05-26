@@ -1,5 +1,5 @@
 /**
- * Phase 9 structured logger. JSON-per-line so Railway/Logtail/Loki ingest
+ * Phase 9 structured logger. JSON-per-line so Logtail/Loki ingest
  * cleanly. Drop-in for the limited cases where bare `console.*` was scattered
  * across critical paths (provisioning, fan-out, isolation guards, errors).
  *

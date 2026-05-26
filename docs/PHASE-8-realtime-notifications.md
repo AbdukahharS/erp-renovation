@@ -54,7 +54,7 @@ Per A5, real-time was deliberately deferred so the solo build wasn't blocked on 
 - **Push payload size + privacy**: Web Push payloads are limited (~4KB) and visible in OS notification UI. Keep payloads to "what + where" with a deep link; full details fetched on tap. Don't put financial figures or personal data in payloads.
 - **WebSocket + schema-per-tenant**: socket subscriptions must be tenant-scoped at connection auth time; never broadcast cross-tenant. Reuse the request resolver's tenant logic at the socket handshake.
 - **Delivery reliability**: push delivery runs as BullMQ jobs (reuse Phase 5 infra) so transient push-service failures retry. The in-app record is written *before* push dispatch so the inbox is correct even if push never lands.
-- **WebSocket scaling on Railway**: a single API instance is fine for pilot; if the API scales horizontally later, sockets need a Redis pub/sub fan-out (Redis is already present). Note this for Phase 9.
+- **WebSocket scaling**: a single API instance is fine for pilot; if the API scales horizontally later, sockets need a Redis pub/sub fan-out (Redis is already present). Note this for Phase 9.
 - **Notification retention**: 90 days default; revisit when the photo-retention question (Phase 9) is settled, since both are R2/DB cost drivers.
 
 ## Definition of Done

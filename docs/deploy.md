@@ -2,20 +2,20 @@
 
 ## Topology
 
-Two Railway services + two managed addons:
+Two app services + two managed addons on the chosen host:
 
 | Service | Source | Start command | Healthcheck |
 |---------|--------|---------------|-------------|
 | `api` | repo root | `bun run --filter api start` | `/ready` |
 | `worker` | `apps/worker` (set `Root Directory`) | `bun run --filter worker start` | none (BullMQ-driven) |
-| `postgres` | Railway Postgres | — | — |
-| `redis` | Railway Redis | — | — |
+| `postgres` | Managed Postgres | — | — |
+| `redis` | Managed Redis | — | — |
 
 The worker MUST be its own service. A slow job otherwise blocks API requests; they also scale differently (API is request-bound, worker is queue-bound).
 
 ## Environments
 
-- **Staging** and **production** are separate Railway projects with separate Postgres + Redis instances. Sharing a Postgres database across envs guarantees tenant-id collisions and is a hard no.
+- **Staging** and **production** are separate environments with separate Postgres + Redis instances. Sharing a Postgres database across envs guarantees tenant-id collisions and is a hard no.
 - Promote by image, not by overwriting prod env vars: deploy to staging, smoke-test, redeploy the same commit to prod.
 
 ## Required env vars (per service)
@@ -47,11 +47,11 @@ bun packages/db/src/migrations/fanout.ts --only-tenant <slug>
 
 ## Healthcheck
 
-`/ready` checks Postgres (`SELECT 1`) and Redis (`PING`). Railway probes this on the API; if either is down, deploys block. `/health` remains as a "process is alive" liveness probe (no dependencies).
+`/ready` checks Postgres (`SELECT 1`) and Redis (`PING`). The hosting platform probes this on the API; if either is down, deploys block. `/health` remains as a "process is alive" liveness probe (no dependencies).
 
 ## Logs
 
-Both services emit JSON-per-line via `apps/api/src/lib/log.ts` and `apps/worker/src/lib/log.ts`. Pipe Railway log drains to Logtail / Better Stack / Loki for retention + search.
+Both services emit JSON-per-line via `apps/api/src/lib/log.ts` and `apps/worker/src/lib/log.ts`. Pipe the platform's log drain to Logtail / Better Stack / Loki for retention + search.
 
 ## Error tracking
 
@@ -65,4 +65,4 @@ Per the `backup-restore.md` runbook, schedule a daily `pg_dump --schema=tenant_*
 
 The API can scale horizontally — sessions are DB-backed and the WebSocket layer uses Redis pub/sub to fan events across instances (`packages/queue/src/index.ts:realtimeChannel`). The worker can also scale horizontally; BullMQ + IORedis coordinate via Redis.
 
-When scaling either past 2 replicas, switch from Railway's free Redis to a plan that supports `notify-keyspace-events Ex` (BullMQ uses keyspace notifications for delayed jobs).
+When scaling either past 2 replicas, ensure the Redis plan supports `notify-keyspace-events Ex` (BullMQ uses keyspace notifications for delayed jobs).

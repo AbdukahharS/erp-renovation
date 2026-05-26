@@ -50,15 +50,15 @@ bun run test         # turbo test (bun test per workspace)
 bun run db:push      # apply schema to local Postgres (Drizzle)
 ```
 
-## Deploy (Railway)
+## Deploy
 
-`railway.json` declares the API service (Nixpacks builder, `bun run --filter api start`, `/health` healthcheck). Provision Postgres + Redis in the Railway project UI and set:
+Hosting target is TBD. Whatever platform we land on needs to provide managed Postgres + Redis and the following env vars:
 
-- `DATABASE_URL` — from the Railway Postgres plugin
-- `REDIS_URL` — from the Railway Redis plugin
+- `DATABASE_URL`
+- `REDIS_URL`
 - `VITE_API_URL` — the deployed API URL (on the web service)
 
-Deploy the web service from `apps/web` (static `dist/` after `bun run --filter web build`).
+Build with `bun run build`; start the API with `bun run --filter api start` (healthcheck on `/health`). The web service is the static `dist/` produced by `bun run --filter web build`.
 
 Run a single workspace, e.g.:
 

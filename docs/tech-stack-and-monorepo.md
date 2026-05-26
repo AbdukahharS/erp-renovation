@@ -53,8 +53,8 @@ Field workers install the PWA to their home screen as part of onboarding; Web Pu
 ### Auth — Better Auth
 Framework-agnostic, TypeScript-first, works with Bun and Elysia without adapter hacks. Supports the three-role model (Owner, Inspector, Master) with custom session data. Simpler than rolling JWT logic manually; more flexible than NextAuth for a non-Next environment.
 
-### Infrastructure — Docker + Railway
-Docker Compose for local dev: Postgres + Redis + Elysia API + React dev server all in one `docker-compose up`. Railway for initial deployment — fast to ship, no DevOps overhead before the product is validated. Migration path to AWS ECS or Kubernetes when B2B SaaS scale justifies the operational investment.
+### Infrastructure — Docker
+Docker Compose for local dev: Postgres + Redis + Elysia API + React dev server all in one `docker-compose up`. Production hosting target is TBD. Migration path to AWS ECS or Kubernetes when B2B SaaS scale justifies the operational investment.
 
 ---
 

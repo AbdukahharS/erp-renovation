@@ -4,12 +4,12 @@ This is the highest-severity incident the product can have. Schema-per-tenant + 
 
 ## Triage (first 15 minutes)
 
-1. **Capture the evidence.** Save the request/response, user id, tenant id(s), and any logs in `npm:better-stack` / Railway. Do not redeploy yet — debugging requires the suspect state intact.
+1. **Capture the evidence.** Save the request/response, user id, tenant id(s), and any logs in `npm:better-stack` / the hosting platform. Do not redeploy yet — debugging requires the suspect state intact.
 2. **Identify the scope.**
    - Was data *read* from another tenant (information disclosure), *written* into another tenant (corruption), or both?
    - Which schema(s) and which row(s)?
 3. **Isolate the suspected blast radius.**
-   - If a specific code path is suspected (e.g. a new endpoint shipped today), suspend access via Railway env (`MAINTENANCE_MODE=true` is a placeholder — add a kill-switch if the path is critical).
+   - If a specific code path is suspected (e.g. a new endpoint shipped today), suspend access via the platform's env (`MAINTENANCE_MODE=true` is a placeholder — add a kill-switch if the path is critical).
    - Optionally suspend the affected tenant via `POST /admin/tenants/:id/suspend` until the audit completes.
 
 ## Investigation

@@ -47,7 +47,7 @@ The Accept event from Phase 4 enqueues a coordinated set of jobs (the stack doc 
 ## Key risks & decisions
 - **Money correctness under retries** is the defining risk. Idempotent wage crediting is mandatory — design it before writing the job. A retried job must be a no-op if the credit already happened.
 - **Tenant-scoped jobs**: the worker must resolve and apply tenant schema context exactly as the request resolver does. Share that code path with Phase 1; do not reimplement it loosely.
-- **Worker process decision** (in-process vs separate) affects deploy topology on Railway — decide now, document in the README's infra notes.
+- **Worker process decision** (in-process vs separate) affects deploy topology — decide now, document in the README's infra notes.
 - **Open decision (parked in README)**: fines model. If fines deduct from balance, the transaction schema here should anticipate negative/fine transaction types even if the UI is Phase 7.
 - **Ordering guarantees**: wage credit and stage unlock should both occur, but consider whether unlock should wait on successful wage credit or run independently. Recommendation: independent jobs, both idempotent, both retried — unlocking the next stage shouldn't be held hostage by a transient finance failure, and vice versa.
 
