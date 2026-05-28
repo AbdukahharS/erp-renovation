@@ -1,8 +1,12 @@
 import { createAuthClient } from "better-auth/react";
 import { apiBaseUrl } from "./api";
 
+// Better Auth's client appends "/api/auth/..." itself, so its baseURL must be
+// the server origin without the "/api" suffix that apiBaseUrl carries for Eden.
+const authBaseURL = apiBaseUrl.replace(/\/api\/?$/, "");
+
 export const authClient = createAuthClient({
-	baseURL: apiBaseUrl,
+	baseURL: authBaseURL,
 	fetchOptions: { credentials: "include" },
 });
 
