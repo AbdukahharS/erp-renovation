@@ -1,8 +1,11 @@
 {
-	email {$ACME_EMAIL}
+	# TLS is terminated by host nginx; trust X-Forwarded-* from the loopback proxy.
+	servers {
+		trusted_proxies static 127.0.0.1
+	}
 }
 
-{$DOMAIN} {
+:80 {
 	encode zstd gzip
 
 	# Custom routes mounted at /auth/* on the API (NOT Better Auth itself):

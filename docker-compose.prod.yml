@@ -13,10 +13,10 @@ services:
         VITE_VAPID_PUBLIC_KEY: ${VITE_VAPID_PUBLIC_KEY}
     image: erp/web-caddy:latest
     restart: unless-stopped
+    # Host nginx terminates TLS and proxies to this on 127.0.0.1:8080.
+    # Caddy inside the container now serves plain HTTP on :80.
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "127.0.0.1:8080:80"
     environment:
       DOMAIN: ${DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
