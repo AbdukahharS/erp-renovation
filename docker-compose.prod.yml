@@ -6,7 +6,10 @@ services:
       context: .
       dockerfile: deploy/Dockerfile.web
       args:
-        VITE_API_URL: /api
+        # Better Auth client requires an absolute base URL; relative ("/api")
+        # crashes the SPA with "Invalid base URL". Build the absolute URL from
+        # the DOMAIN env var so it's still a single source of truth.
+        VITE_API_URL: https://${DOMAIN}/api
         VITE_VAPID_PUBLIC_KEY: ${VITE_VAPID_PUBLIC_KEY}
     image: erp/web-caddy:latest
     restart: unless-stopped
