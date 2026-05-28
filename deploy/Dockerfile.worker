@@ -14,18 +14,10 @@ COPY packages/acceptance/package.json packages/acceptance/package.json
 COPY packages/typescript-config/package.json packages/typescript-config/package.json
 RUN bun install --frozen-lockfile
 
-FROM deps AS build
-COPY . .
-WORKDIR /app/apps/worker
-RUN bun build src/index.ts --outdir dist --target bun
-
-FROM oven/bun:${BUN_VERSION}-alpine AS runtime
+FROM deps AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build /app/node_modules /app/node_modules
-COPY --from=build /app/apps/worker/node_modules /app/apps/worker/node_modules
-COPY --from=build /app/apps/worker/dist /app/apps/worker/dist
-COPY --from=build /app/apps/worker/package.json /app/apps/worker/package.json
-COPY --from=build /app/packages /app/packages
+COPY apps/worker ./apps/worker
+COPY packages ./packages
 WORKDIR /app/apps/worker
-CMD ["bun", "dist/index.js"]
+CMD ["bun", "src/index.ts"]

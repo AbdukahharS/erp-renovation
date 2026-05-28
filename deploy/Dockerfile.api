@@ -14,22 +14,16 @@ COPY packages/acceptance/package.json packages/acceptance/package.json
 COPY packages/typescript-config/package.json packages/typescript-config/package.json
 RUN bun install --frozen-lockfile
 
-FROM deps AS build
-COPY . .
-WORKDIR /app/apps/api
-RUN bun build src/index.ts --outdir dist --target bun
-
-FROM oven/bun:${BUN_VERSION}-alpine AS runtime
+FROM deps AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-# wget is used by the compose healthcheck; alpine ships it via busybox already.
-COPY --from=build /app/node_modules /app/node_modules
-COPY --from=build /app/apps/api/node_modules /app/apps/api/node_modules
-COPY --from=build /app/apps/api/dist /app/apps/api/dist
-COPY --from=build /app/apps/api/package.json /app/apps/api/package.json
-COPY --from=build /app/packages /app/packages
-COPY --from=build /app/scripts /app/scripts
+# Bun runs TypeScript natively; skip bundling. `bun build --target bun`
+# inlines `import.meta.dir` to the bundle output location, which breaks
+# any source that resolves a path relative to its own source file
+# (e.g. packages/db/src/migrations/fanout.ts pointing at drizzle/tenant).
+COPY apps/api ./apps/api
+COPY packages ./packages
+COPY scripts ./scripts
 WORKDIR /app/apps/api
 EXPOSE 3001
-# Avoid package.json "start" — it loads ../../.env which isn't present.
-CMD ["bun", "dist/index.js"]
+CMD ["bun", "src/index.ts"]
