@@ -9,32 +9,49 @@ import {
 	templates,
 } from "../schema/tenant.ts";
 import { withTenant } from "../with-tenant.ts";
-import { DEFAULT_TEMPLATE } from "./tz-content.ts";
+import { DEFAULT_TEMPLATE_EN } from "./tz-content.en.ts";
+import { DEFAULT_TEMPLATE_RU } from "./tz-content.ru.ts";
+import type { SeedLanguage, SeedTemplate } from "./tz-content.ts";
+import { DEFAULT_TEMPLATE_UZ } from "./tz-content.uz.ts";
+
+function pickTemplate(lang: SeedLanguage): SeedTemplate {
+	switch (lang) {
+		case "ru":
+			return DEFAULT_TEMPLATE_RU;
+		case "uz":
+			return DEFAULT_TEMPLATE_UZ;
+		default:
+			return DEFAULT_TEMPLATE_EN;
+	}
+}
 
 /**
  * Inserts the TZ default template into a tenant schema. Idempotent only at the
  * "schema is empty" level — assumes provisioning called once. Safe to call
  * inside provisionTenant() right after migrations land.
  */
-export async function seedDefaultTemplate(db: DbClient, schemaName: string): Promise<void> {
+export async function seedDefaultTemplate(
+	db: DbClient,
+	schemaName: string,
+	lang: SeedLanguage = "en",
+): Promise<void> {
+	const template = pickTemplate(lang);
 	await withTenant(db, schemaName, async (tx) => {
 		// Specializations lookup
-		if (DEFAULT_TEMPLATE.specializations.length > 0) {
-			await tx
-				.insert(specializations)
-				.values(DEFAULT_TEMPLATE.specializations.map((name) => ({ name })));
+		if (template.specializations.length > 0) {
+			await tx.insert(specializations).values(template.specializations.map((name) => ({ name })));
 		}
 
 		const [tpl] = await tx
 			.insert(templates)
-			.values({ name: DEFAULT_TEMPLATE.name, isDefault: true })
+			.values({ name: template.name, isDefault: true })
 			.returning({ id: templates.id });
 		if (!tpl) throw new Error("seed: failed to insert template");
 
 		// Sub-stages in insertion order, indexed by code so we can wire dependencies linearly.
 		const subStageIdByCode = new Map<string, string>();
 
-		for (const stage of DEFAULT_TEMPLATE.stages) {
+		for (const stage of template.stages) {
 			const [s] = await tx
 				.insert(stages)
 				.values({ templateId: tpl.id, order: stage.order, name: stage.name })
@@ -85,7 +102,7 @@ export async function seedDefaultTemplate(db: DbClient, schemaName: string): Pro
 		}
 
 		// Linear dependency edges: each sub-stage depends on the previous one in document order.
-		const codesInOrder = DEFAULT_TEMPLATE.stages.flatMap((st) => st.subStages.map((s) => s.code));
+		const codesInOrder = template.stages.flatMap((st) => st.subStages.map((s) => s.code));
 		for (let i = 1; i < codesInOrder.length; i++) {
 			const current = subStageIdByCode.get(codesInOrder[i] as string);
 			const prereq = subStageIdByCode.get(codesInOrder[i - 1] as string);

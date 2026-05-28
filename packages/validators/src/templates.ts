@@ -97,6 +97,7 @@ export type Specialization = z.infer<typeof SpecializationSchema>;
 
 export const CreateTemplateInput = z.object({
 	name: z.string().min(1),
+	cloneFromTemplateId: z.string().uuid().optional(),
 });
 
 export const UpdateTemplateInput = z.object({

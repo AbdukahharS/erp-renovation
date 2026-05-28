@@ -29,7 +29,10 @@ let stopped = false;
 function wsUrl(): string {
 	const url = new URL(apiBaseUrl);
 	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-	url.pathname = "/tenant/realtime";
+	// Preserve any path prefix on apiBaseUrl (e.g. "/api" in prod where Caddy
+	// mounts the API at /api). Strip a trailing slash to avoid "//tenant/...".
+	const prefix = url.pathname.replace(/\/$/, "");
+	url.pathname = `${prefix}/tenant/realtime`;
 	return url.toString();
 }
 

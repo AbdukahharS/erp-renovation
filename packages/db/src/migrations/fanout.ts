@@ -4,6 +4,7 @@ import { sql as dsql, eq } from "drizzle-orm";
 import { createDbClient } from "../client.ts";
 import { tenantMigrations, tenants } from "../schema/control.ts";
 import { seedDefaultTemplate } from "../seed/default-template.ts";
+import type { SeedLanguage } from "../seed/tz-content.ts";
 
 export interface TenantMigration {
 	tag: string;
@@ -32,6 +33,7 @@ export interface FanoutOptions {
 	onlySchema?: string;
 	onlyTenantSlug?: string;
 	dryRun?: boolean;
+	seedLanguage?: SeedLanguage;
 }
 
 export interface FanoutResult {
@@ -121,8 +123,10 @@ export async function applyTenantMigrations(opts: FanoutOptions): Promise<Fanout
 					dsql.raw(`SELECT count(*)::int AS n FROM "${schemaName}".templates`),
 				);
 				if ((count[0]?.n ?? 0) === 0) {
-					await seedDefaultTemplate(db, schemaName);
-					console.log(`[tenant:${schemaName}] seeded default template`);
+					await seedDefaultTemplate(db, schemaName, opts.seedLanguage ?? "en");
+					console.log(
+						`[tenant:${schemaName}] seeded default template (${opts.seedLanguage ?? "en"})`,
+					);
 				}
 			}
 		}

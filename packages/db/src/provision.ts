@@ -3,12 +3,14 @@ import type { DbClient } from "./client.ts";
 import { applyTenantMigrations } from "./migrations/fanout.ts";
 import type { Role } from "./schema/control.ts";
 import { tenantConfig, tenantMemberships, tenants } from "./schema/control.ts";
+import type { SeedLanguage } from "./seed/tz-content.ts";
 
 export interface ProvisionTenantInput {
 	name: string;
 	slug: string;
 	ownerUserId: string;
 	connectionString: string;
+	defaultTemplateLanguage?: SeedLanguage;
 }
 
 export interface ProvisionTenantResult {
@@ -43,7 +45,11 @@ export async function provisionTenant(
 	// and inner txns for each migration; the schema must already exist + be committed.
 	// applyTenantMigrations runs the tenant migration set AND seeds the default
 	// template if the schema is fresh — see migrations/fanout.ts seed-or-skip.
-	await applyTenantMigrations({ connectionString: input.connectionString, onlySchema: schemaName });
+	await applyTenantMigrations({
+		connectionString: input.connectionString,
+		onlySchema: schemaName,
+		seedLanguage: input.defaultTemplateLanguage,
+	});
 
 	return { id, schemaName, name: input.name, slug: input.slug };
 }

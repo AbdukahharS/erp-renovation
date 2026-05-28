@@ -29,6 +29,15 @@ export function useTemplateTree(id: string | undefined) {
 	});
 }
 
+export function useCreateTemplate() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (vars: { name: string; cloneFromTemplateId?: string }) =>
+			unwrap(api.templates.post(vars)) as unknown as Promise<Template>,
+		onSuccess: () => qc.invalidateQueries({ queryKey: templateKeys.list() }),
+	});
+}
+
 export function useSpecializations() {
 	return useQuery({
 		queryKey: templateKeys.specializations(),

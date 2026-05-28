@@ -192,6 +192,91 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 			}
 			return await runInTenant(async (tx) => {
 				const [row] = await tx.insert(templates).values({ name: body.name }).returning();
+				if (!row) {
+					set.status = 500;
+					return { error: "failed to create template" };
+				}
+				if (!body.cloneFromTemplateId) return row;
+
+				// Deep-clone stages → sub-stages → checklist items + media requirements
+				// + linear dependency chain from the source template.
+				const srcStages = await tx
+					.select()
+					.from(stages)
+					.where(eq(stages.templateId, body.cloneFromTemplateId))
+					.orderBy(asc(stages.order));
+				if (srcStages.length === 0) return row;
+
+				const srcSubStages = await tx
+					.select()
+					.from(subStages)
+					.where(
+						inArray(
+							subStages.stageId,
+							srcStages.map((s) => s.id),
+						),
+					)
+					.orderBy(asc(subStages.order));
+
+				for (const srcStage of srcStages) {
+					const [newStage] = await tx
+						.insert(stages)
+						.values({ templateId: row.id, order: srcStage.order, name: srcStage.name })
+						.returning({ id: stages.id });
+					if (!newStage) throw new Error("clone: failed to insert stage");
+
+					const subs = srcSubStages.filter((ss) => ss.stageId === srcStage.id);
+					for (const sub of subs) {
+						const [newSub] = await tx
+							.insert(subStages)
+							.values({
+								stageId: newStage.id,
+								order: sub.order,
+								code: sub.code,
+								name: sub.name,
+								performerType: sub.performerType,
+								specialization: sub.specialization,
+								standardDurationDays: sub.standardDurationDays,
+								wageRatePerSqm: sub.wageRatePerSqm,
+								description: sub.description,
+							})
+							.returning({ id: subStages.id });
+						if (!newSub) throw new Error("clone: failed to insert sub-stage");
+
+						const items = await tx
+							.select()
+							.from(checklistItems)
+							.where(eq(checklistItems.subStageId, sub.id))
+							.orderBy(asc(checklistItems.order));
+						if (items.length > 0) {
+							await tx.insert(checklistItems).values(
+								items.map((it) => ({
+									subStageId: newSub.id,
+									order: it.order,
+									text: it.text,
+									criteria: it.criteria,
+								})),
+							);
+						}
+
+						const media = await tx
+							.select()
+							.from(mediaRequirements)
+							.where(eq(mediaRequirements.subStageId, sub.id));
+						if (media.length > 0) {
+							await tx.insert(mediaRequirements).values(
+								media.map((m) => ({
+									subStageId: newSub.id,
+									mediaType: m.mediaType,
+									required: m.required,
+									description: m.description,
+								})),
+							);
+						}
+					}
+				}
+
+				await relinkDependencies(tx, row.id);
 				return row;
 			});
 		},

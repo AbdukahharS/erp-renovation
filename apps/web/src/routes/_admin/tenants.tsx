@@ -271,6 +271,7 @@ function CreateTenantDialog({
 		ownerEmail: "",
 		ownerName: "",
 		ownerPassword: "",
+		defaultTemplateLanguage: "en" as "en" | "ru" | "uz",
 	});
 	const [slugDirty, setSlugDirty] = useState(false);
 	const [showPwd, setShowPwd] = useState(false);
@@ -278,7 +279,14 @@ function CreateTenantDialog({
 
 	useEffect(() => {
 		if (!open) {
-			setDraft({ name: "", slug: "", ownerEmail: "", ownerName: "", ownerPassword: "" });
+			setDraft({
+				name: "",
+				slug: "",
+				ownerEmail: "",
+				ownerName: "",
+				ownerPassword: "",
+				defaultTemplateLanguage: "en",
+			});
 			setSlugDirty(false);
 			setShowPwd(false);
 			setError(null);
@@ -359,6 +367,31 @@ function CreateTenantDialog({
 						/>
 						<p className="text-[11px] text-muted-foreground">{t("tenants.slugHelp")}</p>
 					</div>
+
+					<fieldset className="space-y-2">
+						<legend className="text-sm font-medium">{t("tenants.defaultTemplateLanguage")}</legend>
+						<p className="text-[11px] text-muted-foreground">
+							{t("tenants.defaultTemplateLanguageDesc")}
+						</p>
+						<div className="grid grid-cols-3 gap-2">
+							{(["en", "ru", "uz"] as const).map((code) => (
+								<label
+									key={code}
+									className="flex cursor-pointer items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-muted/30"
+								>
+									<input
+										type="radio"
+										name="default-template-language"
+										value={code}
+										checked={draft.defaultTemplateLanguage === code}
+										onChange={() => setDraft((d) => ({ ...d, defaultTemplateLanguage: code }))}
+										className="sr-only"
+									/>
+									<span className="font-medium">{t(`tenants.lang.${code}`)}</span>
+								</label>
+							))}
+						</div>
+					</fieldset>
 
 					<div className="grid gap-3 sm:grid-cols-2">
 						<div className="space-y-2">
