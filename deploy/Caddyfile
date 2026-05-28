@@ -5,7 +5,18 @@
 {$DOMAIN} {
 	encode zstd gzip
 
-	# Better Auth: keep the /api/auth/* prefix intact.
+	# Custom routes mounted at /auth/* on the API (NOT Better Auth itself):
+	#   - /api/auth/me            -> /auth/me
+	#   - /api/auth/switch-tenant -> /auth/switch-tenant
+	# Strip /api so the API hits its actual mount path.
+	@custom_auth path /api/auth/me /api/auth/switch-tenant
+	handle @custom_auth {
+		uri strip_prefix /api
+		reverse_proxy api:3001
+	}
+
+	# Better Auth's own handler: keep the /api/auth/* prefix intact
+	# (sign-in, sign-up, sign-out, get-session, etc.).
 	handle /api/auth/* {
 		reverse_proxy api:3001
 	}
