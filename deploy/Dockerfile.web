@@ -23,7 +23,9 @@ COPY . .
 RUN printf "VITE_API_URL=%s\nVITE_VAPID_PUBLIC_KEY=%s\n" \
 	"$VITE_API_URL" "$VITE_VAPID_PUBLIC_KEY" > /app/.env
 WORKDIR /app/apps/web
-RUN bun run build
+# Generate routeTree.gen.ts before tsc -b runs (the build script doesn't do
+# this; locally it persists, but a clean Docker build has no copy).
+RUN bun run generate:routes && bun run build
 
 FROM caddy:2-alpine AS runtime
 COPY --from=build /app/apps/web/dist /srv
