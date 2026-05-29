@@ -2,7 +2,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { SpecializationsPicker } from "@/components/specializations-picker";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -64,14 +66,27 @@ function RedeemInvite() {
 		}
 	}
 
+	const controls = (
+		<div className="fixed top-4 right-4 z-10 flex items-center gap-2">
+			<LanguageSwitcher />
+			<ThemeToggle />
+		</div>
+	);
+
 	if (preview.isLoading) {
-		return <main className="grid min-h-screen place-items-center p-6">{t("invite.loading")}</main>;
+		return (
+			<main className="relative grid min-h-screen place-items-center p-6">
+				{controls}
+				{t("invite.loading")}
+			</main>
+		);
 	}
 	// Server returns 404 for unknown / expired / consumed tokens alike to avoid
 	// leaking tenant identity. The redeem endpoint still gives a precise error.
 	if (preview.isError || !preview.data) {
 		return (
-			<main className="grid min-h-screen place-items-center p-6">
+			<main className="relative grid min-h-screen place-items-center p-6">
+				{controls}
 				<Card className="max-w-md p-6 text-sm">{t("invite.notFound")}</Card>
 			</main>
 		);
@@ -80,7 +95,8 @@ function RedeemInvite() {
 	const isMaster = preview.data.role === "MASTER";
 
 	return (
-		<main className="grid min-h-screen place-items-center p-6">
+		<main className="relative grid min-h-screen place-items-center p-6">
+			{controls}
 			<Card className="w-full max-w-md space-y-4 p-6">
 				<header className="space-y-1">
 					<h1 className="text-2xl font-semibold">
@@ -146,7 +162,7 @@ function RedeemInvite() {
 					className="w-full"
 					onClick={submit}
 					disabled={
-						redeem.isPending || !form.name.trim() || !form.email.trim() || form.password.length < 8
+						redeem.isPending || !form.name.trim() || !form.email.trim() || form.password.length < 12
 					}
 				>
 					{redeem.isPending ? t("invite.joining") : t("invite.join")}

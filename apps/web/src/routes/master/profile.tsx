@@ -62,10 +62,7 @@ function MasterProfile() {
 					value={specializations.length > 0 ? specializations.join(", ") : "—"}
 				/>
 				{self?.profile.phone ? (
-					<Row
-						label={t("profile.phone", { defaultValue: "Phone" })}
-						value={self.profile.phone}
-					/>
+					<Row label={t("profile.phone", { defaultValue: "Phone" })} value={self.profile.phone} />
 				) : null}
 			</Card>
 

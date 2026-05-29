@@ -160,7 +160,7 @@
 		"invitedAs": "Вас пригласили как <strong>{{role}}</strong>.",
 		"fullName": "Полное имя",
 		"emailLabel": "Эл. почта",
-		"passwordLabel": "Пароль (минимум 8)",
+		"passwordLabel": "Пароль (минимум 12)",
 		"phoneLabel": "Телефон (необязательно)",
 		"specsLabel": "Специализации (через запятую)",
 		"specsPlaceholder": "электрик, плиточник",

@@ -160,7 +160,7 @@
 		"invitedAs": "Siz <strong>{{role}}</strong> sifatida taklif qilindingiz.",
 		"fullName": "Toʻliq ism",
 		"emailLabel": "Email",
-		"passwordLabel": "Parol (kamida 8 ta)",
+		"passwordLabel": "Parol (kamida 12 ta)",
 		"phoneLabel": "Telefon (ixtiyoriy)",
 		"specsLabel": "Mutaxassisliklar (vergul bilan)",
 		"specsPlaceholder": "elektrik, kafelchi",

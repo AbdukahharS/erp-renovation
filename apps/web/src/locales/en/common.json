@@ -160,7 +160,7 @@
 		"invitedAs": "You've been invited as a <strong>{{role}}</strong>.",
 		"fullName": "Full name",
 		"emailLabel": "Email",
-		"passwordLabel": "Password (min 8)",
+		"passwordLabel": "Password (min 12)",
 		"phoneLabel": "Phone (optional)",
 		"specsLabel": "Specializations (comma-separated)",
 		"specsPlaceholder": "electrician, tiler",

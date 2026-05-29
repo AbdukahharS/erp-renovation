@@ -195,14 +195,42 @@ const publicInvitations = new Elysia({ prefix: "/invitations" })
 					},
 				});
 				userId = signUp.user.id;
-			} catch (_err) {
+			} catch (err) {
 				// Roll the claim back so the invitation becomes redeemable again.
 				await db
 					.update(invitations)
 					.set({ consumedAt: null })
 					.where(eq(invitations.token, params.token));
-				set.status = 409;
-				return { error: "email already registered" };
+				const e = err as {
+					status?: number | string;
+					statusCode?: number;
+					body?: { message?: string; code?: string };
+					message?: string;
+				};
+				const code = e?.body?.code;
+				const message = e?.body?.message ?? e?.message ?? "signup failed";
+				if (code === "USER_ALREADY_EXISTS") {
+					set.status = 409;
+					return { error: "email already registered", code };
+				}
+				const statusMap: Record<string, number> = {
+					BAD_REQUEST: 400,
+					UNAUTHORIZED: 401,
+					FORBIDDEN: 403,
+					NOT_FOUND: 404,
+					CONFLICT: 409,
+					UNPROCESSABLE_ENTITY: 422,
+				};
+				const status =
+					typeof e?.statusCode === "number"
+						? e.statusCode
+						: typeof e?.status === "number"
+							? e.status
+							: typeof e?.status === "string"
+								? (statusMap[e.status] ?? 400)
+								: 400;
+				set.status = status;
+				return { error: message, code };
 			}
 
 			// Stamp consumedByUserId now that we have a user id, and wire up the
