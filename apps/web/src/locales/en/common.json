@@ -351,6 +351,7 @@
 		"singleUseLink": "Single-use link:",
 		"copyLink": "copy link",
 		"pendingInvitations": "Pending invitations",
+		"invitationHistory": "Invitation history",
 		"noInvitations": "No invitations",
 		"noInvitationsDesc": "Pending invites will show up here.",
 		"anyEmail": "any email",

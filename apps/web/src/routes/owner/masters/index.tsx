@@ -1,6 +1,6 @@
 import type { Role } from "@repo/validators";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CopyIcon, Trash2Icon, UserPlusIcon, UsersIcon } from "lucide-react";
+import { ChevronDownIcon, CopyIcon, Trash2Icon, UserPlusIcon, UsersIcon } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -139,54 +140,86 @@ function OwnerMasters() {
 				</CardContent>
 			</Card>
 
-			<section className="space-y-2">
-				<h2 className="text-sm font-semibold">{t("masters.pendingInvitations")}</h2>
-				{invitations.isLoading ? (
-					<Skeleton className="h-16 w-full" />
-				) : invitations.data?.length === 0 ? (
-					<EmptyState
-						title={t("masters.noInvitations")}
-						description={t("masters.noInvitationsDesc")}
-					/>
-				) : (
-					<div className="space-y-2">
-						{invitations.data?.map((inv) => {
-							const expired = new Date(inv.expiresAt).getTime() <= Date.now();
-							const status = inv.consumedAt ? "CONSUMED" : expired ? "EXPIRED" : "PENDING";
-							return (
-								<Card key={inv.token} className="p-3">
-									<div className="grid items-center gap-3 md:grid-cols-[auto_1fr_auto_auto_auto]">
-										<Badge variant="outline">{t(`role.${inv.role.toLowerCase()}`, inv.role)}</Badge>
-										<div className="flex items-center gap-2 text-xs text-muted-foreground">
-											<span>{inv.email ?? t("masters.anyEmail")}</span>
-											<Button
-												variant="ghost"
-												size="sm"
-												className="h-6 px-1.5 text-xs"
-												onClick={() => copy(inviteUrl(inv.token))}
-											>
-												<CopyIcon className="mr-1 size-3" /> {t("masters.copyLink")}
-											</Button>
-										</div>
-										<div className="text-xs">{new Date(inv.expiresAt).toLocaleString()}</div>
-										<Badge variant={status === "PENDING" ? "default" : "secondary"}>
-											{t(`masters.invitationStatus.${status}`, status)}
-										</Badge>
-										<Button
-											size="sm"
-											variant="outline"
-											disabled={status !== "PENDING"}
-											onClick={() => revoke.mutate(inv.token)}
-										>
-											<Trash2Icon className="size-3.5" />
-										</Button>
-									</div>
-								</Card>
-							);
-						})}
-					</div>
-				)}
-			</section>
+			{(() => {
+				const all = invitations.data ?? [];
+				const withStatus = all.map((inv) => {
+					const expired = new Date(inv.expiresAt).getTime() <= Date.now();
+					const status: "PENDING" | "CONSUMED" | "EXPIRED" = inv.consumedAt
+						? "CONSUMED"
+						: expired
+							? "EXPIRED"
+							: "PENDING";
+					return { inv, status };
+				});
+				const pending = withStatus.filter((x) => x.status === "PENDING");
+				const history = withStatus.filter((x) => x.status !== "PENDING");
+
+				const renderRow = ({ inv, status }: (typeof withStatus)[number]) => (
+					<Card key={inv.token} className="p-3">
+						<div className="grid items-center gap-3 md:grid-cols-[auto_1fr_auto_auto_auto]">
+							<Badge variant="outline">{t(`role.${inv.role.toLowerCase()}`, inv.role)}</Badge>
+							<div className="flex items-center gap-2 text-xs text-muted-foreground">
+								<span>{inv.email ?? t("masters.anyEmail")}</span>
+								{status === "PENDING" && (
+									<Button
+										variant="ghost"
+										size="sm"
+										className="h-6 px-1.5 text-xs"
+										onClick={() => copy(inviteUrl(inv.token))}
+									>
+										<CopyIcon className="mr-1 size-3" /> {t("masters.copyLink")}
+									</Button>
+								)}
+							</div>
+							<div className="text-xs">{new Date(inv.expiresAt).toLocaleString()}</div>
+							<Badge variant={status === "PENDING" ? "default" : "secondary"}>
+								{t(`masters.invitationStatus.${status}`, status)}
+							</Badge>
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={status !== "PENDING"}
+								onClick={() => revoke.mutate(inv.token)}
+							>
+								<Trash2Icon className="size-3.5" />
+							</Button>
+						</div>
+					</Card>
+				);
+
+				return (
+					<>
+						<section className="space-y-2">
+							<h2 className="text-sm font-semibold">{t("masters.pendingInvitations")}</h2>
+							{invitations.isLoading ? (
+								<Skeleton className="h-16 w-full" />
+							) : pending.length === 0 ? (
+								<EmptyState
+									title={t("masters.noInvitations")}
+									description={t("masters.noInvitationsDesc")}
+								/>
+							) : (
+								<div className="space-y-2">{pending.map(renderRow)}</div>
+							)}
+						</section>
+
+						{history.length > 0 && (
+							<Collapsible className="space-y-2">
+								<CollapsibleTrigger className="group/trigger flex w-full items-center justify-between rounded-md border border-transparent px-1 py-1 text-sm font-semibold hover:bg-muted/40">
+									<span>
+										{t("masters.invitationHistory", "Invitation history")}{" "}
+										<span className="text-muted-foreground font-normal">({history.length})</span>
+									</span>
+									<ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-data-[panel-open]/trigger:rotate-180" />
+								</CollapsibleTrigger>
+								<CollapsibleContent className="space-y-2">
+									{history.map(renderRow)}
+								</CollapsibleContent>
+							</Collapsible>
+						)}
+					</>
+				);
+			})()}
 
 			<section className="space-y-2">
 				<h2 className="text-sm font-semibold">{t("masters.roster")}</h2>
