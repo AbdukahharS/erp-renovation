@@ -260,4 +260,44 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector/masters" })
 		return await runInTenant((tx) => loadRoster(tx, weights));
 	});
 
-export const hrRoutes = new Elysia().use(ownerRoutes).use(inspectorRoutes);
+// Master self-view — returns the caller's own profile (incl. specializations),
+// rating, and balance from the active tenant. Backs /master/profile in the PWA.
+const masterRoutes = new Elysia({ prefix: "/master" })
+	.use(tenancy)
+	.use(requireRole("MASTER"))
+
+	.get("/me", async ({ user, tenant, runInTenant, set }) => {
+		if (!runInTenant || !tenant || !user) {
+			set.status = 401;
+			return { error: "no tenant" };
+		}
+		const weights = await loadRatingWeights(tenant.id);
+		return await runInTenant(async (tx) => {
+			const [profile] = await tx
+				.select()
+				.from(masterProfiles)
+				.where(eq(masterProfiles.userId, user.id))
+				.limit(1);
+			if (!profile) {
+				set.status = 404;
+				return { error: "master profile not found" };
+			}
+			const [rating] = await tx
+				.select()
+				.from(masterRatings)
+				.where(eq(masterRatings.masterUserId, user.id))
+				.limit(1);
+			const [balance] = await tx
+				.select()
+				.from(masterBalances)
+				.where(eq(masterBalances.masterUserId, user.id))
+				.limit(1);
+			return {
+				profile,
+				rating: withScore(rating ?? null, weights),
+				balance: balance?.balance ?? "0",
+			};
+		});
+	});
+
+export const hrRoutes = new Elysia().use(ownerRoutes).use(inspectorRoutes).use(masterRoutes);

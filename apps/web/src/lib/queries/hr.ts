@@ -23,6 +23,21 @@ export const hrKeys = {
 	invitations: ["owner", "invitations"] as const,
 	masters: ["owner", "masters"] as const,
 	master: (id: string) => ["owner", "masters", id] as const,
+	masterMe: ["master", "me"] as const,
+};
+
+export type MasterSelf = {
+	profile: {
+		id: string;
+		userId: string;
+		displayName: string;
+		phone: string | null;
+		specializations: string[];
+		availabilityOverride: string | null;
+		availabilityOverrideUntil: string | null;
+	};
+	rating: MasterRosterRow["rating"];
+	balance: string;
 };
 
 // --------- Invitations: owner ---------
@@ -131,6 +146,15 @@ export function useUpdateMaster() {
 			qc.invalidateQueries({ queryKey: hrKeys.masters });
 			qc.invalidateQueries({ queryKey: hrKeys.master(vars.id) });
 		},
+	});
+}
+
+// --------- Master: self ---------
+
+export function useMasterMe() {
+	return useQuery({
+		queryKey: hrKeys.masterMe,
+		queryFn: () => unwrap(api.master.me.get()) as unknown as Promise<MasterSelf>,
 	});
 }
 

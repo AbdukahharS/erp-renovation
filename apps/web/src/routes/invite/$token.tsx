@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { SpecializationsPicker } from "@/components/specializations-picker";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,12 +22,18 @@ function RedeemInvite() {
 	const preview = useInvitationPreview(token);
 	const redeem = useRedeemInvitation();
 
-	const [form, setForm] = useState({
+	const [form, setForm] = useState<{
+		name: string;
+		email: string;
+		password: string;
+		phone: string;
+		specializations: string[];
+	}>({
 		name: "",
 		email: "",
 		password: "",
 		phone: "",
-		specializations: "",
+		specializations: [],
 	});
 	const [error, setError] = useState<string | null>(null);
 
@@ -39,10 +46,7 @@ function RedeemInvite() {
 				email: form.email.trim(),
 				password: form.password,
 				phone: form.phone.trim() || undefined,
-				specializations: form.specializations
-					.split(",")
-					.map((s) => s.trim())
-					.filter(Boolean),
+				specializations: form.specializations,
 			});
 			// Sign in with the credentials we just created.
 			const signed = await signIn.email({ email: form.email, password: form.password });
@@ -126,10 +130,12 @@ function RedeemInvite() {
 						</div>
 						<div className="space-y-1.5">
 							<Label>{t("invite.specsLabel")}</Label>
-							<Input
+							<SpecializationsPicker
 								value={form.specializations}
-								onChange={(e) => setForm((f) => ({ ...f, specializations: e.target.value }))}
+								options={preview.data.specializations ?? []}
+								onChange={(next) => setForm((f) => ({ ...f, specializations: next }))}
 								placeholder={t("invite.specsPlaceholder")}
+								emptyHint={t("common.none")}
 							/>
 						</div>
 					</>

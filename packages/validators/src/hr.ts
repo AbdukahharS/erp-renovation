@@ -26,6 +26,7 @@ export const InvitationPreviewSchema = z.object({
 	role: RoleSchema,
 	expiresAt: z.string(),
 	status: z.enum(["PENDING", "CONSUMED", "EXPIRED"]),
+	specializations: z.array(z.object({ id: z.string().uuid(), name: z.string() })).optional(),
 });
 export type InvitationPreview = z.infer<typeof InvitationPreviewSchema>;
 

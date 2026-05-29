@@ -1,12 +1,14 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SpecializationsPicker } from "@/components/specializations-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useGrantClosingPermission, useMarkPayout, useMasterFinance } from "@/lib/queries/finance";
 import { useMaster, useUpdateMaster, useUpdateMasterAvailability } from "@/lib/queries/hr";
+import { useSpecializations } from "@/lib/queries/templates";
 
 type MasterDetailPayload = {
 	profile: {
@@ -316,7 +318,8 @@ function EditSpecializations({
 	const { t } = useTranslation();
 	const [name, setName] = useState(displayName);
 	const [phoneVal, setPhoneVal] = useState(phone ?? "");
-	const [specs, setSpecs] = useState(initial.join(", "));
+	const [specs, setSpecs] = useState<string[]>(initial);
+	const specOptions = useSpecializations();
 	return (
 		<div className="grid gap-2 md:grid-cols-[1fr_1fr_2fr_auto]">
 			<Input
@@ -329,24 +332,18 @@ function EditSpecializations({
 				onChange={(e) => setPhoneVal(e.target.value)}
 				placeholder={t("masterDetail.phonePh")}
 			/>
-			<Input
+			<SpecializationsPicker
 				value={specs}
-				onChange={(e) => setSpecs(e.target.value)}
+				options={specOptions.data ?? []}
+				onChange={setSpecs}
 				placeholder={t("masterDetail.specsPh")}
+				emptyHint={t("common.none")}
+				disabled={specOptions.isLoading}
 			/>
 			<Button
 				size="sm"
 				disabled={pending}
-				onClick={() =>
-					onSave(
-						name.trim(),
-						phoneVal.trim() || null,
-						specs
-							.split(",")
-							.map((s) => s.trim())
-							.filter(Boolean),
-					)
-				}
+				onClick={() => onSave(name.trim(), phoneVal.trim() || null, specs)}
 			>
 				{t("common.save")}
 			</Button>
