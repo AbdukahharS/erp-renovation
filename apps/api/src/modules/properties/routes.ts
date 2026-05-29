@@ -1,13 +1,20 @@
 import { instantiateTemplate } from "@repo/db/instantiate-template";
+import { tenantMemberships, tenants } from "@repo/db/schema/control";
 import {
 	checklistItemInstances,
 	mediaRequirementInstances,
+	notificationIntents,
 	properties,
 	propertyAssets,
 	stageInstances,
 	subStageInstances,
 	templates,
 } from "@repo/db/schema/tenant";
+import {
+	DEFAULT_JOB_OPTS,
+	getNotificationDispatchQueue,
+	type NotificationDispatchJobData,
+} from "@repo/queue";
 import {
 	AttachFloorPlanInput,
 	CreatePropertyInput,
@@ -16,6 +23,7 @@ import {
 } from "@repo/validators";
 import { and, asc, sql as dsql, eq, inArray } from "drizzle-orm";
 import { Elysia } from "elysia";
+import { db } from "../../db.ts";
 import {
 	assertAssetExists,
 	presignPropertyAssetUpload,
@@ -162,21 +170,19 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 
 	.post(
 		"/properties",
-		async ({ body, runInTenant, set }) => {
-			if (!runInTenant) {
+		async ({ body, tenant, runInTenant, set }) => {
+			if (!runInTenant || !tenant) {
 				set.status = 401;
 				return { error: "no tenant" };
 			}
-			return await runInTenant(async (tx) => {
+			const created = await runInTenant(async (tx) => {
 				const [defaultTpl] = await tx
 					.select({ id: templates.id })
 					.from(templates)
 					.where(eq(templates.isDefault, true))
 					.limit(1);
-				if (!defaultTpl) {
-					set.status = 409;
-					return { error: "no default template for tenant" };
-				}
+				if (!defaultTpl)
+					return { kind: "error" as const, message: "no default template for tenant" };
 				const [prop] = await tx
 					.insert(properties)
 					.values({
@@ -191,8 +197,95 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 					.returning();
 				if (!prop) throw new Error("failed to create property");
 				await instantiateTemplate(tx, prop.id, defaultTpl.id, body.areaSqm);
-				return { id: prop.id };
+
+				// Phase 8: instantiation makes Sub-stage 1.1 (INSPECTOR-performed)
+				// AVAILABLE. The acceptance loop's notify path only fires on
+				// SUBMITTED/REJECTED/etc, and stage-propagate's STAGE_AVAILABLE
+				// emitter filters to MASTER — so without this block the inspector
+				// hears nothing about a fresh property. Target every INSPECTOR
+				// membership of the tenant (control-plane lookup mirrors
+				// acceptance/notify.ts STAGE_SUBMITTED).
+				const availableInspectorSubs = await tx
+					.select({ id: subStageInstances.id })
+					.from(subStageInstances)
+					.innerJoin(stageInstances, eq(stageInstances.id, subStageInstances.stageInstanceId))
+					.where(
+						and(
+							eq(stageInstances.propertyId, prop.id),
+							eq(subStageInstances.performerType, "INSPECTOR"),
+							eq(subStageInstances.status, "AVAILABLE"),
+						),
+					);
+
+				const intentIds: string[] = [];
+				if (availableInspectorSubs.length > 0) {
+					const [t] = await db
+						.select({ id: tenants.id })
+						.from(tenants)
+						.where(eq(tenants.schemaName, tenant.schemaName))
+						.limit(1);
+					const inspectors = t
+						? await db
+								.select({ userId: tenantMemberships.userId })
+								.from(tenantMemberships)
+								.where(
+									and(
+										eq(tenantMemberships.tenantId, t.id),
+										eq(tenantMemberships.role, "INSPECTOR"),
+									),
+								)
+						: [];
+					for (const ssi of availableInspectorSubs) {
+						for (const insp of inspectors) {
+							const inserted = await tx
+								.insert(notificationIntents)
+								.values({
+									type: "STAGE_AVAILABLE",
+									targetUserId: insp.userId,
+									subStageInstanceId: ssi.id,
+									propertyId: prop.id,
+									payload: { performerType: "INSPECTOR" },
+								})
+								.onConflictDoNothing({
+									target: [
+										notificationIntents.targetUserId,
+										notificationIntents.subStageInstanceId,
+										notificationIntents.type,
+									],
+								})
+								.returning({ id: notificationIntents.id });
+							for (const row of inserted) intentIds.push(row.id);
+						}
+					}
+				}
+
+				return { kind: "ok" as const, id: prop.id, intentIds };
 			});
+
+			if (created.kind === "error") {
+				set.status = 409;
+				return { error: created.message };
+			}
+
+			// Enqueue dispatch AFTER the tenant tx commits so the worker can read
+			// the intent rows.
+			if (process.env.REDIS_URL && created.intentIds.length > 0) {
+				const q = getNotificationDispatchQueue();
+				await Promise.all(
+					created.intentIds.map((intentId) =>
+						q.add(
+							"notification-dispatch",
+							{
+								tenantSchema: tenant.schemaName,
+								notificationIntentId: intentId,
+							} satisfies NotificationDispatchJobData,
+							{ ...DEFAULT_JOB_OPTS, jobId: `dispatch-${intentId}` },
+						),
+					),
+				);
+			}
+
+			return { id: created.id };
 		},
 		{ body: zodBody(CreatePropertyInput) },
 	)

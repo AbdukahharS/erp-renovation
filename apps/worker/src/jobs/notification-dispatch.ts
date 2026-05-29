@@ -162,14 +162,20 @@ async function buildContent(
 			.limit(1);
 		if (p) propertyName = p.name;
 	}
+	let performerType: string | null = null;
 	if (subStageInstanceId) {
 		const [ss] = await tx
-			.select({ name: subStageInstances.name, stageInstanceId: subStageInstances.stageInstanceId })
+			.select({
+				name: subStageInstances.name,
+				stageInstanceId: subStageInstances.stageInstanceId,
+				performerType: subStageInstances.performerType,
+			})
 			.from(subStageInstances)
 			.where(eq(subStageInstances.id, subStageInstanceId))
 			.limit(1);
 		if (ss) {
 			subStageName = ss.name;
+			performerType = ss.performerType;
 			if (!propertyId && ss.stageInstanceId) {
 				const [si] = await tx
 					.select({ propertyId: stageInstances.propertyId })
@@ -187,11 +193,16 @@ async function buildContent(
 	switch (type) {
 		case "STAGE_AVAILABLE": {
 			const spec = specialization ? ` (${specialization})` : "";
-			return {
-				title: "New stage available",
-				body: `${subStageName} on ${propertyName} is ready to start${spec}.`,
-				targetUrl: subStageInstanceId ? `/master/stages/${subStageInstanceId}` : null,
-			};
+			const isInspector = performerType === "INSPECTOR";
+			const body = isInspector
+				? `${subStageName} on ${propertyName} is ready for initial acceptance.`
+				: `${subStageName} on ${propertyName} is ready to start${spec}.`;
+			const targetUrl = subStageInstanceId
+				? isInspector
+					? `/inspector/stages/${subStageInstanceId}`
+					: `/master/stages/${subStageInstanceId}`
+				: null;
+			return { title: "New stage available", body, targetUrl };
 		}
 		case "STAGE_SUBMITTED":
 			return {
