@@ -122,12 +122,14 @@ const publicInvitations = new Elysia({ prefix: "/invitations" })
 			set.status = 404;
 			return { error: "invitation not found" };
 		}
-		// Don't leak tenant identity for unusable tokens — return 404 the same way
-		// we would for a non-existent token. The redeem endpoint still gives a
-		// precise error to a holder who actually tries to consume.
-		if (row.consumedAt || row.expiresAt.getTime() <= Date.now()) {
-			set.status = 404;
-			return { error: "invitation not found" };
+		// For unusable tokens, surface the status (CONSUMED / EXPIRED) without
+		// leaking tenant identity, so the UI can show a precise message instead
+		// of a generic "not found".
+		if (row.consumedAt) {
+			return { status: "CONSUMED" as const };
+		}
+		if (row.expiresAt.getTime() <= Date.now()) {
+			return { status: "EXPIRED" as const };
 		}
 		let specs: { id: string; name: string }[] | undefined;
 		if (row.role === "MASTER") {

@@ -1,11 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { SpecializationsPicker } from "@/components/specializations-picker";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -81,13 +81,31 @@ function RedeemInvite() {
 			</main>
 		);
 	}
-	// Server returns 404 for unknown / expired / consumed tokens alike to avoid
-	// leaking tenant identity. The redeem endpoint still gives a precise error.
+	// Server returns 404 only for unknown tokens. Consumed/expired return 200
+	// with a status field so we can render a precise message.
 	if (preview.isError || !preview.data) {
 		return (
 			<main className="relative grid min-h-screen place-items-center p-6">
 				{controls}
 				<Card className="max-w-md p-6 text-sm">{t("invite.notFound")}</Card>
+			</main>
+		);
+	}
+	if (preview.data.status === "CONSUMED" || preview.data.status === "EXPIRED") {
+		const titleKey = preview.data.status === "CONSUMED" ? "invite.consumedTitle" : "invite.expiredTitle";
+		const bodyKey = preview.data.status === "CONSUMED" ? "invite.consumedBody" : "invite.expiredBody";
+		return (
+			<main className="relative grid min-h-screen place-items-center p-6">
+				{controls}
+				<Card className="max-w-md space-y-3 p-6 text-sm">
+					<h1 className="text-base font-semibold">{t(titleKey)}</h1>
+					<p className="text-muted-foreground">{t(bodyKey)}</p>
+					{preview.data.status === "CONSUMED" && (
+						<Link to="/login" className={buttonVariants({ className: "w-full" })}>
+							{t("invite.signInLink")}
+						</Link>
+					)}
+				</Card>
 			</main>
 		);
 	}

@@ -156,6 +156,11 @@
 	"invite": {
 		"loading": "yuklanmoqda…",
 		"notFound": "Taklif topilmadi.",
+		"consumedTitle": "Taklif allaqachon ishlatilgan",
+		"consumedBody": "Bu taklif havolasi allaqachon ishlatilgan. Agar bu siz bo'lsangiz, tizimga kirib ko'ring. Aks holda egasidan yangi taklif yuborishini so'rang.",
+		"signInLink": "Kirish →",
+		"expiredTitle": "Taklif muddati tugagan",
+		"expiredBody": "Bu taklif havolasining muddati tugagan. Egasidan yangi taklif yuborishini so'rang.",
 		"joinTitle": "{{tenant}} ga qoʻshilish",
 		"invitedAs": "Siz <strong>{{role}}</strong> sifatida taklif qilindingiz.",
 		"fullName": "Toʻliq ism",

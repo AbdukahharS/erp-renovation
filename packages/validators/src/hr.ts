@@ -21,13 +21,17 @@ export const InvitationRowSchema = z.object({
 });
 export type InvitationRow = z.infer<typeof InvitationRowSchema>;
 
-export const InvitationPreviewSchema = z.object({
-	tenantName: z.string(),
-	role: RoleSchema,
-	expiresAt: z.string(),
-	status: z.enum(["PENDING", "CONSUMED", "EXPIRED"]),
-	specializations: z.array(z.object({ id: z.string().uuid(), name: z.string() })).optional(),
-});
+export const InvitationPreviewSchema = z.discriminatedUnion("status", [
+	z.object({
+		status: z.literal("PENDING"),
+		tenantName: z.string(),
+		role: RoleSchema,
+		expiresAt: z.string(),
+		specializations: z.array(z.object({ id: z.string().uuid(), name: z.string() })).optional(),
+	}),
+	z.object({ status: z.literal("CONSUMED") }),
+	z.object({ status: z.literal("EXPIRED") }),
+]);
 export type InvitationPreview = z.infer<typeof InvitationPreviewSchema>;
 
 export const RedeemInvitationInput = z.object({

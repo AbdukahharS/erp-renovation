@@ -156,6 +156,11 @@
 	"invite": {
 		"loading": "loading…",
 		"notFound": "Invitation not found.",
+		"consumedTitle": "Invitation already used",
+		"consumedBody": "This invitation link has already been redeemed. If this was you, try signing in. Otherwise ask the owner to send a new invitation.",
+		"signInLink": "Sign in →",
+		"expiredTitle": "Invitation expired",
+		"expiredBody": "This invitation link has expired. Ask the owner to send a new invitation.",
 		"joinTitle": "Join {{tenant}}",
 		"invitedAs": "You've been invited as a <strong>{{role}}</strong>.",
 		"fullName": "Full name",

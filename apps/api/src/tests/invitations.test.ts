@@ -149,9 +149,12 @@ describe("invitations", () => {
 		expect(res.status).toBe(409);
 	});
 
-	it("preview on a consumed token returns 404 (no tenant-name leak)", async () => {
+	it("preview on a consumed token returns status=CONSUMED without leaking tenant name", async () => {
 		const res = await app.handle(new Request(`http://localhost/invitations/${token}`));
-		expect(res.status).toBe(404);
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as { status: string; tenantName?: string };
+		expect(body.status).toBe("CONSUMED");
+		expect(body.tenantName).toBeUndefined();
 	});
 
 	it("revoke on a consumed token returns 409", async () => {

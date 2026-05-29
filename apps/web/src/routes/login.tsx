@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,11 +58,12 @@ function Login() {
 	};
 
 	return (
-		<main className="min-h-screen grid place-items-center bg-muted/30 p-6">
+		<main className="relative min-h-screen grid place-items-center bg-muted/30 p-6">
+			<div className="fixed top-4 right-4 z-10 flex items-center gap-2">
+				<LanguageSwitcher />
+				<ThemeToggle />
+			</div>
 			<div className="w-full max-w-sm space-y-6">
-				<div className="flex justify-end">
-					<LanguageSwitcher />
-				</div>
 				<div className="flex flex-col items-center gap-2">
 					<div className="flex size-12 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-sm">
 						E
