@@ -92,8 +92,10 @@ function RedeemInvite() {
 		);
 	}
 	if (preview.data.status === "CONSUMED" || preview.data.status === "EXPIRED") {
-		const titleKey = preview.data.status === "CONSUMED" ? "invite.consumedTitle" : "invite.expiredTitle";
-		const bodyKey = preview.data.status === "CONSUMED" ? "invite.consumedBody" : "invite.expiredBody";
+		const titleKey =
+			preview.data.status === "CONSUMED" ? "invite.consumedTitle" : "invite.expiredTitle";
+		const bodyKey =
+			preview.data.status === "CONSUMED" ? "invite.consumedBody" : "invite.expiredBody";
 		return (
 			<main className="relative grid min-h-screen place-items-center p-6">
 				{controls}

@@ -1,6 +1,7 @@
 {
 	"name": "erp",
 	"private": true,
+	"license": "UNLICENSED",
 	"scripts": {
 		"build": "turbo run build",
 		"dev": "turbo run dev",
