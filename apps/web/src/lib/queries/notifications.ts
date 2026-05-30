@@ -14,6 +14,7 @@ export interface NotificationItem {
 	targetUrl: string | null;
 	propertyId: string | null;
 	subStageInstanceId: string | null;
+	localizationParams: Record<string, unknown> | null;
 	readAt: string | null;
 	createdAt: string;
 }

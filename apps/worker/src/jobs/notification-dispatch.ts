@@ -9,6 +9,12 @@ import {
 } from "@repo/db/schema/tenant";
 import { withTenant } from "@repo/db/with-tenant";
 import {
+	type NotificationKind,
+	notificationKeys,
+	type PerformerType,
+	translateNotification,
+} from "@repo/i18n";
+import {
 	DEFAULT_JOB_OPTS,
 	getPushDeliveryQueue,
 	type NotificationDispatchJobData,
@@ -40,7 +46,7 @@ export async function processNotificationDispatch(job: {
 			.limit(1);
 		if (!intent) return null;
 
-		const { title, body, targetUrl } = await buildContent(
+		const { title, body, targetUrl, params } = await buildContent(
 			// biome-ignore lint/suspicious/noExplicitAny: tx is the inner Drizzle transaction
 			tx as any,
 			intent.type,
@@ -60,6 +66,10 @@ export async function processNotificationDispatch(job: {
 				propertyId: intent.propertyId,
 				subStageInstanceId: intent.subStageInstanceId,
 				intentId: intent.id,
+				// Persist substitution params so the in-app center and push-delivery
+				// can re-render in any locale via @repo/i18n. Title/body above stay
+				// as English fallback for old consumers / pre-localization rows.
+				localizationParams: params,
 			})
 			.onConflictDoNothing({ target: notifications.intentId })
 			.returning({ id: notifications.id });
@@ -150,7 +160,12 @@ async function buildContent(
 	subStageInstanceId: string | null,
 	propertyId: string | null,
 	payload: Record<string, unknown> | null,
-): Promise<{ title: string; body: string; targetUrl: string | null }> {
+): Promise<{
+	title: string;
+	body: string;
+	targetUrl: string | null;
+	params: Record<string, unknown>;
+}> {
 	let propertyName = "a property";
 	let subStageName = "a stage";
 
@@ -162,7 +177,7 @@ async function buildContent(
 			.limit(1);
 		if (p) propertyName = p.name;
 	}
-	let performerType: string | null = null;
+	let performerType: PerformerType | null = null;
 	if (subStageInstanceId) {
 		const [ss] = await tx
 			.select({
@@ -175,7 +190,7 @@ async function buildContent(
 			.limit(1);
 		if (ss) {
 			subStageName = ss.name;
-			performerType = ss.performerType;
+			performerType = ss.performerType as PerformerType;
 			if (!propertyId && ss.stageInstanceId) {
 				const [si] = await tx
 					.select({ propertyId: stageInstances.propertyId })
@@ -190,49 +205,61 @@ async function buildContent(
 	const specialization =
 		payload && typeof payload.specialization === "string" ? payload.specialization : null;
 
+	// Params are persisted on the notifications row and re-applied at render
+	// time per recipient locale. Keep these primitive + locale-neutral —
+	// rendering happens in @repo/i18n catalogs.
+	const params: Record<string, unknown> = {
+		propertyName,
+		subStageName,
+		specialization,
+		// Pre-formatted suffix so the English template can stay a single string
+		// and other locales can choose to include or omit it.
+		specializationSuffix: specialization ? ` (${specialization})` : "",
+		performerType,
+	};
+
+	const isKnownKind =
+		type === "STAGE_AVAILABLE" ||
+		type === "STAGE_SUBMITTED" ||
+		type === "STAGE_REJECTED" ||
+		type === "STAGE_BLOCKED" ||
+		type === "STAGE_UNBLOCKED";
+	const kind: NotificationKind | "FALLBACK" = isKnownKind ? (type as NotificationKind) : "FALLBACK";
+
+	const { titleKey, bodyKey } =
+		kind === "FALLBACK"
+			? { titleKey: "FALLBACK.title", bodyKey: "FALLBACK.body" }
+			: notificationKeys(kind, performerType);
+
+	// Targets are not localizable — derived from type + performer.
+	const targetUrl = computeTargetUrl(type, performerType, subStageInstanceId);
+
+	return {
+		title: translateNotification("en", titleKey, params),
+		body: translateNotification("en", bodyKey, params),
+		targetUrl,
+		params,
+	};
+}
+
+function computeTargetUrl(
+	type: string,
+	performerType: PerformerType | null,
+	subStageInstanceId: string | null,
+): string | null {
+	if (!subStageInstanceId) return null;
 	switch (type) {
-		case "STAGE_AVAILABLE": {
-			const spec = specialization ? ` (${specialization})` : "";
-			const isInspector = performerType === "INSPECTOR";
-			const body = isInspector
-				? `${subStageName} on ${propertyName} is ready for initial acceptance.`
-				: `${subStageName} on ${propertyName} is ready to start${spec}.`;
-			const targetUrl = subStageInstanceId
-				? isInspector
-					? `/inspector/stages/${subStageInstanceId}`
-					: `/master/stages/${subStageInstanceId}`
-				: null;
-			return { title: "New stage available", body, targetUrl };
-		}
+		case "STAGE_AVAILABLE":
+			return performerType === "INSPECTOR"
+				? `/inspector/stages/${subStageInstanceId}`
+				: `/master/stages/${subStageInstanceId}`;
 		case "STAGE_SUBMITTED":
-			return {
-				title: "Stage awaiting acceptance",
-				body: `${subStageName} on ${propertyName} was submitted for your review.`,
-				targetUrl: subStageInstanceId ? `/inspector/queue/${subStageInstanceId}` : null,
-			};
+			return `/inspector/queue/${subStageInstanceId}`;
 		case "STAGE_REJECTED":
-			return {
-				title: "Stage rejected",
-				body: `${subStageName} on ${propertyName} was rejected. Please fix the issues.`,
-				targetUrl: subStageInstanceId ? `/master/stages/${subStageInstanceId}` : null,
-			};
 		case "STAGE_BLOCKED":
-			return {
-				title: "Stage blocked",
-				body: `${subStageName} on ${propertyName} was blocked by the inspector.`,
-				targetUrl: subStageInstanceId ? `/master/stages/${subStageInstanceId}` : null,
-			};
 		case "STAGE_UNBLOCKED":
-			return {
-				title: "Stage unblocked",
-				body: `${subStageName} on ${propertyName} is unblocked and ready.`,
-				targetUrl: subStageInstanceId ? `/master/stages/${subStageInstanceId}` : null,
-			};
+			return `/master/stages/${subStageInstanceId}`;
 		default:
-			return {
-				title: "Notification",
-				body: `${subStageName} on ${propertyName}.`,
-				targetUrl: null,
-			};
+			return null;
 	}
 }

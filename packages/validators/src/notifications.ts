@@ -9,6 +9,9 @@ export const NotificationTypeSchema = z.enum([
 ]);
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 
+export const LocaleSchema = z.enum(["en", "ru", "uz"]);
+export type Locale = z.infer<typeof LocaleSchema>;
+
 export const PushSubscriptionInputSchema = z.object({
 	endpoint: z.string().url(),
 	keys: z.object({
@@ -16,8 +19,15 @@ export const PushSubscriptionInputSchema = z.object({
 		auth: z.string().min(1),
 	}),
 	userAgent: z.string().max(512).optional(),
+	locale: LocaleSchema.optional(),
 });
 export type PushSubscriptionInput = z.infer<typeof PushSubscriptionInputSchema>;
+
+export const UpdateSubscriptionLocaleInputSchema = z.object({
+	endpoint: z.string().url(),
+	locale: LocaleSchema,
+});
+export type UpdateSubscriptionLocaleInput = z.infer<typeof UpdateSubscriptionLocaleInputSchema>;
 
 export const NotificationListQuerySchema = z.object({
 	unreadOnly: z
@@ -37,6 +47,7 @@ export const NotificationItemSchema = z.object({
 	targetUrl: z.string().nullable(),
 	propertyId: z.string().uuid().nullable(),
 	subStageInstanceId: z.string().uuid().nullable(),
+	localizationParams: z.record(z.string(), z.unknown()).nullable(),
 	readAt: z.string().nullable(),
 	createdAt: z.string(),
 });

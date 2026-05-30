@@ -49,6 +49,7 @@
         "@elysiajs/eden": "^1.4.9",
         "@fontsource-variable/inter": "^5.2.8",
         "@hookform/resolvers": "^5.4.0",
+        "@repo/i18n": "workspace:*",
         "@tanstack/react-query": "^5.100.13",
         "@tanstack/react-router": "^1.170.7",
         "api": "workspace:*",
@@ -95,6 +96,7 @@
       "dependencies": {
         "@repo/acceptance": "workspace:*",
         "@repo/db": "workspace:*",
+        "@repo/i18n": "workspace:*",
         "@repo/queue": "workspace:*",
         "@repo/validators": "workspace:*",
         "bullmq": "^5.59.3",
@@ -135,6 +137,16 @@
         "@repo/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "drizzle-kit": "^0.31.10",
+      },
+      "peerDependencies": {
+        "typescript": "^5",
+      },
+    },
+    "packages/i18n": {
+      "name": "@repo/i18n",
+      "devDependencies": {
+        "@repo/typescript-config": "workspace:*",
+        "@types/bun": "latest",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -626,6 +638,8 @@
     "@repo/acceptance": ["@repo/acceptance@workspace:packages/acceptance"],
 
     "@repo/db": ["@repo/db@workspace:packages/db"],
+
+    "@repo/i18n": ["@repo/i18n@workspace:packages/i18n"],
 
     "@repo/queue": ["@repo/queue@workspace:packages/queue"],
 

@@ -1,0 +1,32 @@
+{
+	"STAGE_AVAILABLE": {
+		"master": {
+			"title": "Yangi bosqich mavjud",
+			"body": "«{propertyName}» obyektidagi «{subStageName}» bosqichi boshlashga tayyor{specializationSuffix}."
+		},
+		"inspector": {
+			"title": "Yangi bosqich mavjud",
+			"body": "«{propertyName}» obyektidagi «{subStageName}» bosqichi dastlabki qabulga tayyor."
+		}
+	},
+	"STAGE_SUBMITTED": {
+		"title": "Bosqich qabulga yuborildi",
+		"body": "«{propertyName}» obyektidagi «{subStageName}» bosqichi tekshiruvingiz uchun yuborildi."
+	},
+	"STAGE_REJECTED": {
+		"title": "Bosqich rad etildi",
+		"body": "«{propertyName}» obyektidagi «{subStageName}» bosqichi rad etildi. Iltimos, kamchiliklarni bartaraf eting."
+	},
+	"STAGE_BLOCKED": {
+		"title": "Bosqich bloklandi",
+		"body": "«{propertyName}» obyektidagi «{subStageName}» bosqichini inspektor bloklab qo‘ydi."
+	},
+	"STAGE_UNBLOCKED": {
+		"title": "Bosqich blokdan chiqarildi",
+		"body": "«{propertyName}» obyektidagi «{subStageName}» bosqichi blokdan chiqarildi va tayyor."
+	},
+	"FALLBACK": {
+		"title": "Bildirishnoma",
+		"body": "«{propertyName}» obyektidagi «{subStageName}»."
+	}
+}

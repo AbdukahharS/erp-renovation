@@ -1,0 +1,32 @@
+{
+	"STAGE_AVAILABLE": {
+		"master": {
+			"title": "New stage available",
+			"body": "{subStageName} on {propertyName} is ready to start{specializationSuffix}."
+		},
+		"inspector": {
+			"title": "New stage available",
+			"body": "{subStageName} on {propertyName} is ready for initial acceptance."
+		}
+	},
+	"STAGE_SUBMITTED": {
+		"title": "Stage awaiting acceptance",
+		"body": "{subStageName} on {propertyName} was submitted for your review."
+	},
+	"STAGE_REJECTED": {
+		"title": "Stage rejected",
+		"body": "{subStageName} on {propertyName} was rejected. Please fix the issues."
+	},
+	"STAGE_BLOCKED": {
+		"title": "Stage blocked",
+		"body": "{subStageName} on {propertyName} was blocked by the inspector."
+	},
+	"STAGE_UNBLOCKED": {
+		"title": "Stage unblocked",
+		"body": "{subStageName} on {propertyName} is unblocked and ready."
+	},
+	"FALLBACK": {
+		"title": "Notification",
+		"body": "{subStageName} on {propertyName}."
+	}
+}

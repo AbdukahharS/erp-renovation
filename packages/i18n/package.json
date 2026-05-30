@@ -1,0 +1,19 @@
+{
+	"name": "@repo/i18n",
+	"type": "module",
+	"private": true,
+	"devDependencies": {
+		"@repo/typescript-config": "workspace:*",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5"
+	},
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"lint": "biome check .",
+		"typecheck": "tsc --noEmit"
+	}
+}

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { renderNotification } from "@/lib/notification-render";
 import {
 	type NotificationItem,
 	useMarkReadMutation,
@@ -97,15 +98,16 @@ export function NotificationBell() {
 
 function NotificationRow({ item, onClick }: { item: NotificationItem; onClick: () => void }) {
 	const { t } = useTranslation();
+	const rendered = renderNotification(item);
 	const body = (
 		<div className="flex flex-col gap-0.5">
 			<div className="flex items-center justify-between gap-2">
-				<div className="text-sm font-medium">{item.title}</div>
+				<div className="text-sm font-medium">{rendered.title}</div>
 				{!item.readAt ? (
 					<span className="size-2 shrink-0 rounded-full bg-primary" aria-hidden />
 				) : null}
 			</div>
-			<div className="line-clamp-2 text-xs text-muted-foreground">{item.body}</div>
+			<div className="line-clamp-2 text-xs text-muted-foreground">{rendered.body}</div>
 			<div className="text-[10px] text-muted-foreground/70">
 				{formatRelative(item.createdAt, t)}
 			</div>

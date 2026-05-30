@@ -8,6 +8,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES, type SupportedLanguage } from "@/lib/i18n";
+import { syncCurrentDeviceLocale } from "@/lib/push";
 
 export function LanguageSwitcher() {
 	const { i18n, t } = useTranslation();
@@ -23,7 +24,16 @@ export function LanguageSwitcher() {
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">
 				{SUPPORTED_LANGUAGES.map((code) => (
-					<DropdownMenuItem key={code} onClick={() => i18n.changeLanguage(code)}>
+					<DropdownMenuItem
+						key={code}
+						onClick={async () => {
+							await i18n.changeLanguage(code);
+							// Fire-and-forget — flips this device's push locale so the
+							// next push lands localized without waiting for the next app
+							// load. Other devices catch up on their own next load.
+							void syncCurrentDeviceLocale(code);
+						}}
+					>
 						<span className="mr-2 inline-flex size-4 items-center justify-center">
 							{code === current ? <CheckIcon className="size-3.5" /> : null}
 						</span>

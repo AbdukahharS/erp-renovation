@@ -13,6 +13,7 @@
 	"dependencies": {
 		"@repo/acceptance": "workspace:*",
 		"@repo/db": "workspace:*",
+		"@repo/i18n": "workspace:*",
 		"@repo/queue": "workspace:*",
 		"@repo/validators": "workspace:*",
 		"bullmq": "^5.59.3",

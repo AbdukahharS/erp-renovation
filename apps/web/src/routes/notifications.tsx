@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { renderNotification } from "@/lib/notification-render";
 import {
 	type NotificationItem,
 	useMarkReadMutation,
@@ -119,6 +120,7 @@ function NotificationGroups({
 }
 
 function NotificationRow({ item, onOpen }: { item: NotificationItem; onOpen: () => void }) {
+	const rendered = renderNotification(item);
 	const content = (
 		<div className="flex items-start gap-3 p-3">
 			<span
@@ -126,8 +128,8 @@ function NotificationRow({ item, onOpen }: { item: NotificationItem; onOpen: () 
 				aria-hidden
 			/>
 			<div className="min-w-0 flex-1">
-				<div className="text-sm font-medium">{item.title}</div>
-				<div className="text-xs text-muted-foreground">{item.body}</div>
+				<div className="text-sm font-medium">{rendered.title}</div>
+				<div className="text-xs text-muted-foreground">{rendered.body}</div>
 				<div className="mt-1 text-[10px] text-muted-foreground/70">
 					{new Date(item.createdAt).toLocaleString()}
 				</div>

@@ -1,4 +1,10 @@
 import { api } from "./api";
+import i18n from "./i18n";
+
+function currentLocale(): "en" | "ru" | "uz" {
+	const lng = (i18n.language || "en").split("-")[0] ?? "en";
+	return lng === "ru" || lng === "uz" ? lng : "en";
+}
 
 /**
  * Phase 8 push subscription helper. Idempotently:
@@ -52,9 +58,33 @@ export async function ensurePushSubscribed(): Promise<
 		endpoint: json.endpoint,
 		keys: { p256dh: json.keys.p256dh, auth: json.keys.auth },
 		userAgent: navigator.userAgent.slice(0, 512),
+		locale: currentLocale(),
 	});
 	if (res.error) return { ok: false, reason: `api-error:${res.error.status ?? "?"}` };
 	return { ok: true };
+}
+
+/**
+ * Push the current i18next language to this device's existing push subscription
+ * (if any) so the next push lands localized without waiting for the next app
+ * load. Silent on missing subscription — call sites just fire-and-forget.
+ */
+export async function syncCurrentDeviceLocale(locale?: "en" | "ru" | "uz"): Promise<void> {
+	if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+	try {
+		const reg = await navigator.serviceWorker.ready;
+		const sub = await reg.pushManager.getSubscription();
+		if (!sub) return;
+		const endpoint = sub.toJSON().endpoint;
+		if (!endpoint) return;
+		await api.tenant.notifications.subscriptions.locale.patch({
+			endpoint,
+			locale: locale ?? currentLocale(),
+		});
+	} catch {
+		// Best effort — a missed sync is corrected on the next app load by
+		// ensurePushSubscribed re-upserting with the current locale.
+	}
 }
 
 async function fetchVapidKeyFromApi(): Promise<string | null> {

@@ -1,5 +1,11 @@
 import { notificationDeliveries, notifications, pushSubscriptions } from "@repo/db/schema/tenant";
 import { withTenant } from "@repo/db/with-tenant";
+import {
+	type NotificationKind,
+	notificationKeys,
+	type PerformerType,
+	translateNotification,
+} from "@repo/i18n";
 import type { PushDeliveryJobData } from "@repo/queue";
 import { and, sql as dsql, eq } from "drizzle-orm";
 import webpush from "web-push";
@@ -46,9 +52,11 @@ export async function processPushDelivery(job: { data: PushDeliveryJobData }): P
 		const [n] = await tx
 			.select({
 				id: notifications.id,
+				type: notifications.type,
 				title: notifications.title,
 				body: notifications.body,
 				targetUrl: notifications.targetUrl,
+				localizationParams: notifications.localizationParams,
 			})
 			.from(notifications)
 			.where(eq(notifications.id, notificationId))
@@ -63,9 +71,19 @@ export async function processPushDelivery(job: { data: PushDeliveryJobData }): P
 
 	if (!loaded) return; // sub or notification was deleted before send
 
+	// Localize per device. Rows written before this feature have null
+	// localizationParams — fall back to the stored English title/body.
+	const localized = localizePushPayload(
+		loaded.s.locale,
+		loaded.n.type,
+		loaded.n.localizationParams as Record<string, unknown> | null,
+		loaded.n.title,
+		loaded.n.body,
+	);
+
 	const payload = JSON.stringify({
-		title: loaded.n.title,
-		body: loaded.n.body,
+		title: localized.title,
+		body: localized.body,
 		url: loaded.n.targetUrl ?? "/notifications",
 		notificationId: loaded.n.id,
 	});
@@ -160,4 +178,30 @@ export async function processPushDelivery(job: { data: PushDeliveryJobData }): P
 			throw err; // BullMQ retries
 		}
 	}
+}
+
+function localizePushPayload(
+	locale: string,
+	type: string,
+	params: Record<string, unknown> | null,
+	fallbackTitle: string,
+	fallbackBody: string,
+): { title: string; body: string } {
+	if (!params) return { title: fallbackTitle, body: fallbackBody };
+	const known: NotificationKind[] = [
+		"STAGE_AVAILABLE",
+		"STAGE_SUBMITTED",
+		"STAGE_REJECTED",
+		"STAGE_BLOCKED",
+		"STAGE_UNBLOCKED",
+	];
+	if (!known.includes(type as NotificationKind)) {
+		return { title: fallbackTitle, body: fallbackBody };
+	}
+	const performerType = (params.performerType ?? null) as PerformerType | null;
+	const { titleKey, bodyKey } = notificationKeys(type as NotificationKind, performerType);
+	return {
+		title: translateNotification(locale, titleKey, params),
+		body: translateNotification(locale, bodyKey, params),
+	};
 }

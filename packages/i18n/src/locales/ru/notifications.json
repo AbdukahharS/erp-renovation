@@ -1,0 +1,32 @@
+{
+	"STAGE_AVAILABLE": {
+		"master": {
+			"title": "Доступен новый этап",
+			"body": "Этап «{subStageName}» на объекте «{propertyName}» готов к началу работ{specializationSuffix}."
+		},
+		"inspector": {
+			"title": "Доступен новый этап",
+			"body": "Этап «{subStageName}» на объекте «{propertyName}» готов к первичной приёмке."
+		}
+	},
+	"STAGE_SUBMITTED": {
+		"title": "Этап ожидает приёмки",
+		"body": "Этап «{subStageName}» на объекте «{propertyName}» отправлен на вашу проверку."
+	},
+	"STAGE_REJECTED": {
+		"title": "Этап отклонён",
+		"body": "Этап «{subStageName}» на объекте «{propertyName}» отклонён. Пожалуйста, устраните замечания."
+	},
+	"STAGE_BLOCKED": {
+		"title": "Этап заблокирован",
+		"body": "Этап «{subStageName}» на объекте «{propertyName}» заблокирован инспектором."
+	},
+	"STAGE_UNBLOCKED": {
+		"title": "Этап разблокирован",
+		"body": "Этап «{subStageName}» на объекте «{propertyName}» разблокирован и готов к работе."
+	},
+	"FALLBACK": {
+		"title": "Уведомление",
+		"body": "Этап «{subStageName}» на объекте «{propertyName}»."
+	}
+}

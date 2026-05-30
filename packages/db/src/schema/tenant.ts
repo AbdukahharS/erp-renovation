@@ -763,6 +763,12 @@ export const notifications = pgTable(
 			onDelete: "set null",
 		}),
 		intentId: uuid("intent_id"),
+		// Phase 8 (localization): substitution params for re-rendering the
+		// title/body in the receiver's locale. When present, both push-delivery
+		// and the in-app center prefer translating via @repo/i18n over the
+		// stored English fallback in title/body. Nullable for rows written
+		// before this column existed.
+		localizationParams: jsonb("localization_params"),
 		readAt: timestamp("read_at"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 	},
@@ -793,6 +799,10 @@ export const pushSubscriptions = pgTable(
 		p256dh: text("p256dh").notNull(),
 		auth: text("auth").notNull(),
 		userAgent: text("user_agent"),
+		// Phase 8 (localization): device locale set at subscribe time and
+		// refreshed on app load / language switch. push-delivery renders the
+		// push payload via @repo/i18n in this locale.
+		locale: text("locale").notNull().default("en"),
 		failureCount: integer("failure_count").notNull().default(0),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),

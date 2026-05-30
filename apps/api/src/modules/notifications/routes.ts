@@ -1,6 +1,10 @@
 import { notifications, pushSubscriptions } from "@repo/db/schema/tenant";
 import { publishToTenant } from "@repo/queue";
-import { MarkReadInputSchema, PushSubscriptionInputSchema } from "@repo/validators";
+import {
+	MarkReadInputSchema,
+	PushSubscriptionInputSchema,
+	UpdateSubscriptionLocaleInputSchema,
+} from "@repo/validators";
 import { and, count, desc, eq, inArray, isNull, lt } from "drizzle-orm";
 import { Elysia, t } from "elysia";
 import { zodBody } from "../../lib/zod-body.ts";
@@ -48,6 +52,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/tenant/notifications" 
 						targetUrl: notifications.targetUrl,
 						propertyId: notifications.propertyId,
 						subStageInstanceId: notifications.subStageInstanceId,
+						localizationParams: notifications.localizationParams,
 						readAt: notifications.readAt,
 						createdAt: notifications.createdAt,
 					})
@@ -148,6 +153,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/tenant/notifications" 
 				// Upsert by endpoint (globally unique on the push service). Always
 				// bind to the calling user's id — body cannot specify a different
 				// userId, which is the isolation guarantee for this route.
+				const locale = body.locale ?? "en";
 				const [row] = await tx
 					.insert(pushSubscriptions)
 					.values({
@@ -156,6 +162,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/tenant/notifications" 
 						p256dh: body.keys.p256dh,
 						auth: body.keys.auth,
 						userAgent: body.userAgent ?? null,
+						locale,
 						failureCount: 0,
 					})
 					.onConflictDoUpdate({
@@ -165,6 +172,7 @@ export const notificationsRoutes = new Elysia({ prefix: "/tenant/notifications" 
 							p256dh: body.keys.p256dh,
 							auth: body.keys.auth,
 							userAgent: body.userAgent ?? null,
+							locale,
 							failureCount: 0,
 							lastSeenAt: new Date(),
 						},
@@ -174,6 +182,38 @@ export const notificationsRoutes = new Elysia({ prefix: "/tenant/notifications" 
 			});
 		},
 		{ body: zodBody(PushSubscriptionInputSchema) },
+	)
+
+	.patch(
+		"/subscriptions/locale",
+		async ({ user, body, runInTenant, set }) => {
+			if (!runInTenant || !user) {
+				set.status = 401;
+				return { error: "unauthorized" };
+			}
+			return await runInTenant(async (tx) => {
+				// Update only the row owned by the calling user with that endpoint.
+				// Other devices' rows are untouched — they self-refresh via the
+				// subscribe upsert on their next app load (apps/web/src/lib/push.ts
+				// passes the current i18n.language at subscribe time).
+				const result = await tx
+					.update(pushSubscriptions)
+					.set({ locale: body.locale, lastSeenAt: new Date() })
+					.where(
+						and(
+							eq(pushSubscriptions.endpoint, body.endpoint),
+							eq(pushSubscriptions.userId, user.id),
+						),
+					)
+					.returning({ id: pushSubscriptions.id });
+				if (result.length === 0) {
+					set.status = 404;
+					return { error: "not found" };
+				}
+				return { ok: true };
+			});
+		},
+		{ body: zodBody(UpdateSubscriptionLocaleInputSchema) },
 	)
 
 	.delete("/subscriptions/:subscriptionId", async ({ user, params, runInTenant, set }) => {
