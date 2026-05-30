@@ -11,6 +11,7 @@ COPY packages/db/package.json packages/db/package.json
 COPY packages/queue/package.json packages/queue/package.json
 COPY packages/validators/package.json packages/validators/package.json
 COPY packages/acceptance/package.json packages/acceptance/package.json
+COPY packages/i18n/package.json packages/i18n/package.json
 COPY packages/typescript-config/package.json packages/typescript-config/package.json
 RUN bun install --frozen-lockfile
 
