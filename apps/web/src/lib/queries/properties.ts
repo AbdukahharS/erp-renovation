@@ -1,4 +1,9 @@
-import type { PropertyAssetRow, PropertyListItem, PropertyTree } from "@repo/validators";
+import type {
+	PropertyAssetRow,
+	PropertyListItem,
+	PropertyTree,
+	TemplateSnapshotInputType,
+} from "@repo/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "../api";
 
@@ -38,6 +43,8 @@ export type CreatePropertyVars = {
 	areaSqm: string;
 	plannedUnitCost: string;
 	deadlineAt?: string | null;
+	templateId: string;
+	editedSnapshot?: TemplateSnapshotInputType;
 };
 
 export function useCreateProperty() {

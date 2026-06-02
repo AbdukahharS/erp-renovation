@@ -166,6 +166,11 @@ async function insertPortfolioAsset(
 }
 
 async function createProperty(cookie: string) {
+	const list = (await (await call(cookie, "/templates")).json()) as Array<{
+		id: string;
+		isDefault: boolean;
+	}>;
+	const templateId = must(list.find((t) => t.isDefault) ?? list[0]).id;
 	const res = await call(cookie, "/properties", {
 		method: "POST",
 		body: JSON.stringify({
@@ -174,6 +179,7 @@ async function createProperty(cookie: string) {
 			layoutType: "NEW_BUILD",
 			areaSqm: "10.00",
 			plannedUnitCost: "100.00",
+			templateId,
 		}),
 	});
 	expect(res.status).toBe(200);

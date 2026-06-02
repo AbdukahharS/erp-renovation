@@ -123,7 +123,21 @@ afterAll(async () => {
 	await db.delete(userTable).where(dsql`email IN (${aEmail}, ${bEmail})`);
 });
 
-async function createProperty(cookie: string, area = "50.00") {
+async function defaultTemplateId(cookie: string): Promise<string> {
+	const list = (await (await call(cookie, "/templates")).json()) as Array<{
+		id: string;
+		isDefault: boolean;
+	}>;
+	const def = list.find((t) => t.isDefault) ?? list[0];
+	return must(def).id;
+}
+
+async function createProperty(
+	cookie: string,
+	area = "50.00",
+	overrides: { templateId?: string; editedSnapshot?: unknown } = {},
+) {
+	const templateId = overrides.templateId ?? (await defaultTemplateId(cookie));
 	const res = await call(cookie, "/properties", {
 		method: "POST",
 		body: JSON.stringify({
@@ -132,6 +146,8 @@ async function createProperty(cookie: string, area = "50.00") {
 			layoutType: "NEW_BUILD",
 			areaSqm: area,
 			plannedUnitCost: "11500.00",
+			templateId,
+			...(overrides.editedSnapshot ? { editedSnapshot: overrides.editedSnapshot } : {}),
 		}),
 	});
 	expect(res.status).toBe(200);

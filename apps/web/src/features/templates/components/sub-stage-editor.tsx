@@ -12,13 +12,12 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useSpecializations, type useTemplateMutations } from "@/lib/queries/templates";
+import { useSpecializations } from "@/lib/queries/templates";
 import { AddChecklistForm, AddMediaForm } from "./add-forms";
+import type { EditorOps } from "./ops";
 import { ConfirmDelete, Field, InlineText, InlineTextarea } from "./primitives";
 
-type Mutators = ReturnType<typeof useTemplateMutations>;
-
-export function moveSub(stage: StageTree, subId: string, delta: number, m: Mutators) {
+export function moveSub(stage: StageTree, subId: string, delta: number, ops: EditorOps) {
 	const ordered = [...stage.subStages].sort((a, b) => a.order - b.order);
 	const i = ordered.findIndex((s) => s.id === subId);
 	const j = i + delta;
@@ -28,10 +27,10 @@ export function moveSub(stage: StageTree, subId: string, delta: number, m: Mutat
 	if (!a || !b) return;
 	ordered[i] = b;
 	ordered[j] = a;
-	m.reorderSubStages.mutate({
-		stageId: stage.id,
-		order: ordered.map((s, idx) => ({ id: s.id, order: idx + 1 })),
-	});
+	ops.reorderSubStages(
+		stage.id,
+		ordered.map((s, idx) => ({ id: s.id, order: idx + 1 })),
+	);
 }
 
 export function SubStageEditor({
@@ -40,20 +39,28 @@ export function SubStageEditor({
 	isLast,
 	onMoveUp,
 	onMoveDown,
-	mutators,
+	ops,
 }: {
 	sub: SubStageTree;
 	isFirst: boolean;
 	isLast: boolean;
 	onMoveUp: () => void;
 	onMoveDown: () => void;
-	mutators: Mutators;
+	ops: EditorOps;
 }) {
 	const { t } = useTranslation();
 	const { data: specs } = useSpecializations();
 	const [expanded, setExpanded] = useState(false);
-	const patch = (p: Record<string, unknown>) =>
-		mutators.updateSubStage.mutate({ id: sub.id, patch: p });
+	const patch = (p: Record<string, unknown>) => ops.updateSubStage(sub.id, p);
+
+	// Performer types are fixed enum values, always localizable. Specializations
+	// are free-form text — known seed names are localized via the
+	// `specializations` namespace, anything custom falls back to the raw value
+	// (i18next returns the key when the lookup is missing).
+	const performerLabel = t(`performerType.${sub.performerType}`, sub.performerType);
+	const specializationLabel = sub.specialization
+		? t(`specializations.${sub.specialization}`, sub.specialization)
+		: null;
 
 	return (
 		<motion.div layout className="rounded-md border bg-background overflow-hidden">
@@ -73,10 +80,10 @@ export function SubStageEditor({
 								: "rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase text-muted-foreground"
 						}
 					>
-						{sub.performerType}
+						{performerLabel}
 					</span>
-					{sub.specialization && (
-						<span className="text-xs text-muted-foreground">{sub.specialization}</span>
+					{specializationLabel && (
+						<span className="text-xs text-muted-foreground">{specializationLabel}</span>
 					)}
 				</button>
 				<span className="text-xs text-muted-foreground">
@@ -120,7 +127,7 @@ export function SubStageEditor({
 				<ConfirmDelete
 					title={t("templates.deleteSubTitle", { name: sub.name })}
 					description={t("templates.deleteSubDesc")}
-					onConfirm={() => mutators.deleteSubStage.mutate(sub.id)}
+					onConfirm={() => ops.deleteSubStage(sub.id)}
 					ariaLabel={t("templates.deleteSubAria")}
 				/>
 			</motion.div>
@@ -145,35 +152,57 @@ export function SubStageEditor({
 								<Field label={t("templates.fieldPerformer")}>
 									<Select
 										value={sub.performerType}
-										onValueChange={(v) => patch({ performerType: v })}
+										onValueChange={(v) =>
+											// Inspector stages don't carry a specialization (no master
+											// assignment), so clear it when switching away from MASTER —
+											// avoids stale data lingering on the row.
+											patch(
+												v === "MASTER"
+													? { performerType: v }
+													: { performerType: v, specialization: null },
+											)
+										}
 									>
 										<SelectTrigger className="h-9">
-											<SelectValue />
+											{/* Base UI's Value renders the raw value verbatim unless
+											    given a render function — without this the trigger
+											    keeps showing "MASTER"/"INSPECTOR" regardless of locale. */}
+											<SelectValue>
+												{(v) => (v ? t(`performerType.${v}`, String(v)) : "")}
+											</SelectValue>
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="MASTER">MASTER</SelectItem>
-											<SelectItem value="INSPECTOR">INSPECTOR</SelectItem>
+											<SelectItem value="MASTER">{t("performerType.MASTER")}</SelectItem>
+											<SelectItem value="INSPECTOR">{t("performerType.INSPECTOR")}</SelectItem>
 										</SelectContent>
 									</Select>
 								</Field>
-								<Field label={t("templates.fieldSpecialization")}>
-									<Select
-										value={sub.specialization ?? "__none__"}
-										onValueChange={(v) => patch({ specialization: v === "__none__" ? null : v })}
-									>
-										<SelectTrigger className="h-9">
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="__none__">{t("templates.specNone")}</SelectItem>
-											{(specs ?? []).map((s) => (
-												<SelectItem key={s.id} value={s.name}>
-													{s.name}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-								</Field>
+								{sub.performerType === "MASTER" && (
+									<Field label={t("templates.fieldSpecialization")}>
+										<Select
+											value={sub.specialization ?? "__none__"}
+											onValueChange={(v) => patch({ specialization: v === "__none__" ? null : v })}
+										>
+											<SelectTrigger className="h-9">
+												<SelectValue>
+													{(v) =>
+														!v || v === "__none__"
+															? t("templates.specNone")
+															: t(`specializations.${v}`, String(v))
+													}
+												</SelectValue>
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="__none__">{t("templates.specNone")}</SelectItem>
+												{(specs ?? []).map((s) => (
+													<SelectItem key={s.id} value={s.name}>
+														{t(`specializations.${s.name}`, s.name)}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</Field>
+								)}
 								<Field label={t("templates.fieldDuration")}>
 									<InlineText
 										value={String(sub.standardDurationDays)}
@@ -214,9 +243,8 @@ export function SubStageEditor({
 												<Select
 													value={mr.mediaType}
 													onValueChange={(v) =>
-														mutators.updateMediaRequirement.mutate({
-															id: mr.id,
-															patch: { mediaType: v as "PHOTO" | "VIDEO" },
+														ops.updateMediaRequirement(mr.id, {
+															mediaType: v as "PHOTO" | "VIDEO",
 														})
 													}
 												>
@@ -230,22 +258,14 @@ export function SubStageEditor({
 												</Select>
 												<InlineText
 													value={mr.description}
-													onSave={(v) =>
-														mutators.updateMediaRequirement.mutate({
-															id: mr.id,
-															patch: { description: v },
-														})
-													}
+													onSave={(v) => ops.updateMediaRequirement(mr.id, { description: v })}
 													className="flex-1 text-xs"
 												/>
 												<span className="flex items-center gap-1 text-xs">
 													<Switch
 														checked={mr.required}
 														onCheckedChange={(checked) =>
-															mutators.updateMediaRequirement.mutate({
-																id: mr.id,
-																patch: { required: !!checked },
-															})
+															ops.updateMediaRequirement(mr.id, { required: !!checked })
 														}
 														size="sm"
 													/>
@@ -254,14 +274,14 @@ export function SubStageEditor({
 												<Button
 													variant="ghost"
 													size="icon-xs"
-													onClick={() => mutators.deleteMediaRequirement.mutate(mr.id)}
+													onClick={() => ops.deleteMediaRequirement(mr.id)}
 												>
 													<Trash2 className="size-3 text-destructive" />
 												</Button>
 											</li>
 										))}
 									</ul>
-									<AddMediaForm subStageId={sub.id} mutators={mutators} />
+									<AddMediaForm subStageId={sub.id} ops={ops} />
 								</div>
 
 								<div>
@@ -274,37 +294,27 @@ export function SubStageEditor({
 												<div className="flex items-start gap-2">
 													<InlineTextarea
 														value={ci.text}
-														onSave={(v) =>
-															mutators.updateChecklistItem.mutate({
-																id: ci.id,
-																patch: { text: v },
-															})
-														}
+														onSave={(v) => ops.updateChecklistItem(ci.id, { text: v })}
 														className="flex-1 text-sm"
 													/>
 													<Button
 														variant="ghost"
 														size="icon-xs"
-														onClick={() => mutators.deleteChecklistItem.mutate(ci.id)}
+														onClick={() => ops.deleteChecklistItem(ci.id)}
 													>
 														<Trash2 className="size-3 text-destructive" />
 													</Button>
 												</div>
 												<InlineTextarea
 													value={ci.criteria ?? ""}
-													onSave={(v) =>
-														mutators.updateChecklistItem.mutate({
-															id: ci.id,
-															patch: { criteria: v || null },
-														})
-													}
+													onSave={(v) => ops.updateChecklistItem(ci.id, { criteria: v || null })}
 													placeholder={t("templates.criteriaPlaceholder")}
 													className="text-xs text-muted-foreground"
 												/>
 											</li>
 										))}
 									</ul>
-									<AddChecklistForm subStageId={sub.id} mutators={mutators} />
+									<AddChecklistForm subStageId={sub.id} ops={ops} />
 								</div>
 							</div>
 						</div>

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MediaTypeSchema, PerformerTypeSchema } from "./templates.ts";
+import { MediaTypeSchema, PerformerTypeSchema, TemplateSnapshotInput } from "./templates.ts";
 
 export const LayoutTypeSchema = z.enum(["NEW_BUILD", "SECONDARY"]);
 export type LayoutType = z.infer<typeof LayoutTypeSchema>;
@@ -130,6 +130,11 @@ export const CreatePropertyInput = z.object({
 	areaSqm: Numeric2.refine((v) => Number(v) > 0, "area must be positive"),
 	plannedUnitCost: Numeric2.refine((v) => Number(v) >= 0, "cost must be non-negative"),
 	deadlineAt: z.string().datetime().nullable().optional(),
+	templateId: z.string().uuid(),
+	// When present, the API uses this edited snapshot directly instead of
+	// re-reading the source template — lets the Owner tailor the pipeline at
+	// property creation without touching the shared template.
+	editedSnapshot: TemplateSnapshotInput.optional(),
 });
 export type CreatePropertyInputType = z.infer<typeof CreatePropertyInput>;
 

@@ -1,21 +1,28 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CreatePropertyInput, z } from "@repo/validators";
+import { CreatePropertyInput, type TemplateTree, z } from "@repo/validators";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Check, FileText, Loader2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+	createLocalOps,
+	snapshotsEqual,
+	treeToSnapshot,
+} from "@/features/templates/components/local-ops";
+import { TemplateTreeEditor } from "@/features/templates/template-editor";
+import {
 	useAttachFloorPlan,
 	useCreateProperty,
 	usePresignFloorPlan,
 } from "@/lib/queries/properties";
+import { useTemplatesList, useTemplateTree } from "@/lib/queries/templates";
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 // UX guardrail only — bypassable. Server-side cap belongs in Phase 4/9 when
 // we add stat-and-reject on attach. 50 MB comfortably fits hi-res floor plans
@@ -31,9 +38,13 @@ type UploadState =
 
 // Form-local schema: deadlineAt comes from <input type="datetime-local"> as
 // "YYYY-MM-DDTHH:mm", which fails CreatePropertyInput's .datetime() check.
-// We validate the remaining fields against the shared schema and convert
-// deadlineAt on submit.
-const FormSchema = CreatePropertyInput.omit({ deadlineAt: true }).extend({
+// We validate the remaining fields against the shared schema (sans templateId/
+// editedSnapshot which are wizard-state) and convert deadlineAt on submit.
+const FormSchema = CreatePropertyInput.omit({
+	deadlineAt: true,
+	templateId: true,
+	editedSnapshot: true,
+}).extend({
 	deadlineAt: z.string(),
 });
 type FormValues = z.infer<typeof FormSchema>;
@@ -64,7 +75,41 @@ export function NewPropertyWizard() {
 		mode: "onTouched",
 	});
 
-	// Step 3 (upload) — UI state, not form state
+	// Step 3 — template picker
+	const templatesQ = useTemplatesList();
+	const [templateId, setTemplateId] = useState<string | null>(null);
+
+	// Default-select tenant's default template once the list loads.
+	useEffect(() => {
+		if (templateId || !templatesQ.data) return;
+		const def = templatesQ.data.find((t) => t.isDefault) ?? templatesQ.data[0];
+		if (def) setTemplateId(def.id);
+	}, [templatesQ.data, templateId]);
+
+	// Step 4 — local editor state, hydrated from chosen template tree. Uses the
+	// same TemplateTree shape (and reuses TemplateTreeEditor) so the wizard's
+	// tailor step looks identical to the templates page.
+	const treeQ = useTemplateTree(templateId ?? undefined);
+	const [localTree, setLocalTree] = useState<TemplateTree | null>(null);
+	const originalSnapshotRef = useRef<ReturnType<typeof treeToSnapshot> | null>(null);
+
+	useEffect(() => {
+		if (!treeQ.data) return;
+		// Clone so editor mutations never affect the cached query data.
+		const cloned: TemplateTree = JSON.parse(JSON.stringify(treeQ.data));
+		setLocalTree(cloned);
+		originalSnapshotRef.current = treeToSnapshot(cloned);
+	}, [treeQ.data]);
+
+	const ops = useMemo(
+		() =>
+			createLocalOps((updater) => {
+				setLocalTree((prev) => (prev ? updater(prev) : prev));
+			}),
+		[],
+	);
+
+	// Step 5 (upload) — UI state, not form state
 	const [floorPlanFile, setFloorPlanFile] = useState<File | null>(null);
 	const [upload, setUpload] = useState<UploadState>({ kind: "idle" });
 	const xhrRef = useRef<XMLHttpRequest | null>(null);
@@ -78,9 +123,30 @@ export function NewPropertyWizard() {
 		if (ok) setStep(2);
 	}
 
+	async function advanceToStep3() {
+		const ok = await trigger(["areaSqm", "plannedUnitCost"]);
+		if (ok) setStep(3);
+	}
+
+	const pickedTemplate = useMemo(
+		() => templatesQ.data?.find((t) => t.id === templateId) ?? null,
+		[templatesQ.data, templateId],
+	);
+
 	const submitBasics = handleSubmit(async (values) => {
 		setError(null);
+		if (!templateId) {
+			setError(t("newPropertyWizard.pickTemplateFirst"));
+			return;
+		}
 		try {
+			let editedSnapshot: ReturnType<typeof treeToSnapshot> | undefined;
+			if (localTree) {
+				const next = treeToSnapshot(localTree);
+				if (!originalSnapshotRef.current || !snapshotsEqual(next, originalSnapshotRef.current)) {
+					editedSnapshot = next;
+				}
+			}
 			const res = await createMut.mutateAsync({
 				name: values.name,
 				address: values.address,
@@ -88,9 +154,11 @@ export function NewPropertyWizard() {
 				areaSqm: values.areaSqm,
 				plannedUnitCost: values.plannedUnitCost,
 				deadlineAt: values.deadlineAt ? new Date(values.deadlineAt).toISOString() : null,
+				templateId,
+				editedSnapshot,
 			});
 			setPropertyId(res.id);
-			setStep(3);
+			setStep(5);
 		} catch (err) {
 			setError((err as Error).message);
 		}
@@ -153,9 +221,10 @@ export function NewPropertyWizard() {
 	}
 
 	const isBusy = upload.kind !== "idle";
+	const STEPS: Step[] = [1, 2, 3, 4, 5];
 
 	return (
-		<section className="mx-auto max-w-2xl space-y-6">
+		<section className="mx-auto max-w-4xl space-y-6">
 			<header className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-semibold">{t("newPropertyWizard.title")}</h1>
@@ -167,7 +236,7 @@ export function NewPropertyWizard() {
 			</header>
 
 			<div className="flex gap-2">
-				{[1, 2, 3].map((n) => (
+				{STEPS.map((n) => (
 					<motion.div
 						key={n}
 						className="h-1 flex-1 rounded-full bg-muted"
@@ -250,7 +319,13 @@ export function NewPropertyWizard() {
 			)}
 
 			{step === 2 && (
-				<form className="space-y-4" onSubmit={submitBasics}>
+				<form
+					className="space-y-4"
+					onSubmit={(e) => {
+						e.preventDefault();
+						advanceToStep3();
+					}}
+				>
 					<div className="grid grid-cols-2 gap-4">
 						<div className="space-y-1.5">
 							<Label htmlFor="area">{t("newPropertyWizard.areaLabel")}</Label>
@@ -275,16 +350,126 @@ export function NewPropertyWizard() {
 						<Button type="button" variant="outline" onClick={() => setStep(1)}>
 							{t("newPropertyWizard.back")}
 						</Button>
-						<Button type="submit" disabled={createMut.isPending}>
-							{createMut.isPending
-								? t("newPropertyWizard.creating")
-								: t("newPropertyWizard.createAndContinue")}
-						</Button>
+						<Button type="submit">{t("newPropertyWizard.next")}</Button>
 					</div>
 				</form>
 			)}
 
 			{step === 3 && (
+				<div className="space-y-4">
+					<div>
+						<h2 className="text-lg font-medium">{t("newPropertyWizard.pickTemplateTitle")}</h2>
+						<p className="text-sm text-muted-foreground">
+							{t("newPropertyWizard.pickTemplateHelp")}
+						</p>
+					</div>
+					{templatesQ.isLoading && (
+						<p className="text-sm text-muted-foreground">
+							{t("newPropertyWizard.loadingTemplates")}
+						</p>
+					)}
+					{templatesQ.data && templatesQ.data.length === 0 && (
+						<p className="text-sm text-destructive">{t("newPropertyWizard.noTemplates")}</p>
+					)}
+					<div className="space-y-2">
+						{templatesQ.data?.map((tpl) => (
+							<button
+								type="button"
+								key={tpl.id}
+								onClick={() => {
+									if (templateId !== tpl.id) {
+										setTemplateId(tpl.id);
+										setLocalTree(null);
+										originalSnapshotRef.current = null;
+									}
+								}}
+								className={`flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+									templateId === tpl.id
+										? "border-primary bg-primary/5"
+										: "border-input hover:bg-muted"
+								}`}
+							>
+								<div>
+									<div className="font-medium">{tpl.name}</div>
+									{tpl.isDefault && (
+										<div className="text-xs text-muted-foreground">
+											{t("newPropertyWizard.defaultBadge")}
+										</div>
+									)}
+								</div>
+								{templateId === tpl.id && <Check className="size-4 text-primary" />}
+							</button>
+						))}
+					</div>
+					<div className="flex justify-between">
+						<Button type="button" variant="outline" onClick={() => setStep(2)}>
+							{t("newPropertyWizard.back")}
+						</Button>
+						<Button type="button" disabled={!templateId} onClick={() => setStep(4)}>
+							{t("newPropertyWizard.next")}
+						</Button>
+					</div>
+				</div>
+			)}
+
+			{step === 4 && (
+				<div className="space-y-4">
+					<div>
+						<h2 className="text-lg font-medium">{t("newPropertyWizard.tailorTitle")}</h2>
+						<p className="text-sm text-muted-foreground">
+							{t("newPropertyWizard.tailorHelp", { name: pickedTemplate?.name ?? "" })}
+						</p>
+					</div>
+					{treeQ.isLoading && (
+						<p className="text-sm text-muted-foreground">
+							{t("newPropertyWizard.loadingSnapshot")}
+						</p>
+					)}
+					{treeQ.error && <p className="text-sm text-destructive">{String(treeQ.error)}</p>}
+					{localTree && (
+						<TemplateTreeEditor
+							tree={localTree}
+							ops={ops}
+							renameLabelSlot={
+								<h3 className="text-lg font-semibold">{pickedTemplate?.name ?? ""}</h3>
+							}
+						/>
+					)}
+					<div className="flex items-center justify-between">
+						<Button type="button" variant="outline" onClick={() => setStep(3)}>
+							{t("newPropertyWizard.back")}
+						</Button>
+						<div className="flex gap-2">
+							{treeQ.data && (
+								<Button
+									type="button"
+									variant="ghost"
+									onClick={() => {
+										if (treeQ.data) {
+											const cloned: TemplateTree = JSON.parse(JSON.stringify(treeQ.data));
+											setLocalTree(cloned);
+											originalSnapshotRef.current = treeToSnapshot(cloned);
+										}
+									}}
+								>
+									{t("newPropertyWizard.resetTemplate")}
+								</Button>
+							)}
+							<Button
+								type="button"
+								onClick={submitBasics}
+								disabled={createMut.isPending || !localTree}
+							>
+								{createMut.isPending
+									? t("newPropertyWizard.creating")
+									: t("newPropertyWizard.createAndContinue")}
+							</Button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{step === 5 && (
 				<div className="space-y-5">
 					<div className="rounded-md border bg-muted/30 p-3 text-sm">
 						{t("newPropertyWizard.createdNotice")}

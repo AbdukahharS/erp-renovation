@@ -176,13 +176,12 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 				return { error: "no tenant" };
 			}
 			const created = await runInTenant(async (tx) => {
-				const [defaultTpl] = await tx
+				const [picked] = await tx
 					.select({ id: templates.id })
 					.from(templates)
-					.where(eq(templates.isDefault, true))
+					.where(eq(templates.id, body.templateId))
 					.limit(1);
-				if (!defaultTpl)
-					return { kind: "error" as const, message: "no default template for tenant" };
+				if (!picked) return { kind: "error" as const, message: "template not found in tenant" };
 				const [prop] = await tx
 					.insert(properties)
 					.values({
@@ -191,12 +190,18 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 						layoutType: body.layoutType,
 						areaSqm: body.areaSqm,
 						plannedUnitCost: body.plannedUnitCost,
-						templateSnapshotId: defaultTpl.id,
+						templateSnapshotId: picked.id,
 						deadlineAt: body.deadlineAt ? new Date(body.deadlineAt) : null,
 					})
 					.returning();
 				if (!prop) throw new Error("failed to create property");
-				await instantiateTemplate(tx, prop.id, defaultTpl.id, body.areaSqm);
+				await instantiateTemplate(
+					tx,
+					prop.id,
+					picked.id,
+					body.areaSqm,
+					body.editedSnapshot ?? null,
+				);
 
 				// Phase 8: instantiation makes Sub-stage 1.1 (INSPECTOR-performed)
 				// AVAILABLE. The acceptance loop's notify path only fires on

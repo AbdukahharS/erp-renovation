@@ -4,14 +4,12 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import type { useTemplateMutations } from "@/lib/queries/templates";
 import { AddSubStageForm } from "./add-forms";
+import type { EditorOps } from "./ops";
 import { ConfirmDelete } from "./primitives";
 import { moveSub, SubStageEditor } from "./sub-stage-editor";
 
-type Mutators = ReturnType<typeof useTemplateMutations>;
-
-export function moveStage(tree: TemplateTree, stageId: string, delta: number, m: Mutators) {
+export function moveStage(tree: TemplateTree, stageId: string, delta: number, ops: EditorOps) {
 	const ordered = [...tree.stages].sort((a, b) => a.order - b.order);
 	const i = ordered.findIndex((s) => s.id === stageId);
 	if (i < 0) return;
@@ -22,7 +20,7 @@ export function moveStage(tree: TemplateTree, stageId: string, delta: number, m:
 	if (!a || !b) return;
 	ordered[i] = b;
 	ordered[j] = a;
-	m.reorderStages.mutate(ordered.map((s, idx) => ({ id: s.id, order: idx + 1 })));
+	ops.reorderStages(ordered.map((s, idx) => ({ id: s.id, order: idx + 1 })));
 }
 
 export function StageEditor({
@@ -31,14 +29,14 @@ export function StageEditor({
 	isLast,
 	onMoveUp,
 	onMoveDown,
-	mutators,
+	ops,
 }: {
 	stage: StageTree;
 	isFirst: boolean;
 	isLast: boolean;
 	onMoveUp: () => void;
 	onMoveDown: () => void;
-	mutators: Mutators;
+	ops: EditorOps;
 }) {
 	const { t } = useTranslation();
 	const [open, setOpen] = useState(true);
@@ -93,7 +91,7 @@ export function StageEditor({
 				<ConfirmDelete
 					title={t("templates.deleteStageTitle", { name: stage.name })}
 					description={t("templates.deleteStageDesc")}
-					onConfirm={() => mutators.deleteStage.mutate(stage.id)}
+					onConfirm={() => ops.deleteStage(stage.id)}
 					ariaLabel={t("templates.deleteStageAria")}
 				/>
 			</motion.div>
@@ -114,12 +112,12 @@ export function StageEditor({
 									sub={ss}
 									isFirst={i === 0}
 									isLast={i === stage.subStages.length - 1}
-									onMoveUp={() => moveSub(stage, ss.id, -1, mutators)}
-									onMoveDown={() => moveSub(stage, ss.id, 1, mutators)}
-									mutators={mutators}
+									onMoveUp={() => moveSub(stage, ss.id, -1, ops)}
+									onMoveDown={() => moveSub(stage, ss.id, 1, ops)}
+									ops={ops}
 								/>
 							))}
-							<AddSubStageForm stageId={stage.id} mutators={mutators} />
+							<AddSubStageForm stageId={stage.id} ops={ops} />
 						</div>
 					</motion.div>
 				)}

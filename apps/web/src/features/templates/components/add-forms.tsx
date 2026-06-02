@@ -19,9 +19,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import type { useTemplateMutations } from "@/lib/queries/templates";
-
-type Mutators = ReturnType<typeof useTemplateMutations>;
+import type { EditorOps } from "./ops";
 
 // standardDurationDays is typed in the input field as a string; the shared
 // schema wants a number. Validate as a digit-string here and coerce on submit.
@@ -34,7 +32,7 @@ const SubStageForm = CreateSubStageInput.omit({
 });
 type SubStageFormValues = z.infer<typeof SubStageForm>;
 
-export function AddSubStageForm({ stageId, mutators }: { stageId: string; mutators: Mutators }) {
+export function AddSubStageForm({ stageId, ops }: { stageId: string; ops: EditorOps }) {
 	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const {
@@ -63,8 +61,7 @@ export function AddSubStageForm({ stageId, mutators }: { stageId: string; mutato
 	}
 
 	const onSubmit = handleSubmit((values) => {
-		mutators.addSubStage.mutate({
-			stageId,
+		ops.addSubStage(stageId, {
 			code: values.code.trim(),
 			name: values.name.trim(),
 			performerType: values.performerType,
@@ -92,11 +89,11 @@ export function AddSubStageForm({ stageId, mutators }: { stageId: string; mutato
 					render={({ field }) => (
 						<Select value={field.value} onValueChange={field.onChange}>
 							<SelectTrigger className="h-9 w-full">
-								<SelectValue />
+								<SelectValue>{(v) => (v ? t(`performerType.${v}`, String(v)) : "")}</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="MASTER">MASTER</SelectItem>
-								<SelectItem value="INSPECTOR">INSPECTOR</SelectItem>
+								<SelectItem value="MASTER">{t("performerType.MASTER")}</SelectItem>
+								<SelectItem value="INSPECTOR">{t("performerType.INSPECTOR")}</SelectItem>
 							</SelectContent>
 						</Select>
 					)}
@@ -139,13 +136,7 @@ export function AddSubStageForm({ stageId, mutators }: { stageId: string; mutato
 
 type ChecklistFormValues = z.infer<typeof CreateChecklistItemInput>;
 
-export function AddChecklistForm({
-	subStageId,
-	mutators,
-}: {
-	subStageId: string;
-	mutators: Mutators;
-}) {
+export function AddChecklistForm({ subStageId, ops }: { subStageId: string; ops: EditorOps }) {
 	const { t } = useTranslation();
 	const {
 		register,
@@ -159,7 +150,7 @@ export function AddChecklistForm({
 	});
 
 	const onSubmit = handleSubmit((values) => {
-		mutators.addChecklistItem.mutate({ subStageId, text: values.text.trim() });
+		ops.addChecklistItem(subStageId, { text: values.text.trim() });
 		reset({ text: "" });
 	});
 
@@ -179,7 +170,7 @@ export function AddChecklistForm({
 
 type MediaFormValues = z.input<typeof CreateMediaRequirementInput>;
 
-export function AddMediaForm({ subStageId, mutators }: { subStageId: string; mutators: Mutators }) {
+export function AddMediaForm({ subStageId, ops }: { subStageId: string; ops: EditorOps }) {
 	const { t } = useTranslation();
 	const {
 		register,
@@ -194,8 +185,7 @@ export function AddMediaForm({ subStageId, mutators }: { subStageId: string; mut
 	});
 
 	const onSubmit = handleSubmit((values) => {
-		mutators.addMediaRequirement.mutate({
-			subStageId,
+		ops.addMediaRequirement(subStageId, {
 			mediaType: values.mediaType,
 			required: values.required ?? true,
 			description: values.description.trim(),

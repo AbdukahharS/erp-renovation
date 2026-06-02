@@ -116,7 +116,12 @@ function PropertyFinance() {
 						</span>
 						<Select value={category} onValueChange={(v) => setCategory(v as PropertyCostCategory)}>
 							<SelectTrigger className="w-full">
-								<SelectValue />
+								{/* Base UI's Value renders the raw value verbatim — without a
+								    render fn the trigger keeps showing the enum (MATERIAL,
+								    TRANSPORT…) instead of the localized label. */}
+								<SelectValue>
+									{(v) => (v ? t(`costCategory.${v}`, String(v).replace("_", " ")) : "")}
+								</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
 								{CATEGORIES.map((c) => (

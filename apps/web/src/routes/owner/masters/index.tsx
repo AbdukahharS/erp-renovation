@@ -94,7 +94,9 @@ function OwnerMasters() {
 							<Label>{t("masters.role")}</Label>
 							<Select value={role} onValueChange={(v) => setRole(v as Role)}>
 								<SelectTrigger className="w-full">
-									<SelectValue />
+									<SelectValue>
+										{(v) => (v ? t(`role.${String(v).toLowerCase()}`, String(v)) : "")}
+									</SelectValue>
 								</SelectTrigger>
 								<SelectContent>
 									<SelectItem value="MASTER">{t("role.master")}</SelectItem>

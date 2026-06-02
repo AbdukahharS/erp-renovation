@@ -152,6 +152,11 @@ async function createPropertyAndAcceptFirst(
 	ownerCookie: string,
 	inspectorCookie: string,
 ): Promise<Tree> {
+	const list = (await (await call(ownerCookie, "/templates")).json()) as Array<{
+		id: string;
+		isDefault: boolean;
+	}>;
+	const templateId = must(list.find((t) => t.isDefault) ?? list[0]).id;
 	const create = await call(ownerCookie, "/properties", {
 		method: "POST",
 		body: JSON.stringify({
@@ -160,6 +165,7 @@ async function createPropertyAndAcceptFirst(
 			layoutType: "NEW_BUILD",
 			areaSqm: "50.00",
 			plannedUnitCost: "11500.00",
+			templateId,
 		}),
 	});
 	expect(create.status).toBe(200);

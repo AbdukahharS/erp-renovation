@@ -170,3 +170,89 @@ export const SetManualOverrideInput = z.object({
 export const CreateSpecializationInput = z.object({
 	name: z.string().min(1),
 });
+
+// ---------- Template snapshot payload (per-property tailoring) ----------
+//
+// Shape matches the template tree but strips DB ids and is keyed only by
+// document order. Used at property creation when the Owner edits the picked
+// template in the wizard — the API uses this payload verbatim instead of
+// re-reading the source template from the DB. The chosen `templateId` is
+// still recorded on the property (lineage) but the actual instance rows come
+// from this payload.
+
+const NumericRate = z.string().regex(/^\d+(\.\d{1,2})?$/);
+
+export const TemplateSnapshotChecklistItemInput = z.object({
+	order: z.number().int().min(1),
+	text: z.string().min(1),
+	criteria: z.string().nullable().optional(),
+});
+
+export const TemplateSnapshotMediaRequirementInput = z.object({
+	mediaType: MediaTypeSchema,
+	required: z.boolean(),
+	description: z.string().min(1),
+});
+
+export const TemplateSnapshotSubStageInput = z.object({
+	order: z.number().int().min(1),
+	code: z.string().min(1).max(16),
+	name: z.string().min(1),
+	performerType: PerformerTypeSchema,
+	specialization: z.string().nullable().optional(),
+	standardDurationDays: z.number().int().min(0),
+	wageRatePerSqm: NumericRate,
+	description: z.string().nullable().optional(),
+	checklistItems: z.array(TemplateSnapshotChecklistItemInput),
+	mediaRequirements: z.array(TemplateSnapshotMediaRequirementInput),
+});
+
+export const TemplateSnapshotStageInput = z.object({
+	order: z.number().int().min(1),
+	name: z.string().min(1),
+	subStages: z.array(TemplateSnapshotSubStageInput).min(1),
+});
+
+export const TemplateSnapshotInput = z
+	.object({
+		stages: z.array(TemplateSnapshotStageInput).min(1),
+	})
+	.superRefine((snap, ctx) => {
+		const flat = snap.stages
+			.slice()
+			.sort((a, b) => a.order - b.order)
+			.flatMap((s) => s.subStages.slice().sort((a, b) => a.order - b.order));
+		if (flat.length === 0 || flat[0]?.performerType !== "INSPECTOR") {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "first sub-stage in document order must be performerType=INSPECTOR (the 1.1 gate)",
+				path: ["stages", 0, "subStages", 0, "performerType"],
+			});
+		}
+		for (const stage of snap.stages) {
+			const seen = new Set<number>();
+			for (const ss of stage.subStages) {
+				if (seen.has(ss.order)) {
+					ctx.addIssue({
+						code: z.ZodIssueCode.custom,
+						message: `duplicate sub-stage order ${ss.order} in stage`,
+						path: ["stages"],
+					});
+				}
+				seen.add(ss.order);
+			}
+		}
+		const stageOrders = new Set<number>();
+		for (const s of snap.stages) {
+			if (stageOrders.has(s.order)) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: `duplicate stage order ${s.order}`,
+					path: ["stages"],
+				});
+			}
+			stageOrders.add(s.order);
+		}
+	});
+
+export type TemplateSnapshotInputType = z.infer<typeof TemplateSnapshotInput>;

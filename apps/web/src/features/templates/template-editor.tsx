@@ -1,20 +1,38 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CreateStageInput } from "@repo/validators";
+import { CreateStageInput, type TemplateTree } from "@repo/validators";
 import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTemplateMutations, useTemplateTree } from "@/lib/queries/templates";
+import type { EditorOps } from "./components/ops";
+import { opsFromMutators } from "./components/ops";
 import { InlineText } from "./components/primitives";
 import { moveStage, StageEditor } from "./components/stage-editor";
 
 type AddStageForm = { name: string };
 
-export function TemplateEditor({ templateId }: { templateId: string }) {
+/**
+ * Headerless editor body, parameterized over the persistence layer. Both the
+ * templates page (mutation-backed ops) and the property-creation wizard
+ * (local-state-backed ops) render this exact UI by supplying their own
+ * `ops` and the current `tree`.
+ *
+ * `renameLabelSlot` lets the caller choose what sits at the top: the
+ * templates page passes the editable template name; the wizard passes a
+ * non-editable title since the snapshot doesn't own a "template name".
+ */
+export function TemplateTreeEditor({
+	tree,
+	ops,
+	renameLabelSlot,
+}: {
+	tree: TemplateTree;
+	ops: EditorOps;
+	renameLabelSlot?: React.ReactNode;
+}) {
 	const { t } = useTranslation();
-	const { data: tree, isLoading, error } = useTemplateTree(templateId);
-	const m = useTemplateMutations(templateId);
 	const {
 		register,
 		handleSubmit,
@@ -26,13 +44,8 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
 		mode: "onChange",
 	});
 
-	if (isLoading)
-		return <p className="text-sm text-muted-foreground">{t("templates.loadingTemplate")}</p>;
-	if (error) return <p className="text-sm text-destructive">{String(error)}</p>;
-	if (!tree) return null;
-
 	const onAdd = handleSubmit((values) => {
-		m.addStage.mutate(values.name.trim());
+		ops.addStage(values.name.trim());
 		reset({ name: "" });
 	});
 
@@ -46,11 +59,7 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
 	return (
 		<div className="space-y-6">
 			<header className="flex items-baseline justify-between">
-				<InlineText
-					value={tree.name}
-					onSave={(v) => m.renameTemplate.mutate(v)}
-					className="text-2xl font-semibold"
-				/>
+				{renameLabelSlot}
 				<p className="text-xs text-muted-foreground">
 					{t("templates.countSummary", {
 						stages: stagesCount,
@@ -74,12 +83,38 @@ export function TemplateEditor({ templateId }: { templateId: string }) {
 						stage={stage}
 						isFirst={idx === 0}
 						isLast={idx === tree.stages.length - 1}
-						onMoveUp={() => moveStage(tree, stage.id, -1, m)}
-						onMoveDown={() => moveStage(tree, stage.id, 1, m)}
-						mutators={m}
+						onMoveUp={() => moveStage(tree, stage.id, -1, ops)}
+						onMoveDown={() => moveStage(tree, stage.id, 1, ops)}
+						ops={ops}
 					/>
 				))}
 			</div>
 		</div>
+	);
+}
+
+export function TemplateEditor({ templateId }: { templateId: string }) {
+	const { t } = useTranslation();
+	const { data: tree, isLoading, error } = useTemplateTree(templateId);
+	const m = useTemplateMutations(templateId);
+	const ops = opsFromMutators(m);
+
+	if (isLoading)
+		return <p className="text-sm text-muted-foreground">{t("templates.loadingTemplate")}</p>;
+	if (error) return <p className="text-sm text-destructive">{String(error)}</p>;
+	if (!tree) return null;
+
+	return (
+		<TemplateTreeEditor
+			tree={tree}
+			ops={ops}
+			renameLabelSlot={
+				<InlineText
+					value={tree.name}
+					onSave={(v) => ops.renameTemplate?.(v)}
+					className="text-2xl font-semibold"
+				/>
+			}
+		/>
 	);
 }
