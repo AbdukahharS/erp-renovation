@@ -146,7 +146,8 @@ function renderReason(reason: string | null, t: TFunction): string {
 		return t(`warehouse.systemReason.${reason.slice(7)}`, reason);
 	}
 	if (reason === "opening balance") return t("warehouse.systemReason.opening_balance", reason);
-	if (reason.startsWith("Reversal of issuance ")) return t("warehouse.systemReason.reversal", reason);
+	if (reason.startsWith("Reversal of issuance "))
+		return t("warehouse.systemReason.reversal", reason);
 	return reason;
 }
 

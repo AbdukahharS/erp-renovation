@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { BellIcon, CheckCheckIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/layout/empty-state";
@@ -12,21 +12,13 @@ import {
 	useNotificationsQuery,
 } from "@/lib/queries/notifications";
 
-export const Route = createFileRoute("/notifications")({
-	beforeLoad: ({ context }) => {
-		if (!context.me?.user) throw redirect({ to: "/login" });
-	},
-	staticData: { crumbKey: "nav.notifications" },
-	component: NotificationsInbox,
-});
-
-function NotificationsInbox() {
+export function NotificationsInbox() {
 	const { t } = useTranslation();
 	const list = useNotificationsQuery({});
 	const markRead = useMarkReadMutation();
 
 	return (
-		<div className="mx-auto max-w-2xl px-4 py-6">
+		<div className="mx-auto max-w-2xl">
 			<PageHeader
 				title={t("notifications.title")}
 				description={t("notifications.inboxDescription")}

@@ -27,7 +27,7 @@ self.addEventListener("push", (event) => {
 	// type — cast through to keep the behavior without losing TypeScript.
 	const options = {
 		body: payload.body ?? "",
-		data: { url: payload.url ?? "/notifications", notificationId: payload.notificationId },
+		data: { url: payload.url ?? "/", notificationId: payload.notificationId },
 		icon: "/favicon.svg",
 		badge: "/favicon.svg",
 		tag: payload.notificationId,
@@ -39,7 +39,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
 	event.notification.close();
 	const data = event.notification.data as { url?: string } | undefined;
-	const target = data?.url ?? "/notifications";
+	const target = data?.url ?? "/";
 	event.waitUntil(
 		(async () => {
 			const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });

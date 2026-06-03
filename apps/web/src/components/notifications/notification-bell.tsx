@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { BellIcon } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,15 @@ import {
 	useUnreadCountQuery,
 } from "@/lib/queries/notifications";
 
+function useNotificationsHref(): string {
+	const pathname = useRouterState({ select: (s) => s.location.pathname });
+	if (pathname.startsWith("/owner")) return "/owner/notifications";
+	if (pathname.startsWith("/master")) return "/master/notifications";
+	if (pathname.startsWith("/inspector")) return "/inspector/notifications";
+	if (pathname.startsWith("/procurement")) return "/procurement/notifications";
+	return "/owner/notifications";
+}
+
 export function NotificationBell() {
 	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
@@ -21,6 +30,7 @@ export function NotificationBell() {
 	const list = useNotificationsQuery({});
 	const markRead = useMarkReadMutation();
 	const count = unread.data?.count ?? 0;
+	const notificationsHref = useNotificationsHref();
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
@@ -84,7 +94,7 @@ export function NotificationBell() {
 				<Separator />
 				<div className="px-3 py-2 text-right">
 					<Link
-						to="/notifications"
+						to={notificationsHref}
 						className="text-xs text-primary hover:underline"
 						onClick={() => setOpen(false)}
 					>

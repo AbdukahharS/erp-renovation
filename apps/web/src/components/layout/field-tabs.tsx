@@ -8,13 +8,13 @@ type Tab = { to: string; labelKey: string; icon: LucideIcon };
 const masterTabs: Tab[] = [
 	{ to: "/master", labelKey: "fieldTabs.home", icon: HomeIcon },
 	{ to: "/master/finance", labelKey: "fieldTabs.wallet", icon: WalletIcon },
-	{ to: "/notifications", labelKey: "fieldTabs.inbox", icon: BellIcon },
+	{ to: "/master/notifications", labelKey: "fieldTabs.inbox", icon: BellIcon },
 	{ to: "/master/profile", labelKey: "fieldTabs.profile", icon: UserIcon },
 ];
 
 const inspectorTabs: Tab[] = [
 	{ to: "/inspector", labelKey: "fieldTabs.home", icon: HomeIcon },
-	{ to: "/notifications", labelKey: "fieldTabs.inbox", icon: BellIcon },
+	{ to: "/inspector/notifications", labelKey: "fieldTabs.inbox", icon: BellIcon },
 	{ to: "/inspector/profile", labelKey: "fieldTabs.profile", icon: UserIcon },
 ];
 
