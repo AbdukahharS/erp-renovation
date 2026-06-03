@@ -89,10 +89,23 @@ beforeAll(async () => {
 	bSchema = b.schemaName;
 	aCookie = await loginAndSwitch(aEmail, aTenantId);
 	bCookie = await loginAndSwitch(bEmail, bTenantId);
-	const aList = (await (await call(aCookie, "/templates")).json()) as Array<{ id: string }>;
-	const bList = (await (await call(bCookie, "/templates")).json()) as Array<{ id: string }>;
-	aTemplateId = must(aList[0]).id;
-	bTemplateId = must(bList[0]).id;
+
+	// Templates are now created on-demand per tenant (no auto-seed on provision),
+	// so the isolation suite has to materialize one ERP-default template in each
+	// tenant before exercising cross-tenant visibility.
+	async function seedDefault(cookie: string): Promise<string> {
+		const res = await call(cookie, "/templates", {
+			method: "POST",
+			body: JSON.stringify({
+				name: "Standard Apartment Renovation",
+				source: { type: "erp-default", locale: "en" },
+			}),
+		});
+		expect(res.status).toBe(200);
+		return ((await res.json()) as { id: string }).id;
+	}
+	aTemplateId = await seedDefault(aCookie);
+	bTemplateId = await seedDefault(bCookie);
 	expect(aTemplateId).not.toBe(bTemplateId);
 });
 

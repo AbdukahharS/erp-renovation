@@ -6,10 +6,21 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+	Combobox,
+	ComboboxCollection,
+	ComboboxContent,
+	ComboboxEmpty,
+	ComboboxInput,
+	ComboboxItem,
+	ComboboxList,
+} from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Slider } from "@/components/ui/slider";
 import { api, unwrap } from "@/lib/api";
+import { ISO_4217_CURRENCIES, type IsoCurrency } from "@/lib/iso-currencies";
 
 export const Route = createFileRoute("/owner/settings/")({
 	staticData: { crumbKey: "nav.settings" },
@@ -80,23 +91,44 @@ function OwnerSettings() {
 					<CardContent className="grid gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label htmlFor="currency">{t("settings.currency.code")}</Label>
-							<Input
-								id="currency"
-								value={value.currencyCode}
-								maxLength={3}
-								onChange={(e) =>
-									setForm((f) => ({ ...f, currencyCode: e.target.value.toUpperCase() }))
-								}
-							/>
+							<Combobox
+								items={ISO_4217_CURRENCIES}
+								value={ISO_4217_CURRENCIES.find((c) => c.code === value.currencyCode) ?? null}
+								onValueChange={(v: IsoCurrency | null) => {
+									if (v) setForm((f) => ({ ...f, currencyCode: v.code }));
+								}}
+								itemToStringLabel={(item: IsoCurrency) => `${item.code} — ${item.name}`}
+								itemToStringValue={(item: IsoCurrency) => item.code}
+								isItemEqualToValue={(a: IsoCurrency, b: IsoCurrency) => a.code === b.code}
+							>
+								<ComboboxInput id="currency" placeholder="USD" />
+								<ComboboxContent>
+									<ComboboxList>
+										<ComboboxCollection>
+											{(item: IsoCurrency) => (
+												<ComboboxItem key={item.code} value={item}>
+													<span className="font-mono text-xs text-muted-foreground">
+														{item.code}
+													</span>
+													<span>{item.name}</span>
+												</ComboboxItem>
+											)}
+										</ComboboxCollection>
+										<ComboboxEmpty>{t("common.empty")}</ComboboxEmpty>
+									</ComboboxList>
+								</ComboboxContent>
+							</Combobox>
 							<p className="text-xs text-muted-foreground">{t("settings.currency.codeHelp")}</p>
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="target">{t("settings.currency.target")}</Label>
 							<Input
 								id="target"
+								inputMode="decimal"
 								value={value.targetUnitCost ?? ""}
 								onChange={(e) => setForm((f) => ({ ...f, targetUnitCost: e.target.value || null }))}
 							/>
+							<p className="text-xs text-muted-foreground">{t("settings.currency.targetHelp")}</p>
 						</div>
 					</CardContent>
 				</Card>
@@ -106,41 +138,64 @@ function OwnerSettings() {
 						<CardTitle>{t("settings.rating.title")}</CardTitle>
 						<CardDescription>{t("settings.rating.description")}</CardDescription>
 					</CardHeader>
-					<CardContent className="grid gap-4 sm:grid-cols-2">
-						<div className="space-y-2">
-							<Label htmlFor="ws">{t("settings.rating.speed")}</Label>
-							<Input
+					<CardContent className="grid gap-6 sm:grid-cols-2">
+						<div className="space-y-3">
+							<div className="flex items-baseline justify-between">
+								<Label htmlFor="ws">{t("settings.rating.speed")}</Label>
+								<span className="font-mono text-sm tabular-nums text-muted-foreground">
+									{value.ratingWeights.speed.toFixed(1)}
+								</span>
+							</div>
+							<Slider
 								id="ws"
-								type="number"
-								step="0.1"
-								value={value.ratingWeights.speed}
-								onChange={(e) =>
+								min={0}
+								max={2}
+								step={0.1}
+								value={[value.ratingWeights.speed]}
+								onValueChange={(v) => {
+									const speed = Array.isArray(v) ? (v[0] ?? 0) : v;
 									setForm((f) => ({
 										...f,
-										ratingWeights: { ...value.ratingWeights, speed: Number(e.target.value) },
-									}))
-								}
+										ratingWeights: {
+											speed: Number(speed.toFixed(1)),
+											defect: Number((2 - speed).toFixed(1)),
+										},
+									}));
+								}}
 							/>
 						</div>
-						<div className="space-y-2">
-							<Label htmlFor="wd">{t("settings.rating.defect")}</Label>
-							<Input
+						<div className="space-y-3">
+							<div className="flex items-baseline justify-between">
+								<Label htmlFor="wd">{t("settings.rating.defect")}</Label>
+								<span className="font-mono text-sm tabular-nums text-muted-foreground">
+									{value.ratingWeights.defect.toFixed(1)}
+								</span>
+							</div>
+							<Slider
 								id="wd"
-								type="number"
-								step="0.1"
-								value={value.ratingWeights.defect}
-								onChange={(e) =>
+								min={0}
+								max={2}
+								step={0.1}
+								value={[value.ratingWeights.defect]}
+								onValueChange={(v) => {
+									const defect = Array.isArray(v) ? (v[0] ?? 0) : v;
 									setForm((f) => ({
 										...f,
-										ratingWeights: { ...value.ratingWeights, defect: Number(e.target.value) },
-									}))
-								}
+										ratingWeights: {
+											speed: Number((2 - defect).toFixed(1)),
+											defect: Number(defect.toFixed(1)),
+										},
+									}));
+								}}
 							/>
 						</div>
 					</CardContent>
 				</Card>
 
-				<Card>
+				{/* Branding card hidden until the shared shell actually consumes
+				    branding.displayName / primaryColor / logoKey. The jsonb column
+				    still exists on tenant_config; restore this card when wiring it. */}
+				{/* <Card>
 					<CardHeader>
 						<CardTitle>{t("settings.branding.title")}</CardTitle>
 						<CardDescription>{t("settings.branding.description")}</CardDescription>
@@ -160,7 +215,7 @@ function OwnerSettings() {
 							/>
 						</div>
 					</CardContent>
-				</Card>
+				</Card> */}
 
 				<Card>
 					<CardHeader>

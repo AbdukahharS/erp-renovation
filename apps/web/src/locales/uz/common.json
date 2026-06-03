@@ -596,14 +596,15 @@
 		"saved": "Sozlamalar saqlandi",
 		"currency": {
 			"title": "Valyuta va maqsadlar",
-			"description": "Yashil koʻrsatkichda ishlatiladigan koʻrsatuv valyutasi va birlik narxi maqsadi.",
+			"description": "Koʻrsatuv valyutasi va har bir obyekt solishtiriladigan har m² uchun standart xarajat mezoni.",
 			"code": "Valyuta kodi (ISO 4217)",
 			"codeHelp": "Faqat arxivlanmagan obyekt yoʻqligida oʻzgartirish mumkin.",
-			"target": "Birlik narxi maqsadi"
+			"target": "Birlik narxi maqsadi",
+			"targetHelp": "Har m² uchun xarajat mezoni. Mezon ichida — standartda; ortgan — koʻrib chiqishga."
 		},
 		"rating": {
 			"title": "Reyting vaznlari",
-			"description": "Ustaning tezligi va xatolari reytingga qanday taʼsir qiladi.",
+			"description": "Usta reytingi ish tezligiga (haqiqiy vs etap normativi) va xatolarga (rad etish ulushi) qanday nisbatda bogʻliqligini sozlang. Ikki slayder yigʻindisi doimo 2 ga teng — birini koʻtarsangiz, ikkinchisi avtomatik pasayadi. Teng — 1.0 / 1.0; xato 2.0 — faqat sifat boʻyicha, tezlik 2.0 — faqat ish chiqarish boʻyicha.",
 			"speed": "Tezlik",
 			"defect": "Xato"
 		},

@@ -596,14 +596,15 @@
 		"saved": "Settings saved",
 		"currency": {
 			"title": "Currency & targets",
-			"description": "Display currency and the per-unit cost goal used by the green-marker indicator.",
+			"description": "Display currency and the standard per-m² cost benchmark every property is held against.",
 			"code": "Currency code (ISO 4217)",
 			"codeHelp": "Only changeable when no non-archived properties exist.",
-			"target": "Target unit cost"
+			"target": "Target unit cost",
+			"targetHelp": "Per-m² cost benchmark. Properties at or below stay on-standard; over flags for review."
 		},
 		"rating": {
 			"title": "Rating weights",
-			"description": "How master speed and defects contribute to the rating.",
+			"description": "Balance how much a master's rating reflects their pace (actual vs standard stage duration) against their defects (rejection rate). The two sliders always sum to 2 — pulling one up pushes the other down. Equal at 1.0 / 1.0; set defect to 2.0 to rate purely on quality, or speed to 2.0 to rate purely on throughput.",
 			"speed": "Speed",
 			"defect": "Defect"
 		},
