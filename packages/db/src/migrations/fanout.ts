@@ -3,8 +3,6 @@ import { Glob } from "bun";
 import { sql as dsql, eq } from "drizzle-orm";
 import { createDbClient } from "../client.ts";
 import { tenantMigrations, tenants } from "../schema/control.ts";
-import { seedDefaultTemplate } from "../seed/default-template.ts";
-import type { SeedLanguage } from "../seed/tz-content.ts";
 
 export interface TenantMigration {
 	tag: string;
@@ -33,7 +31,6 @@ export interface FanoutOptions {
 	onlySchema?: string;
 	onlyTenantSlug?: string;
 	dryRun?: boolean;
-	seedLanguage?: SeedLanguage;
 }
 
 export interface FanoutResult {
@@ -105,28 +102,6 @@ export async function applyTenantMigrations(opts: FanoutOptions): Promise<Fanout
 					console.error(`[tenant:${schemaName}] FAILED ${m.tag}: ${message}`);
 					// Bail out of this schema; later schemas continue.
 					break;
-				}
-			}
-
-			// Seed-or-skip: if the templates table exists but has no rows, seed the
-			// default. Only runs when we actually applied something (or always for
-			// dry-run skips, since dry-run shouldn't write).
-			if (opts.dryRun) continue;
-			const exists = await db.execute<{ exists: boolean }>(
-				dsql`SELECT EXISTS (
-					SELECT 1 FROM information_schema.tables
-					WHERE table_schema = ${schemaName} AND table_name = 'templates'
-				) AS exists`,
-			);
-			if (exists[0]?.exists) {
-				const count = await db.execute<{ n: number }>(
-					dsql.raw(`SELECT count(*)::int AS n FROM "${schemaName}".templates`),
-				);
-				if ((count[0]?.n ?? 0) === 0) {
-					await seedDefaultTemplate(db, schemaName, opts.seedLanguage ?? "en");
-					console.log(
-						`[tenant:${schemaName}] seeded default template (${opts.seedLanguage ?? "en"})`,
-					);
 				}
 			}
 		}

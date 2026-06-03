@@ -1,3 +1,4 @@
+import type { CreateTemplateSource, DefaultTemplateLocale } from "@repo/validators";
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useState } from "react";
@@ -14,6 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { useCreateTemplate, useTemplatesList } from "@/lib/queries/templates";
 
 export const Route = createFileRoute("/owner/templates")({
@@ -61,30 +69,42 @@ function TemplatesShell() {
 	);
 }
 
+type SourceMode = "blank" | "erp-default" | "clone";
+
 function CreateTemplateDialog() {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 	const { data: templates } = useTemplatesList();
-	const defaultTemplate = templates?.find((tpl) => tpl.isDefault);
+	const cloneCandidates = templates ?? [];
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState("");
-	const [mode, setMode] = useState<"blank" | "default">("blank");
+	const [mode, setMode] = useState<SourceMode>("erp-default");
+	const [locale, setLocale] = useState<DefaultTemplateLocale>("en");
+	const [cloneId, setCloneId] = useState<string>("");
 	const create = useCreateTemplate();
 
 	const reset = () => {
 		setName("");
-		setMode("blank");
+		setMode("erp-default");
+		setLocale("en");
+		setCloneId("");
+	};
+
+	const buildSource = (): CreateTemplateSource | null => {
+		if (mode === "blank") return { type: "blank" };
+		if (mode === "erp-default") return { type: "erp-default", locale };
+		if (mode === "clone" && cloneId) return { type: "clone", templateId: cloneId };
+		return null;
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		const trimmed = name.trim();
 		if (!trimmed) return;
+		const source = buildSource();
+		if (!source) return;
 		create.mutate(
-			{
-				name: trimmed,
-				cloneFromTemplateId: mode === "default" && defaultTemplate ? defaultTemplate.id : undefined,
-			},
+			{ name: trimmed, source },
 			{
 				onSuccess: (tpl) => {
 					setOpen(false);
@@ -96,6 +116,8 @@ function CreateTemplateDialog() {
 			},
 		);
 	};
+
+	const canSubmit = !!name.trim() && !create.isPending && (mode !== "clone" || !!cloneId);
 
 	return (
 		<Dialog
@@ -136,6 +158,7 @@ function CreateTemplateDialog() {
 						</div>
 						<fieldset className="space-y-2">
 							<legend className="text-sm font-medium">{t("templates.createStartFrom")}</legend>
+
 							<label className="flex cursor-pointer items-start gap-2 rounded-md border p-3 hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-muted/30">
 								<input
 									type="radio"
@@ -152,38 +175,85 @@ function CreateTemplateDialog() {
 									</div>
 								</div>
 							</label>
-							<label
-								className={`flex items-start gap-2 rounded-md border p-3 has-[:checked]:border-primary has-[:checked]:bg-muted/30 ${
-									defaultTemplate
-										? "cursor-pointer hover:bg-muted/50"
-										: "cursor-not-allowed opacity-50"
-								}`}
-							>
+
+							<label className="flex cursor-pointer items-start gap-2 rounded-md border p-3 hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-muted/30">
 								<input
 									type="radio"
 									name="create-mode"
-									value="default"
-									checked={mode === "default"}
-									onChange={() => setMode("default")}
-									disabled={!defaultTemplate}
+									value="erp-default"
+									checked={mode === "erp-default"}
+									onChange={() => setMode("erp-default")}
 									className="mt-0.5"
 								/>
-								<div className="space-y-0.5">
-									<div className="text-sm font-medium">{t("templates.createFromDefault")}</div>
-									<div className="text-xs text-muted-foreground">
-										{defaultTemplate
-											? t("templates.createFromDefaultDesc")
-											: t("templates.createFromDefaultUnavailable")}
+								<div className="flex-1 space-y-2">
+									<div>
+										<div className="text-sm font-medium">{t("templates.createFromErp")}</div>
+										<div className="text-xs text-muted-foreground">
+											{t("templates.createFromErpDesc")}
+										</div>
 									</div>
+									{mode === "erp-default" && (
+										<div className="space-y-1">
+											<Label className="text-xs">{t("templates.createLocaleLabel")}</Label>
+											<Select
+												value={locale}
+												onValueChange={(v) => setLocale(v as DefaultTemplateLocale)}
+											>
+												<SelectTrigger className="h-8 text-xs">
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="en">{t("templates.locale.en")}</SelectItem>
+													<SelectItem value="ru">{t("templates.locale.ru")}</SelectItem>
+													<SelectItem value="uz">{t("templates.locale.uz")}</SelectItem>
+												</SelectContent>
+											</Select>
+										</div>
+									)}
 								</div>
 							</label>
+
+							{cloneCandidates.length > 0 && (
+								<label className="flex cursor-pointer items-start gap-2 rounded-md border p-3 hover:bg-muted/50 has-[:checked]:border-primary has-[:checked]:bg-muted/30">
+									<input
+										type="radio"
+										name="create-mode"
+										value="clone"
+										checked={mode === "clone"}
+										onChange={() => setMode("clone")}
+										className="mt-0.5"
+									/>
+									<div className="flex-1 space-y-2">
+										<div>
+											<div className="text-sm font-medium">{t("templates.createClone")}</div>
+											<div className="text-xs text-muted-foreground">
+												{t("templates.createCloneDesc")}
+											</div>
+										</div>
+										{mode === "clone" && (
+											<Select value={cloneId} onValueChange={(v) => setCloneId(v ?? "")}>
+												<SelectTrigger className="h-8 text-xs">
+													<SelectValue placeholder={t("templates.createClonePlaceholder")} />
+												</SelectTrigger>
+												<SelectContent>
+													{cloneCandidates.map((c) => (
+														<SelectItem key={c.id} value={c.id}>
+															{c.name}
+														</SelectItem>
+													))}
+												</SelectContent>
+											</Select>
+										)}
+									</div>
+								</label>
+							)}
 						</fieldset>
 					</div>
 					<DialogFooter>
 						<Button type="button" variant="ghost" onClick={() => setOpen(false)}>
 							{t("common.cancel")}
 						</Button>
-						<Button type="submit" disabled={!name.trim() || create.isPending}>
+						<Button type="submit" disabled={!canSubmit}>
 							{create.isPending ? t("templates.creating") : t("templates.create")}
 						</Button>
 					</DialogFooter>

@@ -369,7 +369,18 @@ export function NewPropertyWizard() {
 						</p>
 					)}
 					{templatesQ.data && templatesQ.data.length === 0 && (
-						<p className="text-sm text-destructive">{t("newPropertyWizard.noTemplates")}</p>
+						<div className="rounded-lg border border-dashed p-6 text-center">
+							<p className="text-sm text-muted-foreground">{t("newPropertyWizard.noTemplates")}</p>
+							<Button
+								type="button"
+								variant="default"
+								size="sm"
+								className="mt-3"
+								render={<Link to="/owner/templates" />}
+							>
+								{t("newPropertyWizard.noTemplatesCta")}
+							</Button>
+						</div>
 					)}
 					<div className="space-y-2">
 						{templatesQ.data?.map((tpl) => (

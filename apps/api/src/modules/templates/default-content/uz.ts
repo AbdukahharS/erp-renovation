@@ -3,7 +3,7 @@
  * Translated from tz-content.en.ts.
  */
 
-import { photo, type SeedTemplate, video } from "./tz-content.ts";
+import { type DefaultTemplateContent, photo, video } from "./types.ts";
 
 export const DEFAULT_SPECIALIZATIONS_UZ = [
 	"Demontajchi",
@@ -22,7 +22,7 @@ export const DEFAULT_SPECIALIZATIONS_UZ = [
 	"Tozalash xizmati",
 ];
 
-export const DEFAULT_TEMPLATE_UZ: SeedTemplate = {
+export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 	name: "Standart kvartira ta'miri",
 	specializations: DEFAULT_SPECIALIZATIONS_UZ,
 	stages: [

@@ -129,7 +129,21 @@ async function defaultTemplateId(cookie: string): Promise<string> {
 		isDefault: boolean;
 	}>;
 	const def = list.find((t) => t.isDefault) ?? list[0];
-	return must(def).id;
+	if (def) return def.id;
+	const created = (await (
+		await call(cookie, "/templates", {
+			method: "POST",
+			body: JSON.stringify({
+				name: "Standard Apartment Renovation",
+				source: { type: "erp-default", locale: "en" },
+			}),
+		})
+	).json()) as { id: string };
+	await call(cookie, `/templates/${created.id}`, {
+		method: "PATCH",
+		body: JSON.stringify({ isDefault: true }),
+	});
+	return created.id;
 }
 
 async function createProperty(

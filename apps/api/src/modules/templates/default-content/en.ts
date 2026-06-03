@@ -4,7 +4,7 @@
  * (the "Detailed Checklists for Each Stage and Sub-Stage" section).
  */
 
-import { photo, type SeedTemplate, video } from "./tz-content.ts";
+import { type DefaultTemplateContent, photo, video } from "./types.ts";
 
 export const DEFAULT_SPECIALIZATIONS_EN = [
 	"Demolition Specialist",
@@ -23,7 +23,7 @@ export const DEFAULT_SPECIALIZATIONS_EN = [
 	"Cleaning Contractor",
 ];
 
-export const DEFAULT_TEMPLATE_EN: SeedTemplate = {
+export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 	name: "Standard Apartment Renovation",
 	specializations: DEFAULT_SPECIALIZATIONS_EN,
 	stages: [

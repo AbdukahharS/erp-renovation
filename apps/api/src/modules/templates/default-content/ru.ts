@@ -4,7 +4,7 @@
  * Technical Specification for apartment renovation.
  */
 
-import { photo, type SeedTemplate, video } from "./tz-content.ts";
+import { type DefaultTemplateContent, photo, video } from "./types.ts";
 
 export const DEFAULT_SPECIALIZATIONS_RU = [
 	"Демонтажник",
@@ -23,7 +23,7 @@ export const DEFAULT_SPECIALIZATIONS_RU = [
 	"Клининговая компания",
 ];
 
-export const DEFAULT_TEMPLATE_RU: SeedTemplate = {
+export const DEFAULT_TEMPLATE_RU: DefaultTemplateContent = {
 	name: "Стандартный ремонт квартиры",
 	specializations: DEFAULT_SPECIALIZATIONS_RU,
 	stages: [

@@ -94,6 +94,28 @@ async function call(cookie: string, path: string, init: RequestInit = {}) {
 	return res;
 }
 
+async function resolveOrCreateTemplate(
+	cookie: string,
+	list: Array<{ id: string; isDefault: boolean }>,
+): Promise<string> {
+	const existing = list.find((t) => t.isDefault) ?? list[0];
+	if (existing) return existing.id;
+	const created = (await (
+		await call(cookie, "/templates", {
+			method: "POST",
+			body: JSON.stringify({
+				name: "Standard Apartment Renovation",
+				source: { type: "erp-default", locale: "en" },
+			}),
+		})
+	).json()) as { id: string };
+	await call(cookie, `/templates/${created.id}`, {
+		method: "PATCH",
+		body: JSON.stringify({ isDefault: true }),
+	});
+	return created.id;
+}
+
 async function signUpAs(email: string, role: "INSPECTOR" | "MASTER", tenantId: string) {
 	const r = await auth.api.signUpEmail({
 		body: { email, password, name: email },
@@ -170,7 +192,7 @@ async function createProperty(cookie: string) {
 		id: string;
 		isDefault: boolean;
 	}>;
-	const templateId = must(list.find((t) => t.isDefault) ?? list[0]).id;
+	const templateId = await resolveOrCreateTemplate(cookie, list);
 	const res = await call(cookie, "/properties", {
 		method: "POST",
 		body: JSON.stringify({

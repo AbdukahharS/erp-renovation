@@ -27,6 +27,99 @@ import { Elysia } from "elysia";
 import { zodBody } from "../../lib/zod-body.ts";
 import { requireRole } from "../auth/guards.ts";
 import { tenancy } from "../tenancy/plugin.ts";
+import { type DefaultTemplateContent, getDefaultTemplateContent } from "./default-content/index.ts";
+
+/**
+ * Deep-insert a full template tree from a static {@link DefaultTemplateContent}
+ * source (the ERP-default template, supplied in code per locale). Mirrors the
+ * shape used by the clone path: templates → stages → subStages → checklist
+ * items + media requirements → linear stage dependencies. Specializations are
+ * upserted by name so re-creating an ERP-default template doesn't duplicate
+ * the lookup rows.
+ *
+ * Returns the new template row id.
+ */
+async function insertTemplateFromContent(
+	// biome-ignore lint/suspicious/noExplicitAny: tx is constrained at the call site
+	tx: any,
+	name: string,
+	content: DefaultTemplateContent,
+): Promise<string> {
+	if (content.specializations.length > 0) {
+		await tx
+			.insert(specializations)
+			.values(content.specializations.map((n) => ({ name: n })))
+			.onConflictDoNothing();
+	}
+
+	const [tpl] = (await tx.insert(templates).values({ name }).returning({ id: templates.id })) as {
+		id: string;
+	}[];
+	if (!tpl) throw new Error("failed to insert template");
+
+	const subStageIdByCode = new Map<string, string>();
+
+	for (const stage of content.stages) {
+		const [s] = (await tx
+			.insert(stages)
+			.values({ templateId: tpl.id, order: stage.order, name: stage.name })
+			.returning({ id: stages.id })) as { id: string }[];
+		if (!s) throw new Error(`failed to insert stage ${stage.order}`);
+
+		let subOrder = 1;
+		for (const sub of stage.subStages) {
+			const [ss] = (await tx
+				.insert(subStages)
+				.values({
+					stageId: s.id,
+					order: subOrder++,
+					code: sub.code,
+					name: sub.name,
+					performerType: sub.performerType,
+					specialization: sub.specialization ?? null,
+					standardDurationDays: sub.standardDurationDays,
+					wageRatePerSqm: sub.wageRatePerSqm,
+					description: sub.description ?? null,
+				})
+				.returning({ id: subStages.id })) as { id: string }[];
+			if (!ss) throw new Error(`failed to insert sub-stage ${sub.code}`);
+			subStageIdByCode.set(sub.code, ss.id);
+
+			if (sub.checklistItems.length > 0) {
+				await tx.insert(checklistItems).values(
+					sub.checklistItems.map((item, idx) => ({
+						subStageId: ss.id,
+						order: idx + 1,
+						text: item.text,
+						criteria: item.criteria ?? null,
+					})),
+				);
+			}
+			if (sub.mediaRequirements.length > 0) {
+				await tx.insert(mediaRequirements).values(
+					sub.mediaRequirements.map((m) => ({
+						subStageId: ss.id,
+						mediaType: m.mediaType,
+						required: m.required,
+						description: m.description,
+					})),
+				);
+			}
+		}
+	}
+
+	const codesInOrder = content.stages.flatMap((st) => st.subStages.map((s) => s.code));
+	const edges: { subStageId: string; prerequisiteSubStageId: string }[] = [];
+	for (let i = 1; i < codesInOrder.length; i++) {
+		const current = subStageIdByCode.get(codesInOrder[i] as string);
+		const prereq = subStageIdByCode.get(codesInOrder[i - 1] as string);
+		if (!current || !prereq) throw new Error("missing sub-stage id for dependency");
+		edges.push({ subStageId: current, prerequisiteSubStageId: prereq });
+	}
+	if (edges.length > 0) await tx.insert(stageDependencies).values(edges);
+
+	return tpl.id;
+}
 
 /**
  * Rebuild the linear stage_dependencies chain for a template.
@@ -191,19 +284,49 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 				return { error: "no tenant" };
 			}
 			return await runInTenant(async (tx) => {
+				const { source } = body;
+
+				if (source.type === "blank") {
+					const [row] = await tx.insert(templates).values({ name: body.name }).returning();
+					if (!row) {
+						set.status = 500;
+						return { error: "failed to create template" };
+					}
+					return row;
+				}
+
+				if (source.type === "erp-default") {
+					const content = getDefaultTemplateContent(source.locale);
+					const newId = await insertTemplateFromContent(tx, body.name, content);
+					const [row] = await tx.select().from(templates).where(eq(templates.id, newId)).limit(1);
+					if (!row) {
+						set.status = 500;
+						return { error: "failed to create template" };
+					}
+					return row;
+				}
+
+				// source.type === "clone"
+				const [src] = await tx
+					.select({ id: templates.id })
+					.from(templates)
+					.where(eq(templates.id, source.templateId))
+					.limit(1);
+				if (!src) {
+					set.status = 404;
+					return { error: "source template not found" };
+				}
+
 				const [row] = await tx.insert(templates).values({ name: body.name }).returning();
 				if (!row) {
 					set.status = 500;
 					return { error: "failed to create template" };
 				}
-				if (!body.cloneFromTemplateId) return row;
 
-				// Deep-clone stages → sub-stages → checklist items + media requirements
-				// + linear dependency chain from the source template.
 				const srcStages = await tx
 					.select()
 					.from(stages)
-					.where(eq(stages.templateId, body.cloneFromTemplateId))
+					.where(eq(stages.templateId, source.templateId))
 					.orderBy(asc(stages.order));
 				if (srcStages.length === 0) return row;
 

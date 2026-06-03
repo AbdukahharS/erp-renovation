@@ -95,9 +95,19 @@ export type Specialization = z.infer<typeof SpecializationSchema>;
 
 // ---------- Inputs (client → server) ----------
 
+export const DefaultTemplateLocaleSchema = z.enum(["en", "ru", "uz"]);
+export type DefaultTemplateLocale = z.infer<typeof DefaultTemplateLocaleSchema>;
+
+export const CreateTemplateSourceSchema = z.discriminatedUnion("type", [
+	z.object({ type: z.literal("blank") }),
+	z.object({ type: z.literal("erp-default"), locale: DefaultTemplateLocaleSchema }),
+	z.object({ type: z.literal("clone"), templateId: z.string().uuid() }),
+]);
+export type CreateTemplateSource = z.infer<typeof CreateTemplateSourceSchema>;
+
 export const CreateTemplateInput = z.object({
-	name: z.string().min(1),
-	cloneFromTemplateId: z.string().uuid().optional(),
+	name: z.string().min(1).max(120),
+	source: CreateTemplateSourceSchema,
 });
 
 export const UpdateTemplateInput = z.object({

@@ -74,12 +74,34 @@ async function call(cookie: string, path: string, init: RequestInit = {}) {
 	return await app.handle(new Request(`http://localhost${path}`, { ...init, headers }));
 }
 
+async function resolveOrCreateTemplate(
+	cookie: string,
+	list: Array<{ id: string; isDefault: boolean }>,
+): Promise<string> {
+	const existing = list.find((t) => t.isDefault) ?? list[0];
+	if (existing) return existing.id;
+	const created = (await (
+		await call(cookie, "/templates", {
+			method: "POST",
+			body: JSON.stringify({
+				name: "Standard Apartment Renovation",
+				source: { type: "erp-default", locale: "en" },
+			}),
+		})
+	).json()) as { id: string };
+	await call(cookie, `/templates/${created.id}`, {
+		method: "PATCH",
+		body: JSON.stringify({ isDefault: true }),
+	});
+	return created.id;
+}
+
 async function createProperty(cookie: string): Promise<string> {
 	const list = (await (await call(cookie, "/templates")).json()) as Array<{
 		id: string;
 		isDefault: boolean;
 	}>;
-	const templateId = must(list.find((t) => t.isDefault) ?? list[0]).id;
+	const templateId = await resolveOrCreateTemplate(cookie, list);
 	const res = await call(cookie, "/properties", {
 		method: "POST",
 		body: JSON.stringify({

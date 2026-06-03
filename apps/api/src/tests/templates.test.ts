@@ -75,9 +75,25 @@ beforeAll(async () => {
 	schemaName = t.schemaName;
 	cookie = await loginAndSwitch(ownerEmail, tenantId);
 
-	const list = (await (await api("/templates")).json()) as Array<{ id: string; name: string }>;
-	expect(list.length).toBe(1);
-	templateId = must(list[0]).id;
+	const initial = (await (await api("/templates")).json()) as Array<{ id: string }>;
+	expect(initial).toHaveLength(0);
+
+	const createRes = await api("/templates", {
+		method: "POST",
+		body: JSON.stringify({
+			name: "Standard Apartment Renovation",
+			source: { type: "erp-default", locale: "en" },
+		}),
+	});
+	expect(createRes.status).toBe(200);
+	const created = (await createRes.json()) as { id: string };
+	templateId = created.id;
+
+	// Mark as default so legacy assertions about isDefault still pass.
+	await api(`/templates/${templateId}`, {
+		method: "PATCH",
+		body: JSON.stringify({ isDefault: true }),
+	});
 });
 
 afterAll(async () => {
@@ -88,7 +104,7 @@ afterAll(async () => {
 });
 
 describe("phase 2 templates", () => {
-	it("seeds exactly one default template per tenant", async () => {
+	it("new tenants start with zero templates; ERP-default creation produces a single template", async () => {
 		const list = (await (await api("/templates")).json()) as Array<{
 			id: string;
 			name: string;
@@ -98,6 +114,51 @@ describe("phase 2 templates", () => {
 		const first = must(list[0]);
 		expect(first.isDefault).toBe(true);
 		expect(first.name).toBe("Standard Apartment Renovation");
+	});
+
+	it("creates a blank template with no stages", async () => {
+		const res = await api("/templates", {
+			method: "POST",
+			body: JSON.stringify({ name: `Blank ${SUFFIX}`, source: { type: "blank" } }),
+		});
+		expect(res.status).toBe(200);
+		const tpl = (await res.json()) as { id: string };
+		const tree = (await (await api(`/templates/${tpl.id}`)).json()) as { stages: unknown[] };
+		expect(tree.stages).toHaveLength(0);
+	});
+
+	it("creates ERP-default templates in ru and uz with localized stage names", async () => {
+		for (const locale of ["ru", "uz"] as const) {
+			const res = await api("/templates", {
+				method: "POST",
+				body: JSON.stringify({
+					name: `ERP ${locale} ${SUFFIX}`,
+					source: { type: "erp-default", locale },
+				}),
+			});
+			expect(res.status).toBe(200);
+			const tpl = (await res.json()) as { id: string };
+			const tree = (await (await api(`/templates/${tpl.id}`)).json()) as {
+				stages: Array<{ subStages: unknown[] }>;
+			};
+			expect(tree.stages).toHaveLength(8);
+		}
+	});
+
+	it("clones an existing template", async () => {
+		const res = await api("/templates", {
+			method: "POST",
+			body: JSON.stringify({
+				name: `Clone ${SUFFIX}`,
+				source: { type: "clone", templateId },
+			}),
+		});
+		expect(res.status).toBe(200);
+		const tpl = (await res.json()) as { id: string };
+		const tree = (await (await api(`/templates/${tpl.id}`)).json()) as {
+			stages: Array<{ subStages: unknown[] }>;
+		};
+		expect(tree.stages).toHaveLength(8);
 	});
 
 	it("template tree has 8 stages, 21 sub-stages, 104 control points; sub-stage 1.1 is INSPECTOR", async () => {

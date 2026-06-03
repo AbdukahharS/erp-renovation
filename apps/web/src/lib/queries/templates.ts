@@ -1,4 +1,4 @@
-import type { Template, TemplateTree } from "@repo/validators";
+import type { CreateTemplateSource, Template, TemplateTree } from "@repo/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "../api";
 
@@ -32,7 +32,7 @@ export function useTemplateTree(id: string | undefined) {
 export function useCreateTemplate() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (vars: { name: string; cloneFromTemplateId?: string }) =>
+		mutationFn: (vars: { name: string; source: CreateTemplateSource }) =>
 			unwrap(api.templates.post(vars)) as unknown as Promise<Template>,
 		onSuccess: () => qc.invalidateQueries({ queryKey: templateKeys.list() }),
 	});

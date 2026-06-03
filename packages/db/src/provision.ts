@@ -3,14 +3,12 @@ import type { DbClient } from "./client.ts";
 import { applyTenantMigrations } from "./migrations/fanout.ts";
 import type { Role } from "./schema/control.ts";
 import { tenantConfig, tenantMemberships, tenants } from "./schema/control.ts";
-import type { SeedLanguage } from "./seed/tz-content.ts";
 
 export interface ProvisionTenantInput {
 	name: string;
 	slug: string;
 	ownerUserId: string;
 	connectionString: string;
-	defaultTemplateLanguage?: SeedLanguage;
 }
 
 export interface ProvisionTenantResult {
@@ -40,15 +38,13 @@ export async function provisionTenant(
 		await tx.insert(tenantConfig).values({ tenantId: id }).onConflictDoNothing();
 	});
 
-	// Apply tenant migrations against the new schema.
-	// Done after the outer tx because the fan-out opens its own connection
-	// and inner txns for each migration; the schema must already exist + be committed.
-	// applyTenantMigrations runs the tenant migration set AND seeds the default
-	// template if the schema is fresh — see migrations/fanout.ts seed-or-skip.
+	// Apply tenant migrations against the new schema. The tenant starts with
+	// zero templates; the Owner explicitly creates the first template via
+	// POST /templates (blank, ERP-default, or clone) — see the templates
+	// module.
 	await applyTenantMigrations({
 		connectionString: input.connectionString,
 		onlySchema: schemaName,
-		seedLanguage: input.defaultTemplateLanguage,
 	});
 
 	return { id, schemaName, name: input.name, slug: input.slug };

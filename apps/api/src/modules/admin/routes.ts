@@ -65,7 +65,6 @@ export const adminRoutes = new Elysia()
 					slug: body.slug,
 					ownerUserId,
 					connectionString: dbUrl,
-					defaultTemplateLanguage: body.defaultTemplateLanguage,
 				});
 				await db
 					.insert(tenantMemberships)
@@ -84,9 +83,6 @@ export const adminRoutes = new Elysia()
 				ownerEmail: t.String({ format: "email" }),
 				ownerName: t.String({ minLength: 1 }),
 				ownerPassword: t.String({ minLength: 12 }),
-				defaultTemplateLanguage: t.Optional(
-					t.Union([t.Literal("en"), t.Literal("ru"), t.Literal("uz")]),
-				),
 			}),
 		},
 	)
