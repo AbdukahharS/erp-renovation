@@ -5,6 +5,7 @@ import {
 	materials,
 	properties,
 } from "@repo/db/schema/tenant";
+import type { TenantTx as Tx } from "@repo/db/with-tenant";
 import type {
 	AdjustMaterialInput,
 	CreateMaterialInput,
@@ -13,9 +14,6 @@ import type {
 	UpdateMaterialInput,
 } from "@repo/validators";
 import { and, desc, sql as dsql, eq, inArray, isNull } from "drizzle-orm";
-
-// biome-ignore lint/suspicious/noExplicitAny: drizzle transaction type bound to runtime db client
-type Tx = any;
 
 export class InsufficientStockError extends Error {
 	readonly code = "INSUFFICIENT_STOCK";
@@ -257,11 +255,7 @@ export async function issueMaterialsToProperty(
 	// Lock involved materials, ordered, to serialize concurrent issuances.
 	const materialIds = Array.from(new Set(lines.map((l) => l.materialId))).sort();
 	const locked = (await tx.execute(
-		dsql.raw(
-			`SELECT id, price FROM materials WHERE id = ANY (ARRAY[${materialIds
-				.map((id) => `'${id}'::uuid`)
-				.join(",")}]) AND archived_at IS NULL ORDER BY id FOR UPDATE`,
-		),
+		dsql`SELECT id, price FROM materials WHERE id = ANY(${dsql.param(materialIds)}::uuid[]) AND archived_at IS NULL ORDER BY id FOR UPDATE`,
 	)) as Array<{ id: string; price: string }>;
 	const priceMap = new Map(locked.map((r) => [r.id, r.price] as const));
 	if (priceMap.size !== materialIds.length) {

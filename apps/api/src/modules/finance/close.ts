@@ -1,4 +1,5 @@
 import { type AssetKind, properties, propertyAssets } from "@repo/db/schema/tenant";
+import type { TenantTx as Tx } from "@repo/db/with-tenant";
 import type { CloseUnitInput, PropertyFinanceSummary } from "@repo/validators";
 import { eq } from "drizzle-orm";
 import { buildAssetKey, r2Client } from "../../lib/r2.ts";
@@ -11,9 +12,6 @@ import {
 	persistClosing,
 	validatePortfolioAssets,
 } from "./service.ts";
-
-// biome-ignore lint/suspicious/noExplicitAny: tx is the inner Drizzle transaction
-type Tx = any;
 
 type RunInTenant = <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
 

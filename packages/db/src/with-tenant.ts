@@ -2,6 +2,13 @@ import { sql as dsql } from "drizzle-orm";
 import type { DbClient } from "./client.ts";
 
 /**
+ * The transaction handle Drizzle hands to `db.transaction(fn)` callbacks —
+ * the same value `withTenant`/`runInTenant` passes to its callback.
+ * Exposed so services can type their `tx` parameter without falling back to `any`.
+ */
+export type TenantTx = Parameters<Parameters<DbClient["transaction"]>[0]>[0];
+
+/**
  * Per-transaction queue of side-effects to run only AFTER the outer tx commits.
  * Used to defer domain-event emission so handlers/subscribers never read a
  * not-yet-committed write (race that breaks the in-process worker runner).
@@ -28,7 +35,7 @@ export function deferUntilCommit(tx: object, hook: () => void | Promise<void>): 
 export async function withTenant<T>(
 	db: DbClient,
 	schemaName: string,
-	fn: (tx: Parameters<Parameters<DbClient["transaction"]>[0]>[0]) => Promise<T>,
+	fn: (tx: TenantTx) => Promise<T>,
 ): Promise<T> {
 	if (!/^[a-zA-Z0-9_]+$/.test(schemaName)) {
 		throw new Error(`unsafe schema name: ${schemaName}`);

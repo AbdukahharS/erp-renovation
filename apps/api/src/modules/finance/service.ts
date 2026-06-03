@@ -14,6 +14,7 @@ import {
 	subStageInstances,
 	unitClosings,
 } from "@repo/db/schema/tenant";
+import type { TenantTx as Tx } from "@repo/db/with-tenant";
 import type {
 	ApplyFineInput,
 	CloseUnitInput,
@@ -22,9 +23,6 @@ import type {
 	PropertyFinanceSummary,
 } from "@repo/validators";
 import { and, desc, sql as dsql, eq, inArray, isNull } from "drizzle-orm";
-
-// biome-ignore lint/suspicious/noExplicitAny: drizzle transaction type bound to runtime db client
-type Tx = any;
 
 const COST_CATEGORY_TO_TX_TYPE: Record<
 	(typeof propertyCostCategoryEnum.enumValues)[number],

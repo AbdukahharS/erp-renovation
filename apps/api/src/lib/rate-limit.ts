@@ -99,10 +99,14 @@ export const DEFAULT_RULES: RateLimitRule[] = [
 		windowSeconds: 3600,
 		keyOf: ipKey,
 	},
-	// R2 presign endpoints (any module path containing /assets/presign).
+	// R2 presign endpoints. Matches every module's presign route:
+	//   POST /stages/:id/media/presign           (acceptance)
+	//   POST /properties/:id/floor-plan/presign  (properties)
+	//   POST /properties/:id/portfolio/presign   (finance)
+	// Any future presign route must end in `/presign` to be rate-limited.
 	{
 		name: "presign",
-		match: (p) => p.includes("/assets/presign"),
+		match: (p, m) => m === "POST" && p.endsWith("/presign"),
 		limit: 60,
 		windowSeconds: 60,
 		keyOf: ipKey,

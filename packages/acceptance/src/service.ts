@@ -10,7 +10,7 @@ import {
 	stageMediaAssets,
 	subStageInstances,
 } from "@repo/db/schema/tenant";
-import { deferUntilCommit } from "@repo/db/with-tenant";
+import { deferUntilCommit, type TenantTx as Tx } from "@repo/db/with-tenant";
 import { and, sql as dsql, eq, inArray, isNull } from "drizzle-orm";
 import { acceptanceEvents } from "./events.ts";
 
@@ -19,9 +19,6 @@ import { acceptanceEvents } from "./events.ts";
  * for domain events. Everything here is called inside `runInTenant(fn)` so the
  * `tx` parameter inherits the tenant `search_path`.
  */
-
-// biome-ignore lint/suspicious/noExplicitAny: tx is the inner Drizzle transaction from with-tenant
-type Tx = any;
 
 const transitions: Record<StageInstanceStatus, StageInstanceStatus[]> = {
 	LOCKED: ["AVAILABLE"],

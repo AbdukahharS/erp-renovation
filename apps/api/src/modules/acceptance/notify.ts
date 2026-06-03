@@ -5,6 +5,7 @@ import {
 	subStageAssignments,
 	subStageInstances,
 } from "@repo/db/schema/tenant";
+import type { TenantTx as Tx } from "@repo/db/with-tenant";
 import {
 	DEFAULT_JOB_OPTS,
 	getNotificationDispatchQueue,
@@ -12,9 +13,6 @@ import {
 } from "@repo/queue";
 import { and, desc, sql as dsql, eq, isNull, or } from "drizzle-orm";
 import { db } from "../../db.ts";
-
-// biome-ignore lint/suspicious/noExplicitAny: tx is the inner Drizzle transaction
-type Tx = any;
 
 type NotifyType = "STAGE_SUBMITTED" | "STAGE_REJECTED" | "STAGE_BLOCKED" | "STAGE_UNBLOCKED";
 

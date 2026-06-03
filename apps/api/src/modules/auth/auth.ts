@@ -3,13 +3,24 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "../../db.ts";
 
-const secret = process.env.BETTER_AUTH_SECRET ?? "dev-only-secret-change-me-please-32+chars";
+const isProd = process.env.NODE_ENV === "production";
+
+function resolveSecret(): string {
+	const fromEnv = process.env.BETTER_AUTH_SECRET;
+	if (!fromEnv) {
+		throw new Error("BETTER_AUTH_SECRET is required");
+	}
+	if (fromEnv.length < 32) {
+		throw new Error("BETTER_AUTH_SECRET must be at least 32 characters");
+	}
+	return fromEnv;
+}
+
+const secret = resolveSecret();
 const trustedOrigins = (process.env.CORS_ORIGINS ?? "http://localhost:3000")
 	.split(",")
 	.map((s) => s.trim())
 	.filter(Boolean);
-
-const isProd = process.env.NODE_ENV === "production";
 
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {

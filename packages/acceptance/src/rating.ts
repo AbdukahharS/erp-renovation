@@ -4,10 +4,8 @@ import {
 	subStageAssignments,
 	subStageInstances,
 } from "@repo/db/schema/tenant";
+import type { TenantTx as Tx } from "@repo/db/with-tenant";
 import { and, sql as dsql, eq, isNotNull } from "drizzle-orm";
-
-// biome-ignore lint/suspicious/noExplicitAny: drizzle transaction shape
-type Tx = any;
 
 /**
  * Phase 6 rating counters.
