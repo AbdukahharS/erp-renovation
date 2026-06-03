@@ -3,6 +3,7 @@ import {
 	BuildingIcon,
 	ClipboardListIcon,
 	LayoutDashboardIcon,
+	PackageIcon,
 	SettingsIcon,
 	ShieldCheckIcon,
 	UsersIcon,
@@ -36,7 +37,10 @@ const baseNav: NavGroup[] = [
 	},
 	{
 		labelKey: "nav.money",
-		items: [{ labelKey: "nav.finance", to: "/owner/finance", icon: WalletIcon }],
+		items: [
+			{ labelKey: "nav.finance", to: "/owner/finance", icon: WalletIcon },
+			{ labelKey: "nav.warehouse", to: "/owner/warehouse", icon: PackageIcon },
+		],
 	},
 	{
 		labelKey: "nav.settingsGroup",

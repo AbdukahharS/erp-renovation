@@ -50,12 +50,10 @@ export type NotificationIntent = z.infer<typeof NotificationIntentSchema>;
 
 // ---------- Phase 7: finance authoring + dashboard ----------
 
-export const PropertyCostCategorySchema = z.enum([
-	"MATERIAL",
-	"TRANSPORT",
-	"EXTERNAL_CONTRACTOR",
-	"OTHER",
-]);
+// MATERIAL is intentionally absent: material costs flow exclusively from
+// warehouse issuances (see packages/validators/src/materials.ts). Manual cost
+// authoring is reserved for off-warehouse expenses.
+export const PropertyCostCategorySchema = z.enum(["TRANSPORT", "EXTERNAL_CONTRACTOR", "OTHER"]);
 export type PropertyCostCategory = z.infer<typeof PropertyCostCategorySchema>;
 
 // Numeric amounts arrive as strings (Drizzle numeric → string). We require a
@@ -149,6 +147,11 @@ export const PropertyFinanceSummarySchema = z.object({
 	plannedUnitCost: z.string(),
 	plannedTotal: z.string(),
 	accruedWages: z.string(),
+	// Materials sourced from warehouse issuances. Reported separately from
+	// `costsByCategory` (which now only carries TRANSPORT/EXTERNAL_CONTRACTOR/
+	// OTHER) so the dashboard can display materials and other costs side by
+	// side. Already included in `costsTotal` and `actualTotal`.
+	materialsCost: z.string(),
 	costsByCategory: z.array(PropertyFinanceCostByCategorySchema),
 	costsTotal: z.string(),
 	finesTotal: z.string(),

@@ -30,7 +30,6 @@ const COST_CATEGORY_TO_TX_TYPE: Record<
 	(typeof propertyCostCategoryEnum.enumValues)[number],
 	FinancialTransactionType
 > = {
-	MATERIAL: "MATERIAL_COST",
 	TRANSPORT: "TRANSPORT_COST",
 	EXTERNAL_CONTRACTOR: "EXTERNAL_CONTRACTOR_COST",
 	OTHER: "OTHER_COST",
@@ -300,8 +299,12 @@ export async function buildPropertyFinanceSummary(
 		plannedUnitCost: prop.plannedUnitCost,
 		plannedTotal: num(plannedTotal),
 		accruedWages: num(wages),
+		materialsCost: num(material),
+		// MATERIAL is omitted from the per-category authoring breakdown because
+		// material costs originate from warehouse issuances now, not manual cost
+		// authoring. The `material` total still flows into `costsTotal` and the
+		// dashboard's dedicated Materials section reads it separately.
 		costsByCategory: [
-			{ category: "MATERIAL", total: num(material) },
 			{ category: "TRANSPORT", total: num(transport) },
 			{ category: "EXTERNAL_CONTRACTOR", total: num(externalContractor) },
 			{ category: "OTHER", total: num(other) },

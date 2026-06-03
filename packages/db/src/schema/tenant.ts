@@ -514,8 +514,13 @@ export const financialTransactionTypeEnum = pgEnum("financial_transaction_type",
 
 // Phase 7: category for manual cost entries against a property. Each category
 // has a paired entry in financial_transactions for dashboard aggregation.
+//
+// MATERIAL is intentionally absent: material costs now originate exclusively
+// from warehouse issuances (see materials/material_issuances below), which
+// write MATERIAL_COST financial_transactions rows directly. Manual cost
+// authoring is reserved for off-warehouse expenses (transport, external
+// contractors, other).
 export const propertyCostCategoryEnum = pgEnum("property_cost_category", [
-	"MATERIAL",
 	"TRANSPORT",
 	"EXTERNAL_CONTRACTOR",
 	"OTHER",
@@ -835,3 +840,113 @@ export const notificationDeliveries = pgTable(
 );
 
 export type NotificationDeliveryStatus = (typeof notificationDeliveryStatusEnum.enumValues)[number];
+
+// ---------- Warehouse & Materials ----------
+//
+// One implicit warehouse per tenant (the tenant schema IS the warehouse — no
+// `warehouses` table). Materials carry a current price; issuances to a
+// property snapshot that price at the moment of issuance so historical costs
+// never drift when the price is later edited.
+//
+// On-hand quantity is NEVER stored — it is the sum of `material_movements.delta`
+// for the material. Every quantity change (RECEIPT, ISSUANCE, ADJUSTMENT,
+// REVERSAL) goes through the ledger; the ledger is the single source of truth.
+//
+// `material_issuances` pairs one-to-one with:
+//   - a MATERIAL_COST `financial_transactions` row (for Plan-vs-Actual)
+//   - an ISSUANCE `material_movements` row (for stock)
+// Reversing an issuance inserts an inverse REVERSAL row in both ledgers and
+// stamps the issuance row with reversedAt/reversedBy. Mirrors the
+// reversePropertyCost pattern from finance/service.ts so the audit trail is
+// consistent across the codebase.
+
+export const materialUnitEnum = pgEnum("material_unit", ["pcs", "m", "m2", "m3", "kg", "l"]);
+
+export const materialMovementTypeEnum = pgEnum("material_movement_type", [
+	"RECEIPT",
+	"ISSUANCE",
+	"ADJUSTMENT",
+	"REVERSAL",
+]);
+
+export const materials = pgTable(
+	"materials",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name").notNull(),
+		category: text("category"),
+		unit: materialUnitEnum("unit").notNull(),
+		price: numeric("price", { precision: 14, scale: 2 }).notNull(),
+		archivedAt: timestamp("archived_at"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
+	},
+	(t) => [
+		uniqueIndex("materials_name_active_unique").on(t.name).where(sql`${t.archivedAt} IS NULL`),
+		index("materials_category_idx").on(t.category),
+	],
+);
+
+export const materialMovements = pgTable(
+	"material_movements",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		materialId: uuid("material_id")
+			.notNull()
+			.references(() => materials.id, { onDelete: "restrict" }),
+		type: materialMovementTypeEnum("type").notNull(),
+		// Signed: positive for RECEIPT/REVERSAL, negative for ISSUANCE; ADJUSTMENT
+		// can go either way. 3dp so kg/m can carry fractional quantities.
+		delta: numeric("delta", { precision: 14, scale: 3 }).notNull(),
+		unitPriceSnapshot: numeric("unit_price_snapshot", { precision: 14, scale: 2 }),
+		// Self-link: ISSUANCE rows reference their parent material_issuances row;
+		// REVERSAL rows reference the issuance being reversed. Nullable for
+		// RECEIPT/ADJUSTMENT.
+		issuanceId: uuid("issuance_id"),
+		actorUserId: text("actor_user_id").notNull(),
+		reason: text("reason"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		index("material_movements_material_idx").on(t.materialId, t.createdAt),
+		index("material_movements_issuance_idx").on(t.issuanceId),
+	],
+);
+
+export const materialIssuances = pgTable(
+	"material_issuances",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		propertyId: uuid("property_id")
+			.notNull()
+			.references(() => properties.id, { onDelete: "restrict" }),
+		materialId: uuid("material_id")
+			.notNull()
+			.references(() => materials.id, { onDelete: "restrict" }),
+		quantity: numeric("quantity", { precision: 14, scale: 3 }).notNull(),
+		unitPriceSnapshot: numeric("unit_price_snapshot", { precision: 14, scale: 2 }).notNull(),
+		amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+		// Paired MATERIAL_COST row in financial_transactions (same pattern as
+		// property_costs.transactionId). On reverse, a REVERSAL transaction is
+		// added separately — the original transaction row stays intact.
+		transactionId: uuid("transaction_id")
+			.notNull()
+			.references(() => financialTransactions.id, { onDelete: "restrict" }),
+		// The negative-delta ISSUANCE row in material_movements.
+		movementId: uuid("movement_id")
+			.notNull()
+			.references(() => materialMovements.id, { onDelete: "restrict" }),
+		issuedBy: text("issued_by").notNull(),
+		note: text("note"),
+		reversedAt: timestamp("reversed_at"),
+		reversedBy: text("reversed_by"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(t) => [
+		index("material_issuances_property_idx").on(t.propertyId),
+		index("material_issuances_material_idx").on(t.materialId),
+	],
+);
+
+export type MaterialUnit = (typeof materialUnitEnum.enumValues)[number];
+export type MaterialMovementType = (typeof materialMovementTypeEnum.enumValues)[number];

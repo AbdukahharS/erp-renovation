@@ -21,6 +21,7 @@ import { templatesRoutes } from "./modules/templates/routes.ts";
 import { tenancy } from "./modules/tenancy/plugin.ts";
 import { tenantConfigRoutes } from "./modules/tenants/config-routes.ts";
 import { tenantRoutes } from "./modules/tenants/routes.ts";
+import { warehouseRoutes } from "./modules/warehouse/routes.ts";
 
 // Phase 5: subscribe the BullMQ enqueuer to acceptance events at startup.
 wireAcceptanceEnqueuer();
@@ -68,6 +69,7 @@ export const app = new Elysia()
 	.use(invitationsRoutes)
 	.use(hrRoutes)
 	.use(financeRoutes)
+	.use(warehouseRoutes)
 	.use(notificationsRoutes)
 	.use(tenantConfigRoutes)
 	.use(realtimeRoutes)

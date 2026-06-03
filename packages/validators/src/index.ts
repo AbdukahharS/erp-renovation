@@ -20,6 +20,7 @@ export * from "./auth.ts";
 export * from "./elysia.ts";
 export * from "./finance.ts";
 export * from "./hr.ts";
+export * from "./materials.ts";
 export * from "./notifications.ts";
 export * from "./properties.ts";
 export * from "./templates.ts";

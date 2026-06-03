@@ -290,12 +290,27 @@ describe("phase 7 finance — plan vs actual", () => {
 		await driveMasterStage(id, firstMaster.id, firstMaster.specialization);
 		const wageAmount = Number(firstMaster.wageAmount);
 
-		// Record a manual material cost.
-		const cost = await call(aOwnerCookie, `/owner/properties/${id}/costs`, {
+		// Material costs flow exclusively from warehouse issuances now.
+		// Create a material at $50/unit, then issue 1 unit to this property.
+		const matResp = await call(aOwnerCookie, "/owner/warehouse/materials", {
 			method: "POST",
-			body: JSON.stringify({ category: "MATERIAL", amount: "50.00", description: "tiles" }),
+			body: JSON.stringify({
+				name: "tiles",
+				unit: "m2",
+				price: "50.00",
+				initialQuantity: "5",
+			}),
 		});
-		expect(cost.status).toBe(200);
+		expect(matResp.status).toBe(200);
+		const { id: materialId } = (await matResp.json()) as { id: string };
+		const issueResp = await call(aOwnerCookie, "/owner/warehouse/issuances", {
+			method: "POST",
+			body: JSON.stringify({
+				propertyId: id,
+				lines: [{ materialId, quantity: "1", note: "tiles for kitchen" }],
+			}),
+		});
+		expect(issueResp.status).toBe(200);
 
 		const sum = (await (await call(aOwnerCookie, `/owner/properties/${id}/finance`)).json()) as {
 			summary: {
@@ -303,16 +318,19 @@ describe("phase 7 finance — plan vs actual", () => {
 				costsTotal: string;
 				netProfit: string;
 				plannedTotal: string;
+				materialsCost: string;
 				materialsEstimateMissing: boolean;
 				costsByCategory: Array<{ category: string; total: string }>;
 			};
 		};
 		expect(Number(sum.summary.accruedWages)).toBeCloseTo(wageAmount, 2);
+		expect(Number(sum.summary.materialsCost)).toBeCloseTo(50, 2);
 		expect(Number(sum.summary.costsTotal)).toBeCloseTo(50, 2);
 		expect(Number(sum.summary.plannedTotal)).toBeCloseTo(1000, 2); // 10 m² × $100/m²
 		expect(sum.summary.materialsEstimateMissing).toBe(false);
-		const matLine = sum.summary.costsByCategory.find((c) => c.category === "MATERIAL");
-		expect(Number(must(matLine).total)).toBeCloseTo(50, 2);
+		// MATERIAL is no longer in costsByCategory — that breakdown carries
+		// only off-warehouse expenses.
+		expect(sum.summary.costsByCategory.find((c) => c.category === "MATERIAL")).toBeUndefined();
 		// Net profit = planned − wages − cost
 		expect(Number(sum.summary.netProfit)).toBeCloseTo(1000 - wageAmount - 50, 2);
 	});

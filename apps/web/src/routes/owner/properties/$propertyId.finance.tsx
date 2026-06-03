@@ -2,6 +2,16 @@ import type { PropertyCostCategory } from "@repo/validators";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import {
+	AlertDialog,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
 	Select,
 	SelectContent,
@@ -9,18 +19,15 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { IssueMaterialsDialog } from "@/features/warehouse/issue-materials-dialog";
 import { useAddPropertyCost, usePropertyFinance, useReverseCost } from "@/lib/queries/finance";
+import { usePropertyIssuances, useReverseIssuance } from "@/lib/queries/warehouse";
 
 export const Route = createFileRoute("/owner/properties/$propertyId/finance")({
 	component: PropertyFinance,
 });
 
-const CATEGORIES: PropertyCostCategory[] = [
-	"MATERIAL",
-	"TRANSPORT",
-	"EXTERNAL_CONTRACTOR",
-	"OTHER",
-];
+const CATEGORIES: PropertyCostCategory[] = ["TRANSPORT", "EXTERNAL_CONTRACTOR", "OTHER"];
 
 function PropertyFinance() {
 	const { t } = useTranslation();
@@ -28,10 +35,13 @@ function PropertyFinance() {
 	const { data, isLoading } = usePropertyFinance(propertyId);
 	const addCost = useAddPropertyCost(propertyId);
 	const reverseCost = useReverseCost(propertyId);
+	const { data: issuances } = usePropertyIssuances(propertyId);
+	const reverseIssuance = useReverseIssuance(propertyId);
 
-	const [category, setCategory] = useState<PropertyCostCategory>("MATERIAL");
+	const [category, setCategory] = useState<PropertyCostCategory>("TRANSPORT");
 	const [amount, setAmount] = useState("");
 	const [description, setDescription] = useState("");
+	const [reverseIssuanceTarget, setReverseIssuanceTarget] = useState<string | null>(null);
 
 	if (isLoading || !data)
 		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
@@ -81,9 +91,10 @@ function PropertyFinance() {
 				)}
 			</header>
 
-			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
 				<Stat label={t("propertyFinance.plannedTotal")} value={`$${summary.plannedTotal}`} />
 				<Stat label={t("propertyFinance.wagesCredited")} value={`$${summary.accruedWages}`} />
+				<Stat label={t("propertyFinance.materialsCost")} value={`$${summary.materialsCost}`} />
 				<Stat label={t("propertyFinance.otherCosts")} value={`$${summary.costsTotal}`} />
 				<Stat
 					label={t("propertyFinance.netProfit")}
@@ -92,7 +103,7 @@ function PropertyFinance() {
 				/>
 			</div>
 
-			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
 				{summary.costsByCategory.map((c) => (
 					<Stat
 						key={c.category}
@@ -101,6 +112,64 @@ function PropertyFinance() {
 						muted
 					/>
 				))}
+			</div>
+
+			<div className="rounded-lg border">
+				<div className="flex items-center justify-between border-b bg-muted/50 px-3 py-2">
+					<span className="text-xs uppercase">{t("propertyFinance.materialsIssued")}</span>
+					<IssueMaterialsDialog propertyId={propertyId} disabled={summary.status === "ARCHIVED"} />
+				</div>
+				<table className="w-full text-sm">
+					<thead className="text-left text-xs uppercase">
+						<tr>
+							<th className="px-3 py-2">{t("propertyFinance.colDate")}</th>
+							<th className="px-3 py-2">{t("warehouse.col.material")}</th>
+							<th className="px-3 py-2 text-right">{t("warehouse.col.quantity")}</th>
+							<th className="px-3 py-2 text-right">{t("warehouse.col.unitPrice")}</th>
+							<th className="px-3 py-2 text-right">{t("propertyFinance.colAmount")}</th>
+							<th className="px-3 py-2"></th>
+						</tr>
+					</thead>
+					<tbody>
+						{(issuances ?? []).map((i) => (
+							<tr
+								key={i.id}
+								className={`border-t ${i.reversedAt ? "text-muted-foreground line-through" : ""}`}
+							>
+								<td className="px-3 py-2 text-xs">
+									{new Date(i.createdAt).toISOString().slice(0, 10)}
+								</td>
+								<td className="px-3 py-2 text-xs">
+									{i.materialName}{" "}
+									<span className="text-muted-foreground">
+										({t(`warehouse.unit.${i.materialUnit}`, i.materialUnit)})
+									</span>
+								</td>
+								<td className="px-3 py-2 text-right tabular-nums">{i.quantity}</td>
+								<td className="px-3 py-2 text-right tabular-nums">${i.unitPriceSnapshot}</td>
+								<td className="px-3 py-2 text-right tabular-nums">${i.amount}</td>
+								<td className="px-3 py-2 text-right">
+									{!i.reversedAt && summary.status !== "ARCHIVED" && (
+										<button
+											type="button"
+											onClick={() => setReverseIssuanceTarget(i.id)}
+											className="text-xs underline"
+										>
+											{t("propertyFinance.reverse")}
+										</button>
+									)}
+								</td>
+							</tr>
+						))}
+						{(issuances ?? []).length === 0 && (
+							<tr>
+								<td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+									{t("warehouse.noIssuances")}
+								</td>
+							</tr>
+						)}
+					</tbody>
+				</table>
 			</div>
 
 			<div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
@@ -243,6 +312,39 @@ function PropertyFinance() {
 					})}
 				</div>
 			)}
+
+			<AlertDialog
+				open={!!reverseIssuanceTarget}
+				onOpenChange={(o) => !o && setReverseIssuanceTarget(null)}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>{t("warehouse.reverseIssuanceTitle")}</AlertDialogTitle>
+						<AlertDialogDescription>{t("warehouse.reverseIssuanceConfirm")}</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<Button variant="outline" onClick={() => setReverseIssuanceTarget(null)}>
+							{t("common.cancel")}
+						</Button>
+						<Button
+							variant="destructive"
+							onClick={() => {
+								if (!reverseIssuanceTarget) return;
+								reverseIssuance.mutate(reverseIssuanceTarget, {
+									onSuccess: () => {
+										toast.success(t("warehouse.reversed"));
+										setReverseIssuanceTarget(null);
+									},
+									onError: (e: Error) => toast.error(e.message),
+								});
+							}}
+							disabled={reverseIssuance.isPending}
+						>
+							{reverseIssuance.isPending ? t("common.saving") : t("propertyFinance.reverse")}
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</section>
 	);
 }
