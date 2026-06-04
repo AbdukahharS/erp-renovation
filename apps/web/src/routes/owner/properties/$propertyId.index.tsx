@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { WalletIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useProperty } from "@/lib/queries/properties";
 
-export const Route = createFileRoute("/owner/properties/$propertyId")({
+export const Route = createFileRoute("/owner/properties/$propertyId/")({
 	staticData: { crumbKey: "crumbs.detail" },
 	component: PropertyDetail,
 });
@@ -81,12 +82,22 @@ function PropertyDetail() {
 						</span>
 					</div>
 				</div>
-				{data.floorPlanAsset && (
-					<div className="text-xs text-muted-foreground">
-						<div>{t("propertyDetail.floorPlanAttached")}</div>
-						<div className="font-mono">{data.floorPlanAsset.contentType}</div>
-					</div>
-				)}
+				<div className="flex flex-col items-end gap-2">
+					<Link
+						to="/owner/properties/$propertyId/finance"
+						params={{ propertyId }}
+						className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent"
+					>
+						<WalletIcon className="size-3.5" />
+						{t("propertyDetail.openFinance", "Finance & materials")}
+					</Link>
+					{data.floorPlanAsset && (
+						<div className="text-xs text-muted-foreground">
+							<div>{t("propertyDetail.floorPlanAttached")}</div>
+							<div className="font-mono">{data.floorPlanAsset.contentType}</div>
+						</div>
+					)}
+				</div>
 			</header>
 
 			{data.status === "PENDING" && (

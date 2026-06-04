@@ -587,7 +587,18 @@
 		"colType": "Тип",
 		"colNote": "Заметка",
 		"colAmount": "Сумма",
-		"noTransactions": "Транзакций пока нет."
+		"noTransactions": "Транзакций пока нет.",
+		"txType": {
+			"WAGE_CREDIT": "Начисление",
+			"BUDGET_DECREMENT": "Списание бюджета",
+			"MATERIAL_COST": "Материалы",
+			"TRANSPORT_COST": "Транспорт",
+			"EXTERNAL_CONTRACTOR_COST": "Внешний подрядчик",
+			"OTHER_COST": "Прочие расходы",
+			"FINE": "Штраф",
+			"PAYOUT_SETTLEMENT": "Выплата",
+			"REVERSAL": "Сторно"
+		}
 	},
 	"settings": {
 		"title": "Настройки арендатора",
@@ -775,5 +786,13 @@
 			"enter": "Введите пароль",
 			"meter": "{{length}}/12 мин"
 		}
+	},
+	"tx": {
+		"wageCredit": "Начисление за подэтап {{subStageInstanceId}}",
+		"budgetDecrement": "Списание бюджета за подэтап {{subStageInstanceId}}",
+		"payoutSettled": "Выплата произведена",
+		"fine": "Штраф: {{reason}}",
+		"reversalOfCost": "Сторно расхода {{costId}}",
+		"reversalOfIssuance": "Сторно выдачи {{issuanceId}}"
 	}
 }

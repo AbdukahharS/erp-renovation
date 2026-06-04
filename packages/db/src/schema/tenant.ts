@@ -567,6 +567,10 @@ export const financialTransactions = pgTable(
 		}),
 		amount: numeric("amount", { precision: 14, scale: 2 }).notNull().default("0"),
 		description: text("description"),
+		// Structured i18n payload: clients render `t(descriptionKey, descriptionParams)`.
+		// Free-form `description` is the fallback for operator-supplied notes.
+		descriptionKey: text("description_key"),
+		descriptionParams: jsonb("description_params"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 	},
 	(t) => [

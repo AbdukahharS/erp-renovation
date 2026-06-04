@@ -46,8 +46,17 @@ function MasterFinance() {
 								<td className="px-3 py-2 text-xs">
 									{new Date(tr.createdAt).toISOString().slice(0, 10)}
 								</td>
-								<td className="px-3 py-2 text-xs">{tr.type}</td>
-								<td className="px-3 py-2 text-xs">{tr.description ?? t("common.em")}</td>
+								<td className="px-3 py-2 text-xs">
+									{t(`masterFinance.txType.${tr.type}`, { defaultValue: tr.type })}
+								</td>
+								<td className="px-3 py-2 text-xs">
+									{tr.descriptionKey
+										? t(tr.descriptionKey, {
+												...(tr.descriptionParams ?? {}),
+												defaultValue: tr.description ?? "",
+											})
+										: (tr.description ?? t("common.em"))}
+								</td>
 								<td
 									className={`px-3 py-2 text-right tabular-nums ${
 										Number(tr.amount) < 0 ? "text-rose-700" : "text-emerald-700"

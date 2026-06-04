@@ -587,7 +587,18 @@
 		"colType": "Turi",
 		"colNote": "Izoh",
 		"colAmount": "Summa",
-		"noTransactions": "Hozircha tranzaksiyalar yoʻq."
+		"noTransactions": "Hozircha tranzaksiyalar yoʻq.",
+		"txType": {
+			"WAGE_CREDIT": "Ish haqi",
+			"BUDGET_DECREMENT": "Byudjetdan chegirma",
+			"MATERIAL_COST": "Materiallar",
+			"TRANSPORT_COST": "Transport",
+			"EXTERNAL_CONTRACTOR_COST": "Tashqi pudratchi",
+			"OTHER_COST": "Boshqa xarajatlar",
+			"FINE": "Jarima",
+			"PAYOUT_SETTLEMENT": "Toʻlov",
+			"REVERSAL": "Bekor qilish"
+		}
 	},
 	"settings": {
 		"title": "Ijarachi sozlamalari",
@@ -775,5 +786,13 @@
 			"enter": "Parol kiriting",
 			"meter": "{{length}}/12 min"
 		}
+	},
+	"tx": {
+		"wageCredit": "{{subStageInstanceId}} kichik bosqichi uchun ish haqi",
+		"budgetDecrement": "{{subStageInstanceId}} kichik bosqichi uchun byudjetdan chegirma",
+		"payoutSettled": "Toʻlov amalga oshirildi",
+		"fine": "Jarima: {{reason}}",
+		"reversalOfCost": "{{costId}} xarajati bekor qilindi",
+		"reversalOfIssuance": "{{issuanceId}} chiqimi bekor qilindi"
 	}
 }

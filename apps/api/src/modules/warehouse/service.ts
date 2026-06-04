@@ -369,9 +369,8 @@ export async function reverseIssuance(
 		type: "REVERSAL",
 		propertyId: iss.propertyId,
 		amount: `-${iss.amount}`,
-		// Description is internal/audit (financial ledger), not user-visible in
-		// the warehouse movements UI — keep the human-readable form here.
-		description: `Reversal of issuance ${iss.id}`,
+		descriptionKey: "tx.reversalOfIssuance",
+		descriptionParams: { issuanceId: iss.id },
 	});
 	await tx.insert(materialMovements).values({
 		materialId: iss.materialId,

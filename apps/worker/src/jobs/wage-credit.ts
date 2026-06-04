@@ -77,7 +77,8 @@ export async function processWageCredit(job: { data: WageCreditJobData }): Promi
 				propertyId,
 				subStageInstanceId,
 				amount: wageAmount,
-				description: `Wage credit for sub-stage ${subStageInstanceId}`,
+				descriptionKey: "tx.wageCredit",
+				descriptionParams: { subStageInstanceId },
 			})
 			.onConflictDoNothing({
 				target: [financialTransactions.subStageInstanceId, financialTransactions.type],
@@ -86,15 +87,19 @@ export async function processWageCredit(job: { data: WageCreditJobData }): Promi
 
 		// Mirror the same insert for BUDGET_DECREMENT so Phase 7's Plan-vs-Actual
 		// can derive remaining budget as plannedUnitCost*area − sum(BUDGET_DECREMENT).
+		// `masterUserId` is intentionally NOT set: BUDGET_DECREMENT is a
+		// property-level event (accrued cost against the property's planned budget),
+		// not a credit to the master. Setting it would leak the row into the
+		// master's wallet view (which filters by master_user_id).
 		await tx
 			.insert(financialTransactions)
 			.values({
 				type: "BUDGET_DECREMENT",
-				masterUserId,
 				propertyId,
 				subStageInstanceId,
 				amount: wageAmount,
-				description: `Budget decrement for sub-stage ${subStageInstanceId}`,
+				descriptionKey: "tx.budgetDecrement",
+				descriptionParams: { subStageInstanceId },
 			})
 			.onConflictDoNothing({
 				target: [financialTransactions.subStageInstanceId, financialTransactions.type],

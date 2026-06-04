@@ -95,7 +95,8 @@ export async function reversePropertyCost(
 		type: "REVERSAL",
 		propertyId: cost.propertyId,
 		amount: negAmount,
-		description: `Reversal of cost ${cost.id}`,
+		descriptionKey: "tx.reversalOfCost",
+		descriptionParams: { costId: cost.id },
 	});
 	await tx
 		.update(propertyCosts)
@@ -128,7 +129,8 @@ export async function applyFine(
 			masterUserId: args.masterUserId,
 			propertyId: args.propertyId,
 			amount: negAmount,
-			description: `Fine: ${args.input.reason}`,
+			descriptionKey: "tx.fine",
+			descriptionParams: { reason: args.input.reason },
 		})
 		.returning({ id: financialTransactions.id });
 	if (!txn) throw new Error("failed to insert fine transaction");
@@ -175,7 +177,10 @@ export async function markPayoutSettled(
 			type: "PAYOUT_SETTLEMENT",
 			masterUserId: args.masterUserId,
 			amount: negAmount,
-			description: args.input.note ?? "Payout settled",
+			// If the operator supplied a free-form note, keep it as-is (it's their
+			// text and we can't translate it). Otherwise fall through to the i18n key.
+			description: args.input.note ?? null,
+			descriptionKey: args.input.note ? null : "tx.payoutSettled",
 		})
 		.returning({ id: financialTransactions.id });
 	if (!txn) throw new Error("failed to insert payout transaction");
@@ -346,10 +351,19 @@ export async function buildMasterFinanceView(
 		.from(masterBalances)
 		.where(eq(masterBalances.masterUserId, masterUserId))
 		.limit(1);
+	// Only types that are genuine master-ledger events. Property-level types
+	// (BUDGET_DECREMENT, MATERIAL_COST, TRANSPORT_COST, EXTERNAL_CONTRACTOR_COST,
+	// OTHER_COST, REVERSAL) must never appear in a master's wallet even if a
+	// row was historically written with master_user_id set.
 	const txns = await tx
 		.select()
 		.from(financialTransactions)
-		.where(eq(financialTransactions.masterUserId, masterUserId))
+		.where(
+			and(
+				eq(financialTransactions.masterUserId, masterUserId),
+				inArray(financialTransactions.type, ["WAGE_CREDIT", "FINE", "PAYOUT_SETTLEMENT"]),
+			),
+		)
 		.orderBy(desc(financialTransactions.createdAt))
 		.limit(200);
 	const settlements = await tx

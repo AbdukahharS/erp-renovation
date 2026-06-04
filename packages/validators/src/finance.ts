@@ -28,6 +28,8 @@ export const FinancialTransactionSchema = z.object({
 	subStageInstanceId: z.string().uuid().nullable(),
 	amount: z.string(),
 	description: z.string().nullable(),
+	descriptionKey: z.string().nullable(),
+	descriptionParams: z.record(z.string(), z.unknown()).nullable(),
 	createdAt: z.coerce.date(),
 });
 export type FinancialTransaction = z.infer<typeof FinancialTransactionSchema>;

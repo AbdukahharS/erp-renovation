@@ -587,7 +587,18 @@
 		"colType": "Type",
 		"colNote": "Note",
 		"colAmount": "Amount",
-		"noTransactions": "No transactions yet."
+		"noTransactions": "No transactions yet.",
+		"txType": {
+			"WAGE_CREDIT": "Wage credit",
+			"BUDGET_DECREMENT": "Budget decrement",
+			"MATERIAL_COST": "Material cost",
+			"TRANSPORT_COST": "Transport cost",
+			"EXTERNAL_CONTRACTOR_COST": "External contractor",
+			"OTHER_COST": "Other cost",
+			"FINE": "Fine",
+			"PAYOUT_SETTLEMENT": "Payout",
+			"REVERSAL": "Reversal"
+		}
 	},
 	"settings": {
 		"title": "Tenant settings",
@@ -775,5 +786,13 @@
 			"enter": "Enter a password",
 			"meter": "{{length}}/12 min"
 		}
+	},
+	"tx": {
+		"wageCredit": "Wage credit for sub-stage {{subStageInstanceId}}",
+		"budgetDecrement": "Budget decrement for sub-stage {{subStageInstanceId}}",
+		"payoutSettled": "Payout settled",
+		"fine": "Fine: {{reason}}",
+		"reversalOfCost": "Reversal of cost {{costId}}",
+		"reversalOfIssuance": "Reversal of issuance {{issuanceId}}"
 	}
 }
