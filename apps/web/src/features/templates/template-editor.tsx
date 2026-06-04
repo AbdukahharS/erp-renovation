@@ -1,14 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CreateStageInput, type TemplateTree } from "@repo/validators";
+import { useNavigate } from "@tanstack/react-router";
 import { Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useTemplateMutations, useTemplateTree } from "@/lib/queries/templates";
+import { useDeleteTemplate, useTemplateMutations, useTemplateTree } from "@/lib/queries/templates";
 import type { EditorOps } from "./components/ops";
 import { opsFromMutators } from "./components/ops";
-import { InlineText } from "./components/primitives";
+import { ConfirmDelete, InlineText } from "./components/primitives";
 import { moveStage, StageEditor } from "./components/stage-editor";
 
 type AddStageForm = { name: string };
@@ -95,25 +96,41 @@ export function TemplateTreeEditor({
 
 export function TemplateEditor({ templateId }: { templateId: string }) {
 	const { t } = useTranslation();
+	const navigate = useNavigate();
 	const { data: tree, isLoading, error } = useTemplateTree(templateId);
 	const m = useTemplateMutations(templateId);
 	const ops = opsFromMutators(m);
+	const del = useDeleteTemplate();
 
 	if (isLoading)
 		return <p className="text-sm text-muted-foreground">{t("templates.loadingTemplate")}</p>;
 	if (error) return <p className="text-sm text-destructive">{String(error)}</p>;
 	if (!tree) return null;
 
+	const handleDelete = () => {
+		del.mutate(templateId, {
+			onSuccess: () => navigate({ to: "/owner/templates" }),
+		});
+	};
+
 	return (
 		<TemplateTreeEditor
 			tree={tree}
 			ops={ops}
 			renameLabelSlot={
-				<InlineText
-					value={tree.name}
-					onSave={(v) => ops.renameTemplate?.(v)}
-					className="text-2xl font-semibold"
-				/>
+				<div className="flex items-center gap-2">
+					<InlineText
+						value={tree.name}
+						onSave={(v) => ops.renameTemplate?.(v)}
+						className="text-2xl font-semibold"
+					/>
+					<ConfirmDelete
+						title={t("templates.deleteTemplateTitle", { name: tree.name })}
+						description={t("templates.deleteTemplateDesc")}
+						ariaLabel={t("templates.deleteTemplateAria")}
+						onConfirm={handleDelete}
+					/>
+				</div>
 			}
 		/>
 	);

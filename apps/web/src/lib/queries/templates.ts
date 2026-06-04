@@ -38,6 +38,14 @@ export function useCreateTemplate() {
 	});
 }
 
+export function useDeleteTemplate() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (id: string) => unwrap(api.templates({ templateId: id }).delete()),
+		onSuccess: () => qc.invalidateQueries({ queryKey: templateKeys.list() }),
+	});
+}
+
 export function useSpecializations() {
 	return useQuery({
 		queryKey: templateKeys.specializations(),

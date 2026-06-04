@@ -9,11 +9,11 @@ export const Route = createFileRoute("/owner/properties/$propertyId/")({
 });
 
 const STATUS_BADGE: Record<string, string> = {
-	PENDING: "bg-amber-100 text-amber-900",
-	READY_FOR_PRODUCTION: "bg-blue-100 text-blue-900",
-	IN_PROGRESS: "bg-emerald-100 text-emerald-900",
-	COMPLETED: "bg-zinc-200 text-zinc-900",
-	ARCHIVED: "bg-zinc-100 text-zinc-600",
+	PENDING: "bg-amber-100 text-amber-900 dark:bg-amber-950/50 dark:text-amber-200",
+	READY_FOR_PRODUCTION: "bg-blue-100 text-blue-900 dark:bg-blue-950/50 dark:text-blue-200",
+	IN_PROGRESS: "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200",
+	COMPLETED: "bg-zinc-200 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100",
+	ARCHIVED: "bg-zinc-100 text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400",
 };
 
 const COLUMN_ORDER = [
@@ -26,12 +26,12 @@ const COLUMN_ORDER = [
 ] as const;
 
 const COLUMN_STYLE: Record<string, string> = {
-	LOCKED: "bg-zinc-50 border-zinc-200",
-	AVAILABLE: "bg-blue-50 border-blue-200",
-	IN_PROGRESS: "bg-amber-50 border-amber-200",
-	SUBMITTED: "bg-purple-50 border-purple-200",
-	ACCEPTED: "bg-emerald-50 border-emerald-200",
-	REJECTED: "bg-rose-50 border-rose-200",
+	LOCKED: "bg-zinc-50 border-zinc-200 dark:bg-zinc-900/40 dark:border-zinc-800",
+	AVAILABLE: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900/60",
+	IN_PROGRESS: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900/60",
+	SUBMITTED: "bg-purple-50 border-purple-200 dark:bg-purple-950/30 dark:border-purple-900/60",
+	ACCEPTED: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-900/60",
+	REJECTED: "bg-rose-50 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/60",
 };
 
 function PropertyDetail() {
@@ -101,7 +101,7 @@ function PropertyDetail() {
 			</header>
 
 			{data.status === "PENDING" && (
-				<div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm">
+				<div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-100">
 					{t("propertyDetail.awaitingInspector")}
 				</div>
 			)}
@@ -121,7 +121,7 @@ function PropertyDetail() {
 										<div className="flex items-baseline justify-between gap-2">
 											<span className="font-mono text-[10px] text-muted-foreground">{ss.code}</span>
 											<span
-												className={`rounded px-1.5 py-0.5 text-[10px] ${ss.performerType === "INSPECTOR" ? "bg-blue-100 text-blue-900" : "bg-zinc-200 text-zinc-800"}`}
+												className={`rounded px-1.5 py-0.5 text-[10px] ${ss.performerType === "INSPECTOR" ? "bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200" : "bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"}`}
 											>
 												{ss.performerType}
 											</span>

@@ -429,6 +429,24 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 		{ body: zodBody(UpdateTemplateInput) },
 	)
 
+	.delete("/templates/:templateId", async ({ params, runInTenant, set }) => {
+		if (!runInTenant) {
+			set.status = 401;
+			return { error: "no tenant" };
+		}
+		return await runInTenant(async (tx) => {
+			const [row] = await tx
+				.delete(templates)
+				.where(eq(templates.id, params.templateId))
+				.returning();
+			if (!row) {
+				set.status = 404;
+				return { error: "not found" };
+			}
+			return { ok: true };
+		});
+	})
+
 	// ---------- Stages ----------
 	.post(
 		"/templates/:templateId/stages",
