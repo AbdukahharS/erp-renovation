@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -7,10 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import type { StageMediaView } from "@/lib/queries/acceptance";
 import {
 	uploadToPresignedUrl,
 	useAcceptStage,
 	useAttachInspectorMedia,
+	useDetachInspectorMedia,
 	useManualOverride,
 	usePresignInspectorMedia,
 	useRejectStage,
@@ -26,6 +29,7 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 	const { data, isLoading, error } = useStageDetail("inspector", subStageId);
 	const presign = usePresignInspectorMedia(subStageId);
 	const attach = useAttachInspectorMedia(subStageId);
+	const detach = useDetachInspectorMedia(subStageId);
 	const submitSelf = useSubmitSelfStage();
 	const accept = useAcceptStage();
 	const reject = useRejectStage();
@@ -60,6 +64,8 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 	const isInspectorStage = subStage.performerType === "INSPECTOR";
 	const canSubmitSelf = isInspectorStage && subStage.status === "AVAILABLE" && media.length > 0;
 	const canResolve = subStage.status === "SUBMITTED";
+	const beforeMedia = media.filter((m) => m.kind === "BEFORE_PHOTO");
+	const otherMedia = media.filter((m) => m.kind !== "BEFORE_PHOTO");
 
 	async function handleFile(file: File, kind: "BEFORE_PHOTO" | "DEFECT_PHOTO") {
 		setUploadError(null);
@@ -110,40 +116,37 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 
 			{/* INSPECTOR-PERFORMED stage (e.g. 1.1) — upload BEFORE_PHOTO + materials toggle, then submit-self */}
 			{isInspectorStage && subStage.status === "AVAILABLE" && (
-				<Card className="space-y-3 p-4">
-					<h2 className="text-sm font-semibold">{t("inspectorStage.initialAcceptance")}</h2>
-					<p className="text-xs text-muted-foreground">{t("inspectorStage.initialDesc")}</p>
-					<label className="block">
-						<span className="sr-only">{t("inspectorStage.takePhoto")}</span>
-						<input
-							type="file"
-							accept="image/*,video/*"
-							capture="environment"
-							disabled={uploading}
-							onChange={(e) => {
-								const file = e.target.files?.[0];
-								if (file) handleFile(file, "BEFORE_PHOTO");
-								e.target.value = "";
-							}}
-							className="block w-full text-sm"
+				<Card className="space-y-4 p-4">
+					<div>
+						<h2 className="text-sm font-semibold">{t("inspectorStage.initialAcceptance")}</h2>
+						<p className="mt-1 text-xs text-muted-foreground">{t("inspectorStage.initialDesc")}</p>
+					</div>
+
+					<MediaUploader
+						label={t("inspectorStage.choosePhotoOrVideo")}
+						hint={t("inspectorStage.tapToUpload")}
+						accept="image/*,video/*"
+						uploading={uploading}
+						onFile={(file) => handleFile(file, "BEFORE_PHOTO")}
+					/>
+
+					{beforeMedia.length > 0 && (
+						<MediaGrid
+							media={beforeMedia}
+							onRemove={(assetId) => detach.mutate(assetId)}
+							removingId={detach.isPending ? (detach.variables ?? null) : null}
+							removeLabel={t("inspectorStage.removeMedia")}
 						/>
-					</label>
+					)}
+
 					<div className="flex items-center gap-2">
 						<Switch id="materials" checked={materialsOnSite} onCheckedChange={setMaterialsOnSite} />
 						<Label htmlFor="materials">{t("inspectorStage.materialsOnSite")}</Label>
 					</div>
+
 					<Button
 						size="lg"
-						onClick={() =>
-							submitSelf.mutate(
-								{ id: subStageId, materialsOnSite },
-								{
-									onSuccess: () => {
-										// next render will land on SUBMITTED + ready to accept
-									},
-								},
-							)
-						}
+						onClick={() => submitSelf.mutate({ id: subStageId, materialsOnSite })}
 						disabled={!canSubmitSelf || submitSelf.isPending}
 						className="w-full"
 					>
@@ -157,30 +160,16 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 				</Card>
 			)}
 
-			{/* Media gallery — visible whenever any media exists */}
-			{media.length > 0 && (
-				<Card className="space-y-2 p-4">
-					<h2 className="text-sm font-semibold">
-						{t("inspectorStage.mediaCount", { count: media.length })}
-					</h2>
-					<div className="grid grid-cols-3 gap-2">
-						{media.map((m) =>
-							m.contentType.startsWith("image/") && m.url ? (
-								<img
-									key={m.id}
-									src={m.url}
-									alt=""
-									className="aspect-square w-full rounded object-cover"
-								/>
-							) : (
-								<div key={m.id} className="aspect-square rounded bg-muted text-center text-xs">
-									<div className="p-2 font-mono">{m.kind}</div>
-								</div>
-							),
-						)}
-					</div>
-				</Card>
-			)}
+			{/* Read-only gallery for non-AVAILABLE inspector stages or master-performed stages */}
+			{!(isInspectorStage && subStage.status === "AVAILABLE") &&
+				(otherMedia.length > 0 || beforeMedia.length > 0) && (
+					<Card className="space-y-2 p-4">
+						<h2 className="text-sm font-semibold">
+							{t("inspectorStage.mediaCount", { count: media.length })}
+						</h2>
+						<MediaGrid media={[...beforeMedia, ...otherMedia]} />
+					</Card>
+				)}
 
 			{/* Checklist + Accept/Reject for SUBMITTED */}
 			{canResolve && (
@@ -258,17 +247,12 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 								rows={3}
 							/>
 							<Label>{t("inspectorStage.defectPhotoOptional")}</Label>
-							<input
-								type="file"
+							<MediaUploader
+								label={t("inspectorStage.choosePhoto")}
+								hint={t("inspectorStage.tapToUpload")}
 								accept="image/*"
-								capture="environment"
-								disabled={uploading}
-								onChange={(e) => {
-									const file = e.target.files?.[0];
-									if (file) handleFile(file, "DEFECT_PHOTO");
-									e.target.value = "";
-								}}
-								className="block w-full text-sm"
+								uploading={uploading}
+								onFile={(file) => handleFile(file, "DEFECT_PHOTO")}
 							/>
 							{defectAssetId && (
 								<p className="text-xs text-emerald-700">
@@ -425,5 +409,99 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 
 			{uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
 		</section>
+	);
+}
+
+function MediaUploader({
+	label,
+	hint,
+	accept,
+	uploading,
+	onFile,
+}: {
+	label: string;
+	hint: string;
+	accept: string;
+	uploading: boolean;
+	onFile: (file: File) => void;
+}) {
+	return (
+		<label
+			className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-6 text-center transition-colors hover:bg-muted/60 ${
+				uploading ? "pointer-events-none opacity-60" : ""
+			}`}
+		>
+			{uploading ? (
+				<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+			) : (
+				<ImagePlus className="h-6 w-6 text-muted-foreground" />
+			)}
+			<div className="space-y-0.5">
+				<div className="text-sm font-medium">{label}</div>
+				<div className="text-xs text-muted-foreground">{hint}</div>
+			</div>
+			<input
+				type="file"
+				accept={accept}
+				capture="environment"
+				disabled={uploading}
+				onChange={(e) => {
+					const file = e.target.files?.[0];
+					if (file) onFile(file);
+					e.target.value = "";
+				}}
+				className="sr-only"
+			/>
+		</label>
+	);
+}
+
+function MediaGrid({
+	media,
+	onRemove,
+	removingId,
+	removeLabel,
+}: {
+	media: StageMediaView[];
+	onRemove?: (assetId: string) => void;
+	removingId?: string | null;
+	removeLabel?: string;
+}) {
+	return (
+		<div className="grid grid-cols-3 gap-2">
+			{media.map((m) => {
+				const isImage = m.contentType.startsWith("image/") && m.url;
+				const isRemoving = removingId === m.assetId;
+				return (
+					<div
+						key={m.id}
+						className="group relative aspect-square overflow-hidden rounded-md border bg-muted"
+					>
+						{isImage ? (
+							<img src={m.url ?? ""} alt="" className="h-full w-full object-cover" />
+						) : (
+							<div className="flex h-full items-center justify-center p-2 text-center text-[10px] font-mono text-muted-foreground">
+								{m.contentType}
+							</div>
+						)}
+						{onRemove && (
+							<button
+								type="button"
+								onClick={() => onRemove(m.assetId)}
+								disabled={isRemoving}
+								aria-label={removeLabel}
+								className="absolute right-1.5 top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border transition hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50"
+							>
+								{isRemoving ? (
+									<Loader2 className="h-3.5 w-3.5 animate-spin" />
+								) : (
+									<Trash2 className="h-3.5 w-3.5" />
+								)}
+							</button>
+						)}
+					</div>
+				);
+			})}
+		</div>
 	);
 }

@@ -666,7 +666,14 @@
 		"reason": "Причина",
 		"applying": "Применение…",
 		"applyFine": "Применить штраф",
-		"fineAlreadyApplied": "Штраф уже применён к последнему отклонению."
+		"fineAlreadyApplied": "Штраф уже применён к последнему отклонению.",
+		"choosePhotoOrVideo": "Выбрать фото или видео",
+		"choosePhoto": "Выбрать фото",
+		"tapToUpload": "Нажмите, чтобы загрузить",
+		"orDragHere": "или перетащите файл сюда",
+		"uploading": "Загрузка…",
+		"removeMedia": "Удалить",
+		"removing": "Удаление…"
 	},
 	"masterHome": {
 		"inProgressTitle": "В работе",
@@ -691,7 +698,12 @@
 		"complete": "Завершить",
 		"needPhoto": "Загрузите хотя бы одно фото, чтобы активировать «Завершить».",
 		"submittedNotice": "Отправлено на приёмку. Ожидается проверка инспектором.",
-		"acceptedNotice": "Принято. Зарплата начислена."
+		"acceptedNotice": "Принято. Зарплата начислена.",
+		"choosePhotoOrVideo": "Выбрать фото или видео",
+		"tapToUpload": "Нажмите, чтобы загрузить",
+		"orDragHere": "или перетащите файл сюда",
+		"removeMedia": "Удалить",
+		"removing": "Удаление…"
 	},
 	"procurement": {
 		"title": "Снабжение (заглушка)",

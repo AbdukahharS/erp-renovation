@@ -666,7 +666,14 @@
 		"reason": "Sabab",
 		"applying": "Qoʻllanmoqda…",
 		"applyFine": "Jarimani qoʻllash",
-		"fineAlreadyApplied": "Oxirgi radga jarima allaqachon qoʻllangan."
+		"fineAlreadyApplied": "Oxirgi radga jarima allaqachon qoʻllangan.",
+		"choosePhotoOrVideo": "Foto yoki video tanlash",
+		"choosePhoto": "Foto tanlash",
+		"tapToUpload": "Yuklash uchun bosing",
+		"orDragHere": "yoki faylni bu yerga torting",
+		"uploading": "Yuklanmoqda…",
+		"removeMedia": "Oʻchirish",
+		"removing": "Oʻchirilmoqda…"
 	},
 	"masterHome": {
 		"inProgressTitle": "Jarayonda",
@@ -691,7 +698,12 @@
 		"complete": "Yakunlash",
 		"needPhoto": "«Yakunlash» faollashishi uchun kamida bitta foto yuklang.",
 		"submittedNotice": "Qabulga yuborildi. Nazoratchi koʻrib chiqishini kutmoqda.",
-		"acceptedNotice": "Qabul qilindi. Ish haqi hisoblangan."
+		"acceptedNotice": "Qabul qilindi. Ish haqi hisoblangan.",
+		"choosePhotoOrVideo": "Foto yoki video tanlash",
+		"tapToUpload": "Yuklash uchun bosing",
+		"orDragHere": "yoki faylni bu yerga torting",
+		"removeMedia": "Oʻchirish",
+		"removing": "Oʻchirilmoqda…"
 	},
 	"procurement": {
 		"title": "Taʼminot (vaqtinchalik)",

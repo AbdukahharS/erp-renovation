@@ -1,12 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import type { StageMediaView } from "@/lib/queries/acceptance";
 import {
 	uploadToPresignedUrl,
 	useAttachStageMedia,
+	useDetachStageMedia,
 	usePresignStageMedia,
 	useStageDetail,
 	useSubmitStage,
@@ -24,6 +27,7 @@ function MasterStageDetail() {
 	const take = useTakeStage();
 	const presign = usePresignStageMedia(subStageId);
 	const attach = useAttachStageMedia(subStageId);
+	const detach = useDetachStageMedia(subStageId);
 	const submit = useSubmitStage();
 	const [uploading, setUploading] = useState(false);
 	const [uploadError, setUploadError] = useState<string | null>(null);
@@ -88,10 +92,10 @@ function MasterStageDetail() {
 			)}
 
 			{(subStage.status === "IN_PROGRESS" || subStage.status === "REJECTED") && (
-				<>
-					<Card className="space-y-3 p-4">
+				<Card className="space-y-4 p-4">
+					<div>
 						<h2 className="text-sm font-semibold">{t("masterStage.requiredPhotos")}</h2>
-						<ul className="space-y-1 text-sm text-muted-foreground">
+						<ul className="mt-2 space-y-1 text-sm text-muted-foreground">
 							{subStage.mediaRequirements.map((r) => (
 								<li key={r.id} className="flex items-start gap-2">
 									<span
@@ -106,51 +110,31 @@ function MasterStageDetail() {
 								</li>
 							))}
 						</ul>
-						<label className="block">
-							<span className="sr-only">{t("masterStage.takePhoto")}</span>
-							<input
-								type="file"
-								accept="image/*,video/*"
-								capture="environment"
-								disabled={uploading}
-								onChange={(e) => {
-									const file = e.target.files?.[0];
-									if (file) handleFile(file);
-									e.target.value = "";
-								}}
-								className="block w-full text-sm"
-							/>
-						</label>
-						{uploading && <p className="text-sm">{t("masterStage.uploading")}</p>}
-						{uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
-					</Card>
+					</div>
+
+					<MediaUploader
+						label={t("masterStage.choosePhotoOrVideo")}
+						hint={t("masterStage.tapToUpload")}
+						accept="image/*,video/*"
+						uploading={uploading}
+						onFile={handleFile}
+					/>
 
 					{media.length > 0 && (
-						<Card className="space-y-2 p-4">
-							<h2 className="text-sm font-semibold">
+						<div className="space-y-2">
+							<div className="text-xs font-medium text-muted-foreground">
 								{t("masterStage.uploadedCount", { count: media.length })}
-							</h2>
-							<div className="grid grid-cols-3 gap-2">
-								{media.map((m) =>
-									m.contentType.startsWith("image/") && m.url ? (
-										<img
-											key={m.id}
-											src={m.url}
-											alt=""
-											className="aspect-square w-full rounded object-cover"
-										/>
-									) : (
-										<div
-											key={m.id}
-											className="aspect-square rounded bg-muted text-center text-xs leading-tight"
-										>
-											<div className="p-2 font-mono">{m.contentType}</div>
-										</div>
-									),
-								)}
 							</div>
-						</Card>
+							<MediaGrid
+								media={media}
+								onRemove={(assetId) => detach.mutate(assetId)}
+								removingId={detach.isPending ? (detach.variables ?? null) : null}
+								removeLabel={t("masterStage.removeMedia")}
+							/>
+						</div>
 					)}
+
+					{uploadError && <p className="text-sm text-destructive">{uploadError}</p>}
 
 					<Button
 						size="lg"
@@ -163,7 +147,7 @@ function MasterStageDetail() {
 					{submitDisabled && requiredCount > 0 && !hasMedia && (
 						<p className="text-xs text-muted-foreground">{t("masterStage.needPhoto")}</p>
 					)}
-				</>
+				</Card>
 			)}
 
 			{subStage.status === "SUBMITTED" && (
@@ -178,5 +162,99 @@ function MasterStageDetail() {
 				</Card>
 			)}
 		</section>
+	);
+}
+
+function MediaUploader({
+	label,
+	hint,
+	accept,
+	uploading,
+	onFile,
+}: {
+	label: string;
+	hint: string;
+	accept: string;
+	uploading: boolean;
+	onFile: (file: File) => void;
+}) {
+	return (
+		<label
+			className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-6 text-center transition-colors hover:bg-muted/60 ${
+				uploading ? "pointer-events-none opacity-60" : ""
+			}`}
+		>
+			{uploading ? (
+				<Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+			) : (
+				<ImagePlus className="h-6 w-6 text-muted-foreground" />
+			)}
+			<div className="space-y-0.5">
+				<div className="text-sm font-medium">{label}</div>
+				<div className="text-xs text-muted-foreground">{hint}</div>
+			</div>
+			<input
+				type="file"
+				accept={accept}
+				capture="environment"
+				disabled={uploading}
+				onChange={(e) => {
+					const file = e.target.files?.[0];
+					if (file) onFile(file);
+					e.target.value = "";
+				}}
+				className="sr-only"
+			/>
+		</label>
+	);
+}
+
+function MediaGrid({
+	media,
+	onRemove,
+	removingId,
+	removeLabel,
+}: {
+	media: StageMediaView[];
+	onRemove?: (assetId: string) => void;
+	removingId?: string | null;
+	removeLabel?: string;
+}) {
+	return (
+		<div className="grid grid-cols-3 gap-2">
+			{media.map((m) => {
+				const isImage = m.contentType.startsWith("image/") && m.url;
+				const isRemoving = removingId === m.assetId;
+				return (
+					<div
+						key={m.id}
+						className="group relative aspect-square overflow-hidden rounded-md border bg-muted"
+					>
+						{isImage ? (
+							<img src={m.url ?? ""} alt="" className="h-full w-full object-cover" />
+						) : (
+							<div className="flex h-full items-center justify-center p-2 text-center text-[10px] font-mono text-muted-foreground">
+								{m.contentType}
+							</div>
+						)}
+						{onRemove && (
+							<button
+								type="button"
+								onClick={() => onRemove(m.assetId)}
+								disabled={isRemoving}
+								aria-label={removeLabel}
+								className="absolute right-1.5 top-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm ring-1 ring-border transition hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50"
+							>
+								{isRemoving ? (
+									<Loader2 className="h-3.5 w-3.5 animate-spin" />
+								) : (
+									<Trash2 className="h-3.5 w-3.5" />
+								)}
+							</button>
+						)}
+					</div>
+				);
+			})}
+		</div>
 	);
 }

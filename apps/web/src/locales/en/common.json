@@ -666,7 +666,14 @@
 		"reason": "Reason",
 		"applying": "Applying…",
 		"applyFine": "Apply fine",
-		"fineAlreadyApplied": "Fine already applied to the latest rejection."
+		"fineAlreadyApplied": "Fine already applied to the latest rejection.",
+		"choosePhotoOrVideo": "Choose photo or video",
+		"choosePhoto": "Choose photo",
+		"tapToUpload": "Tap to upload",
+		"orDragHere": "or drag a file here",
+		"uploading": "Uploading…",
+		"removeMedia": "Remove",
+		"removing": "Removing…"
 	},
 	"masterHome": {
 		"inProgressTitle": "In progress",
@@ -691,7 +698,12 @@
 		"complete": "Complete",
 		"needPhoto": "Upload at least one photo to enable Complete.",
 		"submittedNotice": "Submitted for acceptance. Waiting for inspector review.",
-		"acceptedNotice": "Accepted. Wage credited."
+		"acceptedNotice": "Accepted. Wage credited.",
+		"choosePhotoOrVideo": "Choose photo or video",
+		"tapToUpload": "Tap to upload",
+		"orDragHere": "or drag a file here",
+		"removeMedia": "Remove",
+		"removing": "Removing…"
 	},
 	"procurement": {
 		"title": "Procurement (stub)",

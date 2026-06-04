@@ -172,6 +172,22 @@ export function useAttachStageMedia(stageId: string | undefined) {
 	});
 }
 
+export function useDetachStageMedia(stageId: string | undefined) {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (assetId: string) =>
+			unwrap(
+				api.master
+					.stages({ subStageId: stageId as string })
+					.media({ assetId })
+					.delete(),
+			),
+		onSuccess: () => {
+			if (stageId) qc.invalidateQueries({ queryKey: acceptanceKeys.stage(stageId) });
+		},
+	});
+}
+
 export function useSubmitStage() {
 	const qc = useQueryClient();
 	return useMutation({
@@ -220,6 +236,22 @@ export function useAttachInspectorMedia(stageId: string | undefined) {
 	return useMutation({
 		mutationFn: (vars: { assetId: string; kind: "BEFORE_PHOTO" | "DEFECT_PHOTO" }) =>
 			unwrap(api.inspector.stages({ subStageId: stageId as string }).media.attach.post(vars)),
+		onSuccess: () => {
+			if (stageId) qc.invalidateQueries({ queryKey: acceptanceKeys.stage(stageId) });
+		},
+	});
+}
+
+export function useDetachInspectorMedia(stageId: string | undefined) {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (assetId: string) =>
+			unwrap(
+				api.inspector
+					.stages({ subStageId: stageId as string })
+					.media({ assetId })
+					.delete(),
+			),
 		onSuccess: () => {
 			if (stageId) qc.invalidateQueries({ queryKey: acceptanceKeys.stage(stageId) });
 		},

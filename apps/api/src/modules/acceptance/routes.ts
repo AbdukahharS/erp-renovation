@@ -371,6 +371,87 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 		{ body: zodBody(AttachStageMediaInput) },
 	)
 
+	.delete(
+		"/stages/:subStageId/media/:assetId",
+		async ({ params, user, tenant, runInTenant, set }) => {
+			if (!runInTenant || !user || !tenant) {
+				set.status = 401;
+				return { error: "no tenant" };
+			}
+			return await runInTenant(async (tx) => {
+				const ss = await lockSubStage(tx, params.subStageId);
+				if (!ss) {
+					set.status = 404;
+					return { error: "sub-stage not found" };
+				}
+				// Masters can only remove media while the stage is still mutable
+				// on their side. Once SUBMITTED/ACCEPTED, the photos are evidence
+				// the inspector has acted on and must not vanish.
+				if (ss.status !== "IN_PROGRESS" && ss.status !== "REJECTED") {
+					set.status = 409;
+					return { error: `cannot delete media when stage is ${ss.status}` };
+				}
+				const assignment = await activeAssignment(tx, params.subStageId);
+				if (!assignment || assignment.master_user_id !== user.id) {
+					set.status = 403;
+					return { error: "not your active claim" };
+				}
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
+				if (!propertyId) {
+					set.status = 404;
+					return { error: "sub-stage not found" };
+				}
+				const [asset] = await tx
+					.select()
+					.from(propertyAssets)
+					.where(
+						and(eq(propertyAssets.id, params.assetId), eq(propertyAssets.propertyId, propertyId)),
+					)
+					.limit(1);
+				if (!asset) {
+					set.status = 404;
+					return { error: "asset not found" };
+				}
+				if (!tenantOwnsKey(tenant.schemaName, asset.r2Key)) {
+					set.status = 403;
+					return { error: "asset key does not belong to this tenant" };
+				}
+				// Ensure the asset is actually linked to this sub-stage — prevents
+				// a master from deleting another stage's asset by id-guessing.
+				const [link] = await tx
+					.select({ id: stageMediaAssets.id })
+					.from(stageMediaAssets)
+					.where(
+						and(
+							eq(stageMediaAssets.subStageInstanceId, params.subStageId),
+							eq(stageMediaAssets.assetId, asset.id),
+						),
+					)
+					.limit(1);
+				if (!link) {
+					set.status = 404;
+					return { error: "asset not linked to this sub-stage" };
+				}
+				// stage_media_assets cascades from property_assets, so deleting
+				// the asset row clears the link too.
+				await tx.delete(propertyAssets).where(eq(propertyAssets.id, asset.id));
+				// Delete the R2 object only after the tx commits — otherwise a
+				// rolled-back tx leaves the bucket short of an object the row
+				// claims exists. Failure here is logged, not fatal: a periodic
+				// reaper can sweep keys whose tenant prefix has no matching row.
+				deferUntilCommit(tx, async () => {
+					if (!r2Client) return;
+					try {
+						await r2Client.file(asset.r2Key).delete();
+					} catch (err) {
+						console.error("[media-detach] R2 delete failed", asset.r2Key, err);
+					}
+				});
+				return { ok: true };
+			});
+		},
+	)
+
 	.post(
 		"/stages/:subStageId/submit",
 		async ({ params, user, tenant, runInTenant, set }) => {
@@ -622,6 +703,73 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 			});
 		},
 		{ body: zodBody(AttachInspectorMediaInput) },
+	)
+
+	.delete(
+		"/stages/:subStageId/media/:assetId",
+		async ({ params, user, tenant, runInTenant, set }) => {
+			if (!runInTenant || !user || !tenant) {
+				set.status = 401;
+				return { error: "no tenant" };
+			}
+			return await runInTenant(async (tx) => {
+				const ss = await lockSubStage(tx, params.subStageId);
+				if (!ss) {
+					set.status = 404;
+					return { error: "sub-stage not found" };
+				}
+				// Inspector can only remove BEFORE_PHOTO before submit-self, i.e.
+				// while the inspector-performed stage is still AVAILABLE.
+				if (ss.performer_type !== "INSPECTOR" || ss.status !== "AVAILABLE") {
+					set.status = 409;
+					return { error: `cannot delete media when stage is ${ss.status}` };
+				}
+				const propertyId = await propertyIdForSubStage(tx, params.subStageId);
+				if (!propertyId) {
+					set.status = 404;
+					return { error: "sub-stage not found" };
+				}
+				const [asset] = await tx
+					.select()
+					.from(propertyAssets)
+					.where(
+						and(eq(propertyAssets.id, params.assetId), eq(propertyAssets.propertyId, propertyId)),
+					)
+					.limit(1);
+				if (!asset) {
+					set.status = 404;
+					return { error: "asset not found" };
+				}
+				if (!tenantOwnsKey(tenant.schemaName, asset.r2Key)) {
+					set.status = 403;
+					return { error: "asset key does not belong to this tenant" };
+				}
+				const [link] = await tx
+					.select({ id: stageMediaAssets.id })
+					.from(stageMediaAssets)
+					.where(
+						and(
+							eq(stageMediaAssets.subStageInstanceId, params.subStageId),
+							eq(stageMediaAssets.assetId, asset.id),
+						),
+					)
+					.limit(1);
+				if (!link) {
+					set.status = 404;
+					return { error: "asset not linked to this sub-stage" };
+				}
+				await tx.delete(propertyAssets).where(eq(propertyAssets.id, asset.id));
+				deferUntilCommit(tx, async () => {
+					if (!r2Client) return;
+					try {
+						await r2Client.file(asset.r2Key).delete();
+					} catch (err) {
+						console.error("[media-detach] R2 delete failed", asset.r2Key, err);
+					}
+				});
+				return { ok: true };
+			});
+		},
 	)
 
 	.post(
