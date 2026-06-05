@@ -26,7 +26,7 @@ const decimalPrice = z
 
 export const CreateMaterialInput = z.object({
 	name: z.string().trim().min(1).max(200),
-	category: z.string().trim().min(1).max(100).optional(),
+	folderId: z.string().uuid().nullable().optional(),
 	unit: MaterialUnitSchema,
 	price: decimalPrice,
 	// If > 0, an opening RECEIPT movement is recorded in the same tx.
@@ -36,10 +36,30 @@ export type CreateMaterialInput = z.infer<typeof CreateMaterialInput>;
 
 export const UpdateMaterialInput = z.object({
 	name: z.string().trim().min(1).max(200).optional(),
-	category: z.string().trim().min(1).max(100).nullable().optional(),
+	folderId: z.string().uuid().nullable().optional(),
 	price: decimalPrice.optional(),
 });
 export type UpdateMaterialInput = z.infer<typeof UpdateMaterialInput>;
+
+export const CreateFolderInput = z.object({
+	name: z.string().trim().min(1).max(100),
+});
+export type CreateFolderInput = z.infer<typeof CreateFolderInput>;
+
+export const UpdateFolderInput = z.object({
+	name: z.string().trim().min(1).max(100),
+});
+export type UpdateFolderInput = z.infer<typeof UpdateFolderInput>;
+
+export const FolderRowSchema = z.object({
+	id: z.string().uuid(),
+	name: z.string(),
+	archivedAt: z.coerce.date().nullable(),
+	createdAt: z.coerce.date(),
+	updatedAt: z.coerce.date(),
+	materialCount: z.number().int().nonnegative(),
+});
+export type FolderRow = z.infer<typeof FolderRowSchema>;
 
 export const RestockMaterialInput = z.object({
 	quantity: decimalQuantity,
@@ -71,7 +91,8 @@ export type IssueMaterialsInput = z.infer<typeof IssueMaterialsInput>;
 export const MaterialRowSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string(),
-	category: z.string().nullable(),
+	folderId: z.string().uuid().nullable(),
+	folderName: z.string().nullable(),
 	unit: MaterialUnitSchema,
 	price: z.string(),
 	archivedAt: z.coerce.date().nullable(),

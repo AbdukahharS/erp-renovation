@@ -873,12 +873,28 @@ export const materialMovementTypeEnum = pgEnum("material_movement_type", [
 	"REVERSAL",
 ]);
 
+export const materialFolders = pgTable(
+	"material_folders",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: text("name").notNull(),
+		archivedAt: timestamp("archived_at"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
+	},
+	(t) => [
+		uniqueIndex("material_folders_name_active_unique")
+			.on(sql`lower(${t.name})`)
+			.where(sql`${t.archivedAt} IS NULL`),
+	],
+);
+
 export const materials = pgTable(
 	"materials",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
 		name: text("name").notNull(),
-		category: text("category"),
+		folderId: uuid("folder_id").references(() => materialFolders.id, { onDelete: "set null" }),
 		unit: materialUnitEnum("unit").notNull(),
 		price: numeric("price", { precision: 14, scale: 2 }).notNull(),
 		archivedAt: timestamp("archived_at"),
@@ -887,7 +903,7 @@ export const materials = pgTable(
 	},
 	(t) => [
 		uniqueIndex("materials_name_active_unique").on(t.name).where(sql`${t.archivedAt} IS NULL`),
-		index("materials_category_idx").on(t.category),
+		index("materials_folder_id_idx").on(t.folderId),
 	],
 );
 

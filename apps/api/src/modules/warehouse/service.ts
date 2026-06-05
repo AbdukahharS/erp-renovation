@@ -1,5 +1,6 @@
 import {
 	financialTransactions,
+	materialFolders,
 	materialIssuances,
 	materialMovements,
 	materials,
@@ -8,9 +9,11 @@ import {
 import type { TenantTx as Tx } from "@repo/db/with-tenant";
 import type {
 	AdjustMaterialInput,
+	CreateFolderInput,
 	CreateMaterialInput,
 	IssueMaterialsInput,
 	RestockMaterialInput,
+	UpdateFolderInput,
 	UpdateMaterialInput,
 } from "@repo/validators";
 import { and, desc, sql as dsql, eq, inArray, isNull } from "drizzle-orm";
@@ -50,7 +53,8 @@ export async function listMaterials(
 	Array<{
 		id: string;
 		name: string;
-		category: string | null;
+		folderId: string | null;
+		folderName: string | null;
 		unit: string;
 		price: string;
 		archivedAt: Date | null;
@@ -63,7 +67,8 @@ export async function listMaterials(
 		.select({
 			id: materials.id,
 			name: materials.name,
-			category: materials.category,
+			folderId: materials.folderId,
+			folderName: materialFolders.name,
 			unit: materials.unit,
 			price: materials.price,
 			archivedAt: materials.archivedAt,
@@ -74,11 +79,13 @@ export async function listMaterials(
 			), 0)::text`,
 		})
 		.from(materials)
+		.leftJoin(materialFolders, eq(materialFolders.id, materials.folderId))
 		.where(opts.includeArchived ? dsql`true` : isNull(materials.archivedAt))
 		.orderBy(materials.name)) as Array<{
 		id: string;
 		name: string;
-		category: string | null;
+		folderId: string | null;
+		folderName: string | null;
 		unit: string;
 		price: string;
 		archivedAt: Date | null;
@@ -89,8 +96,139 @@ export async function listMaterials(
 	return rows;
 }
 
+export async function listFolders(
+	tx: Tx,
+	opts: { includeArchived?: boolean } = {},
+): Promise<
+	Array<{
+		id: string;
+		name: string;
+		archivedAt: Date | null;
+		createdAt: Date;
+		updatedAt: Date;
+		materialCount: number;
+	}>
+> {
+	const rows = (await tx
+		.select({
+			id: materialFolders.id,
+			name: materialFolders.name,
+			archivedAt: materialFolders.archivedAt,
+			createdAt: materialFolders.createdAt,
+			updatedAt: materialFolders.updatedAt,
+			materialCount: dsql<number>`(
+				SELECT count(*)::int FROM materials
+				WHERE materials.folder_id = material_folders.id
+					AND materials.archived_at IS NULL
+			)`,
+		})
+		.from(materialFolders)
+		.where(opts.includeArchived ? dsql`true` : isNull(materialFolders.archivedAt))
+		.orderBy(materialFolders.name)) as Array<{
+		id: string;
+		name: string;
+		archivedAt: Date | null;
+		createdAt: Date;
+		updatedAt: Date;
+		materialCount: number;
+	}>;
+	return rows;
+}
+
+export async function createFolder(
+	tx: Tx,
+	input: CreateFolderInput,
+): Promise<{ id: string } | { error: "name_taken" }> {
+	const name = input.name.trim();
+	const [existing] = await tx
+		.select({ id: materialFolders.id })
+		.from(materialFolders)
+		.where(
+			and(
+				isNull(materialFolders.archivedAt),
+				dsql`lower(${materialFolders.name}) = lower(${name})`,
+			),
+		)
+		.limit(1);
+	if (existing) return { error: "name_taken" };
+	const [row] = await tx
+		.insert(materialFolders)
+		.values({ name })
+		.returning({ id: materialFolders.id });
+	if (!row) throw new Error("failed to insert folder");
+	return { id: row.id };
+}
+
+export async function renameFolder(
+	tx: Tx,
+	id: string,
+	input: UpdateFolderInput,
+): Promise<"ok" | "not_found" | "name_taken"> {
+	const name = input.name.trim();
+	const [row] = await tx
+		.select({ id: materialFolders.id })
+		.from(materialFolders)
+		.where(eq(materialFolders.id, id))
+		.limit(1);
+	if (!row) return "not_found";
+	const [clash] = await tx
+		.select({ id: materialFolders.id })
+		.from(materialFolders)
+		.where(
+			and(
+				isNull(materialFolders.archivedAt),
+				dsql`lower(${materialFolders.name}) = lower(${name})`,
+				dsql`${materialFolders.id} <> ${id}`,
+			),
+		)
+		.limit(1);
+	if (clash) return "name_taken";
+	await tx
+		.update(materialFolders)
+		.set({ name, updatedAt: new Date() })
+		.where(eq(materialFolders.id, id));
+	return "ok";
+}
+
+export async function archiveFolder(
+	tx: Tx,
+	id: string,
+): Promise<"ok" | "not_found" | "has_materials"> {
+	const [row] = await tx
+		.select({ id: materialFolders.id })
+		.from(materialFolders)
+		.where(eq(materialFolders.id, id))
+		.limit(1);
+	if (!row) return "not_found";
+	const [count] = (await tx
+		.select({ n: dsql<number>`count(*)::int` })
+		.from(materials)
+		.where(and(eq(materials.folderId, id), isNull(materials.archivedAt)))) as Array<{ n: number }>;
+	if ((count?.n ?? 0) > 0) return "has_materials";
+	await tx
+		.update(materialFolders)
+		.set({ archivedAt: new Date(), updatedAt: new Date() })
+		.where(eq(materialFolders.id, id));
+	return "ok";
+}
+
 export async function getMaterial(tx: Tx, id: string) {
-	const [row] = await tx.select().from(materials).where(eq(materials.id, id)).limit(1);
+	const [row] = await tx
+		.select({
+			id: materials.id,
+			name: materials.name,
+			folderId: materials.folderId,
+			folderName: materialFolders.name,
+			unit: materials.unit,
+			price: materials.price,
+			archivedAt: materials.archivedAt,
+			createdAt: materials.createdAt,
+			updatedAt: materials.updatedAt,
+		})
+		.from(materials)
+		.leftJoin(materialFolders, eq(materialFolders.id, materials.folderId))
+		.where(eq(materials.id, id))
+		.limit(1);
 	if (!row) return null;
 	const onHand = await onHandFor(tx, id);
 	return { ...row, onHand };
@@ -104,7 +242,7 @@ export async function createMaterial(
 		.insert(materials)
 		.values({
 			name: args.input.name,
-			category: args.input.category ?? null,
+			folderId: args.input.folderId ?? null,
 			unit: args.input.unit,
 			price: args.input.price,
 		})
@@ -133,7 +271,7 @@ export async function updateMaterial(
 ): Promise<boolean> {
 	const patch: Record<string, unknown> = { updatedAt: new Date() };
 	if (input.name !== undefined) patch.name = input.name;
-	if (input.category !== undefined) patch.category = input.category;
+	if (input.folderId !== undefined) patch.folderId = input.folderId;
 	if (input.price !== undefined) patch.price = input.price;
 	const [row] = await tx
 		.update(materials)

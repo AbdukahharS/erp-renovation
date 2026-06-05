@@ -124,7 +124,7 @@ async function createMaterial(
 		name: string;
 		unit: string;
 		price: string;
-		category?: string;
+		folderId?: string | null;
 		initialQuantity?: string;
 	},
 ): Promise<string> {

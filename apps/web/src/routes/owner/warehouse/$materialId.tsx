@@ -14,6 +14,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NumberInput } from "@/components/ui/number-input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Table,
@@ -28,9 +35,9 @@ import { formatNumber } from "@/lib/format-number";
 import { useCurrencyCode } from "@/lib/queries/tenant-config";
 import {
 	useAdjustMaterial,
+	useFolders,
 	useMaterial,
 	useMaterialMovements,
-	useMaterials,
 	useRestockMaterial,
 	useUpdateMaterial,
 } from "@/lib/queries/warehouse";
@@ -65,14 +72,14 @@ function MaterialDetail() {
 							id={material.id}
 							name={material.name}
 							price={material.price}
-							category={material.category}
+							folderId={material.folderId}
 						/>
 						<RestockDialog id={material.id} />
 						<AdjustDialog id={material.id} />
 					</div>
 				</div>
 				<p className="text-sm text-muted-foreground">
-					{material.category ?? t("common.em")} ·{" "}
+					{material.folderName ?? t("warehouse.folders.unfiled")} ·{" "}
 					{t(`warehouse.unit.${material.unit}`, material.unit)} ·{" "}
 					{formatMoney(material.price, currency)}/{material.unit}
 				</p>
@@ -126,7 +133,10 @@ function MaterialDetail() {
 										}`}
 									>
 										{Number(m.delta) > 0 ? "+" : ""}
-										{formatNumber(m.delta)}
+										{formatNumber(m.delta)}{" "}
+										<span className="text-muted-foreground">
+											{t(`warehouse.unit.${material.unit}`, material.unit)}
+										</span>
 									</TableCell>
 									<TableCell className="text-right tabular-nums">
 										{m.unitPriceSnapshot
@@ -186,24 +196,20 @@ function EditMaterialDialog({
 	id,
 	name: initName,
 	price: initPrice,
-	category: initCategory,
+	folderId: initFolderId,
 }: {
 	id: string;
 	name: string;
 	price: string;
-	category: string | null;
+	folderId: string | null;
 }) {
 	const { t } = useTranslation();
-	const { data: materials } = useMaterials();
+	const { data: folders } = useFolders();
 	const [open, setOpen] = useState(false);
 	const [name, setName] = useState(initName);
 	const [price, setPrice] = useState(initPrice);
-	const [category, setCategory] = useState(initCategory ?? "");
+	const [folderId, setFolderId] = useState<string>(initFolderId ?? "");
 	const update = useUpdateMaterial(id);
-
-	const existingCategories = Array.from(
-		new Set((materials ?? []).map((m) => m.category).filter((c): c is string => !!c)),
-	).sort();
 
 	function submit(e: React.FormEvent) {
 		e.preventDefault();
@@ -211,7 +217,7 @@ function EditMaterialDialog({
 			{
 				name: name.trim() || undefined,
 				price: price.trim() || undefined,
-				category: category.trim() ? category.trim() : null,
+				folderId: folderId || null,
 			},
 			{ onSuccess: () => setOpen(false) },
 		);
@@ -237,19 +243,26 @@ function EditMaterialDialog({
 							<Input id="e-name" value={name} onChange={(e) => setName(e.target.value)} />
 						</div>
 						<div className="space-y-1.5">
-							<Label htmlFor="e-category">{t("warehouse.field.categoryOptional")}</Label>
-							<Input
-								id="e-category"
-								value={category}
-								onChange={(e) => setCategory(e.target.value)}
-								list="material-categories-edit"
-								autoComplete="off"
-							/>
-							<datalist id="material-categories-edit">
-								{existingCategories.map((c) => (
-									<option key={c} value={c} />
-								))}
-							</datalist>
+							<Label htmlFor="e-folder">{t("warehouse.field.folder")}</Label>
+							<Select value={folderId} onValueChange={(v) => setFolderId(v ?? "")}>
+								<SelectTrigger className="w-full" id="e-folder">
+									<SelectValue>
+										{(v) => {
+											if (!v) return t("warehouse.folders.unfiled");
+											const f = (folders ?? []).find((ff) => ff.id === v);
+											return f?.name ?? t("warehouse.folders.unfiled");
+										}}
+									</SelectValue>
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="">{t("warehouse.folders.unfiled")}</SelectItem>
+									{(folders ?? []).map((f) => (
+										<SelectItem key={f.id} value={f.id}>
+											{f.name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 						<div className="space-y-1.5">
 							<Label htmlFor="e-price">{t("warehouse.field.price")}</Label>

@@ -1,10 +1,13 @@
 import type {
 	AdjustMaterialInput,
+	CreateFolderInput,
 	CreateMaterialInput,
+	FolderRow,
 	IssueMaterialsInput,
 	MaterialMovementRow,
 	MaterialWithStock,
 	RestockMaterialInput,
+	UpdateFolderInput,
 	UpdateMaterialInput,
 } from "@repo/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,6 +19,7 @@ export const warehouseKeys = {
 	materials: () => [...warehouseKeys.all, "materials"] as const,
 	material: (id: string) => [...warehouseKeys.all, "material", id] as const,
 	movements: (id: string) => [...warehouseKeys.all, "movements", id] as const,
+	folders: () => [...warehouseKeys.all, "folders"] as const,
 	issuancesByProperty: (pid: string) =>
 		[...warehouseKeys.all, "issuances-by-property", pid] as const,
 };
@@ -37,6 +41,39 @@ export type PropertyIssuanceRow = {
 	reversedBy: string | null;
 	createdAt: string;
 };
+
+export function useFolders() {
+	return useQuery({
+		queryKey: warehouseKeys.folders(),
+		queryFn: () => unwrap(api.owner.warehouse.folders.get()) as unknown as Promise<FolderRow[]>,
+	});
+}
+
+export function useCreateFolder() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (vars: CreateFolderInput) =>
+			unwrap(api.owner.warehouse.folders.post(vars)) as unknown as Promise<{ id: string }>,
+		onSuccess: () => invalidateAll(qc),
+	});
+}
+
+export function useRenameFolder() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (vars: { id: string; input: UpdateFolderInput }) =>
+			unwrap(api.owner.warehouse.folders({ id: vars.id }).patch(vars.input)),
+		onSuccess: () => invalidateAll(qc),
+	});
+}
+
+export function useArchiveFolder() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: (id: string) => unwrap(api.owner.warehouse.folders({ id }).delete()),
+		onSuccess: () => invalidateAll(qc),
+	});
+}
 
 export function useMaterials() {
 	return useQuery({

@@ -1,8 +1,10 @@
 import {
 	AdjustMaterialInput,
+	CreateFolderInput,
 	CreateMaterialInput,
 	IssueMaterialsInput,
 	RestockMaterialInput,
+	UpdateFolderInput,
 	UpdateMaterialInput,
 } from "@repo/validators";
 // Imports above are used for runtime body validation via zodBody.
@@ -12,14 +14,18 @@ import { requireRole } from "../auth/guards.ts";
 import { tenancy } from "../tenancy/plugin.ts";
 import {
 	adjustMaterial,
+	archiveFolder,
 	archiveMaterial,
+	createFolder,
 	createMaterial,
 	getMaterial,
 	InsufficientStockError,
 	issueMaterialsToProperty,
+	listFolders,
 	listIssuancesByProperty,
 	listMaterials,
 	listMovementsByMaterial,
+	renameFolder,
 	restockMaterial,
 	reverseIssuance,
 	updateMaterial,
@@ -28,6 +34,69 @@ import {
 const ownerRoutes = new Elysia({ prefix: "/owner" })
 	.use(tenancy)
 	.use(requireRole("OWNER"))
+
+	.get("/warehouse/folders", async ({ runInTenant, set }) => {
+		if (!runInTenant) {
+			set.status = 401;
+			return { error: "no tenant" };
+		}
+		return await runInTenant((tx) => listFolders(tx));
+	})
+
+	.post(
+		"/warehouse/folders",
+		async ({ body, runInTenant, set }) => {
+			if (!runInTenant) {
+				set.status = 401;
+				return { error: "no tenant" };
+			}
+			const result = await runInTenant((tx) => createFolder(tx, body));
+			if ("error" in result) {
+				set.status = 409;
+				return { error: "folder name already in use" };
+			}
+			return result;
+		},
+		{ body: zodBody(CreateFolderInput) },
+	)
+
+	.patch(
+		"/warehouse/folders/:id",
+		async ({ params, body, runInTenant, set }) => {
+			if (!runInTenant) {
+				set.status = 401;
+				return { error: "no tenant" };
+			}
+			const result = await runInTenant((tx) => renameFolder(tx, params.id, body));
+			if (result === "not_found") {
+				set.status = 404;
+				return { error: "folder not found" };
+			}
+			if (result === "name_taken") {
+				set.status = 409;
+				return { error: "folder name already in use" };
+			}
+			return { ok: true };
+		},
+		{ body: zodBody(UpdateFolderInput) },
+	)
+
+	.delete("/warehouse/folders/:id", async ({ params, runInTenant, set }) => {
+		if (!runInTenant) {
+			set.status = 401;
+			return { error: "no tenant" };
+		}
+		const result = await runInTenant((tx) => archiveFolder(tx, params.id));
+		if (result === "not_found") {
+			set.status = 404;
+			return { error: "folder not found" };
+		}
+		if (result === "has_materials") {
+			set.status = 409;
+			return { error: "cannot archive folder that still contains materials" };
+		}
+		return { ok: true };
+	})
 
 	.get("/warehouse/materials", async ({ runInTenant, query, set }) => {
 		if (!runInTenant) {
