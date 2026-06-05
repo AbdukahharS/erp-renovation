@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NumberInput } from "@/components/ui/number-input";
@@ -357,7 +358,19 @@ export function NewPropertyWizard() {
 					</div>
 					<div className="space-y-1.5">
 						<Label htmlFor="deadline">{t("newPropertyWizard.deadlineLabel")}</Label>
-						<Input id="deadline" type="datetime-local" {...register("deadlineAt")} />
+						<Controller
+							control={control}
+							name="deadlineAt"
+							render={({ field }) => (
+								<DateTimePicker
+									id="deadline"
+									value={field.value}
+									onChange={field.onChange}
+									onBlur={field.onBlur}
+									withTime={false}
+								/>
+							)}
+						/>
 					</div>
 					<div className="flex justify-between">
 						<Button type="button" variant="outline" onClick={() => setStep(1)}>

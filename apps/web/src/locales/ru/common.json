@@ -34,6 +34,10 @@
 		"any": "любой",
 		"em": "—"
 	},
+	"dateTimePicker": {
+		"placeholder": "Выберите дату",
+		"time": "Время"
+	},
 	"ownerHome": {
 		"title": "Дашборд",
 		"description": "Обзор объектов, пайплайна и финансов.",

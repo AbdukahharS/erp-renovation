@@ -5,6 +5,7 @@ import { SpecializationsPicker } from "@/components/specializations-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
 import {
@@ -136,7 +137,7 @@ export function MasterDetail({ id }: { id: string }) {
 						onChange={(e) => setOverride(e.target.value)}
 						placeholder={p.availabilityOverride ?? t("masterDetail.overrideReason")}
 					/>
-					<Input type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
+					<DateTimePicker value={until} onChange={setUntil} withTime={false} />
 					<Button
 						size="sm"
 						disabled={availability.isPending}
