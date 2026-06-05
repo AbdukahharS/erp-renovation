@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { formatMoney } from "@/lib/format-money";
 import { useSelfMasterFinance } from "@/lib/queries/finance";
+import { useCurrencyCode } from "@/lib/queries/tenant-config";
 
 export const Route = createFileRoute("/master/finance")({
 	staticData: { crumbKey: "crumbs.wallet" },
@@ -10,6 +12,7 @@ export const Route = createFileRoute("/master/finance")({
 function MasterFinance() {
 	const { t } = useTranslation();
 	const { data, isLoading } = useSelfMasterFinance();
+	const currency = useCurrencyCode();
 	if (isLoading || !data)
 		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
 
@@ -21,10 +24,20 @@ function MasterFinance() {
 			</header>
 
 			<div className="grid grid-cols-2 gap-3">
-				<Stat label={t("masterFinance.balance")} value={`$${data.balance}`} big />
-				<Stat label={t("masterFinance.wagesEarned")} value={`$${data.wagesCredited}`} />
-				<Stat label={t("masterFinance.fines")} value={`$${data.finesDeducted}`} tone="negative" />
-				<Stat label={t("masterFinance.settled")} value={`$${data.payoutsSettled}`} />
+				<Stat label={t("masterFinance.balance")} value={formatMoney(data.balance, currency)} big />
+				<Stat
+					label={t("masterFinance.wagesEarned")}
+					value={formatMoney(data.wagesCredited, currency)}
+				/>
+				<Stat
+					label={t("masterFinance.fines")}
+					value={formatMoney(data.finesDeducted, currency)}
+					tone="negative"
+				/>
+				<Stat
+					label={t("masterFinance.settled")}
+					value={formatMoney(data.payoutsSettled, currency)}
+				/>
 			</div>
 
 			<div className="rounded-lg border">
@@ -62,7 +75,7 @@ function MasterFinance() {
 										Number(tr.amount) < 0 ? "text-rose-700" : "text-emerald-700"
 									}`}
 								>
-									${tr.amount}
+									{formatMoney(tr.amount, currency)}
 								</td>
 							</tr>
 						))}

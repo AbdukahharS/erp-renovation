@@ -13,7 +13,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { formatMoney } from "@/lib/format-money";
 import { useAllPropertiesFinance } from "@/lib/queries/finance";
+import { useCurrencyCode } from "@/lib/queries/tenant-config";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/owner/finance/")({
@@ -24,6 +26,7 @@ export const Route = createFileRoute("/owner/finance/")({
 function AllFinance() {
 	const { t } = useTranslation();
 	const { data, isLoading } = useAllPropertiesFinance();
+	const currency = useCurrencyCode();
 
 	return (
 		<div className="space-y-4">
@@ -79,9 +82,15 @@ function AllFinance() {
 												{t(`propertyStatus.${r.status}`, r.status.replace(/_/g, " ").toLowerCase())}
 											</Badge>
 										</TableCell>
-										<TableCell className="text-right tabular-nums">${r.plannedTotal}</TableCell>
-										<TableCell className="text-right tabular-nums">${r.accruedWages}</TableCell>
-										<TableCell className="text-right tabular-nums">${r.costsTotal}</TableCell>
+										<TableCell className="text-right tabular-nums">
+											{formatMoney(r.plannedTotal, currency)}
+										</TableCell>
+										<TableCell className="text-right tabular-nums">
+											{formatMoney(r.accruedWages, currency)}
+										</TableCell>
+										<TableCell className="text-right tabular-nums">
+											{formatMoney(r.costsTotal, currency)}
+										</TableCell>
 										<TableCell
 											className={cn(
 												"text-right font-medium tabular-nums",
@@ -90,7 +99,7 @@ function AllFinance() {
 													: "text-rose-700 dark:text-rose-400",
 											)}
 										>
-											${r.netProfit}
+											{formatMoney(r.netProfit, currency)}
 										</TableCell>
 										<TableCell className="text-right">
 											<Link

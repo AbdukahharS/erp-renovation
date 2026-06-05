@@ -1,7 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { WalletIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatMoney } from "@/lib/format-money";
+import { formatNumber } from "@/lib/format-number";
 import { useProperty } from "@/lib/queries/properties";
+import { useCurrencyCode } from "@/lib/queries/tenant-config";
 
 export const Route = createFileRoute("/owner/properties/$propertyId/")({
 	staticData: { crumbKey: "crumbs.detail" },
@@ -38,6 +41,7 @@ function PropertyDetail() {
 	const { t } = useTranslation();
 	const { propertyId } = Route.useParams();
 	const { data, isLoading } = useProperty(propertyId);
+	const currency = useCurrencyCode();
 
 	if (isLoading || !data)
 		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
@@ -76,8 +80,8 @@ function PropertyDetail() {
 						<span className="text-xs text-muted-foreground">
 							{t("propertyDetail.metaLine", {
 								layout: layoutLabel,
-								area: data.areaSqm,
-								cost: data.plannedUnitCost,
+								area: formatNumber(data.areaSqm),
+								cost: formatMoney(data.plannedUnitCost, currency),
 							})}
 						</span>
 					</div>

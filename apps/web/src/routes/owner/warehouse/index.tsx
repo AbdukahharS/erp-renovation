@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import {
 	Select,
 	SelectContent,
@@ -42,6 +43,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { formatMoney } from "@/lib/format-money";
+import { formatNumber } from "@/lib/format-number";
+import { useCurrencyCode } from "@/lib/queries/tenant-config";
 import { useArchiveMaterial, useCreateMaterial, useMaterials } from "@/lib/queries/warehouse";
 
 export const Route = createFileRoute("/owner/warehouse/")({
@@ -55,6 +59,7 @@ function WarehouseList() {
 	const { t } = useTranslation();
 	const { data, isLoading } = useMaterials();
 	const archive = useArchiveMaterial();
+	const currency = useCurrencyCode();
 
 	const [categoryFilter, setCategoryFilter] = useState<string>("");
 	const [archiveTarget, setArchiveTarget] = useState<{ id: string; name: string } | null>(null);
@@ -129,7 +134,7 @@ function WarehouseList() {
 						</TableHeader>
 						<TableBody>
 							{filtered.map((m) => {
-								const value = (Number(m.onHand) * Number(m.price)).toFixed(2);
+								const value = Number(m.onHand) * Number(m.price);
 								return (
 									<TableRow key={m.id}>
 										<TableCell className="font-medium">
@@ -147,9 +152,15 @@ function WarehouseList() {
 										<TableCell className="text-xs">
 											{t(`warehouse.unit.${m.unit}`, m.unit)}
 										</TableCell>
-										<TableCell className="text-right tabular-nums">{m.onHand}</TableCell>
-										<TableCell className="text-right tabular-nums">${m.price}</TableCell>
-										<TableCell className="text-right tabular-nums font-medium">${value}</TableCell>
+										<TableCell className="text-right tabular-nums">
+											{formatNumber(m.onHand)}
+										</TableCell>
+										<TableCell className="text-right tabular-nums">
+											{formatMoney(m.price, currency)}
+										</TableCell>
+										<TableCell className="text-right tabular-nums font-medium">
+											{formatMoney(value, currency)}
+										</TableCell>
 										<TableCell className="text-right">
 											<button
 												type="button"
@@ -320,7 +331,7 @@ function CreateMaterialDialog() {
 							</div>
 							<div className="space-y-1.5">
 								<Label htmlFor="m-price">{t("warehouse.field.price")}</Label>
-								<Input
+								<NumberInput
 									id="m-price"
 									value={price}
 									onChange={(e) => setPrice(e.target.value)}
@@ -333,7 +344,7 @@ function CreateMaterialDialog() {
 						</div>
 						<div className="space-y-1.5">
 							<Label htmlFor="m-init">{t("warehouse.field.initialQuantity")}</Label>
-							<Input
+							<NumberInput
 								id="m-init"
 								value={initialQuantity}
 								onChange={(e) => setInitialQuantity(e.target.value)}

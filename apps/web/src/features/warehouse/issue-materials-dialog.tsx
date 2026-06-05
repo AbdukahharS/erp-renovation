@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import {
 	Select,
 	SelectContent,
@@ -20,6 +21,9 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { formatMoney } from "@/lib/format-money";
+import { formatNumber } from "@/lib/format-number";
+import { useCurrencyCode } from "@/lib/queries/tenant-config";
 import { useIssueMaterials, useMaterials } from "@/lib/queries/warehouse";
 
 type Line = { id: string; materialId: string; quantity: string; note: string };
@@ -50,6 +54,7 @@ export function IssueMaterialsDialog({ propertyId, disabled, trigger }: Props) {
 	const { data: materials } = useMaterials();
 	const available = (materials ?? []).filter((m) => !m.archivedAt);
 	const issue = useIssueMaterials(propertyId);
+	const currency = useCurrencyCode();
 
 	function addLine() {
 		setLines((prev) => [...prev, makeLine()]);
@@ -158,7 +163,7 @@ export function IssueMaterialsDialog({ propertyId, disabled, trigger }: Props) {
 													{(v) => {
 														const m = available.find((mm) => mm.id === v);
 														return m
-															? `${m.name} (${m.onHand} ${t(`warehouse.unit.${m.unit}`, m.unit)})`
+															? `${m.name} (${formatNumber(m.onHand)} ${t(`warehouse.unit.${m.unit}`, m.unit)})`
 															: t("warehouse.selectMaterial");
 													}}
 												</SelectValue>
@@ -166,8 +171,9 @@ export function IssueMaterialsDialog({ propertyId, disabled, trigger }: Props) {
 											<SelectContent>
 												{available.map((m) => (
 													<SelectItem key={m.id} value={m.id}>
-														{m.name} — {m.onHand} {t(`warehouse.unit.${m.unit}`, m.unit)} @ $
-														{m.price}
+														{m.name} — {formatNumber(m.onHand)}{" "}
+														{t(`warehouse.unit.${m.unit}`, m.unit)} @{" "}
+														{formatMoney(m.price, currency)}
 													</SelectItem>
 												))}
 											</SelectContent>
@@ -175,7 +181,7 @@ export function IssueMaterialsDialog({ propertyId, disabled, trigger }: Props) {
 									</div>
 									<div className="space-y-1">
 										<Label className="text-xs">{t("warehouse.col.quantity")}</Label>
-										<Input
+										<NumberInput
 											value={line.quantity}
 											onChange={(e) => updateLine(i, { quantity: e.target.value })}
 											pattern="^\d+(\.\d{1,3})?$"
@@ -205,7 +211,7 @@ export function IssueMaterialsDialog({ propertyId, disabled, trigger }: Props) {
 									{sel && line.quantity.trim() && /^\d+(\.\d{1,3})?$/.test(line.quantity) && (
 										<div className="col-span-3 text-xs text-muted-foreground">
 											{t("warehouse.lineSubtotal", {
-												amount: (Number(line.quantity) * Number(sel.price)).toFixed(2),
+												amount: formatMoney(Number(line.quantity) * Number(sel.price), currency),
 											})}
 										</div>
 									)}

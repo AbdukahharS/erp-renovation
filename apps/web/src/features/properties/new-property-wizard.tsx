@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import {
 	createLocalOps,
 	snapshotsEqual,
@@ -329,14 +330,26 @@ export function NewPropertyWizard() {
 					<div className="grid grid-cols-2 gap-4">
 						<div className="space-y-1.5">
 							<Label htmlFor="area">{t("newPropertyWizard.areaLabel")}</Label>
-							<Input id="area" type="number" step="0.01" min="0.01" {...register("areaSqm")} />
+							<NumberInput
+								id="area"
+								type="number"
+								step="0.01"
+								min="0.01"
+								{...register("areaSqm")}
+							/>
 							{errors.areaSqm && (
 								<p className="text-sm text-destructive">{errors.areaSqm.message}</p>
 							)}
 						</div>
 						<div className="space-y-1.5">
 							<Label htmlFor="puc">{t("newPropertyWizard.plannedUnitCostLabel")}</Label>
-							<Input id="puc" type="number" step="0.01" min="0" {...register("plannedUnitCost")} />
+							<NumberInput
+								id="puc"
+								type="number"
+								step="0.01"
+								min="0"
+								{...register("plannedUnitCost")}
+							/>
 							{errors.plannedUnitCost && (
 								<p className="text-sm text-destructive">{errors.plannedUnitCost.message}</p>
 							)}

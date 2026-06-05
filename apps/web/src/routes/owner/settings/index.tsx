@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import { api, unwrap } from "@/lib/api";
@@ -225,7 +226,7 @@ function OwnerSettings() {
 					<CardContent className="grid gap-4 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label htmlFor="photo-ret">{t("settings.retention.photoDays")}</Label>
-							<Input
+							<NumberInput
 								id="photo-ret"
 								type="number"
 								min={30}
@@ -238,7 +239,7 @@ function OwnerSettings() {
 						</div>
 						<div className="space-y-2">
 							<Label htmlFor="notif-ret">{t("settings.retention.notificationDays")}</Label>
-							<Input
+							<NumberInput
 								id="notif-ret"
 								type="number"
 								min={7}

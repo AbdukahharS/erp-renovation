@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import {
 	Select,
 	SelectContent,
@@ -21,6 +22,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatNumber } from "@/lib/format-number";
 import i18n from "@/lib/i18n";
 import {
 	useCreateInvitation,
@@ -116,7 +118,7 @@ function OwnerMasters() {
 						</div>
 						<div className="space-y-1.5">
 							<Label>{t("masters.expiresInDays")}</Label>
-							<Input
+							<NumberInput
 								type="number"
 								min={1}
 								max={60}
@@ -284,7 +286,7 @@ function OwnerMasters() {
 														<div className="text-muted-foreground">
 															{t("masters.avgRatio", {
 																value: m.rating.avgDurationRatio
-																	? Number(m.rating.avgDurationRatio).toFixed(2)
+																	? formatNumber(m.rating.avgDurationRatio, { maxDecimals: 2 })
 																	: t("common.em"),
 															})}
 														</div>

@@ -20,7 +20,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { IssueMaterialsDialog } from "@/features/warehouse/issue-materials-dialog";
+import { formatMoney } from "@/lib/format-money";
+import { formatNumber } from "@/lib/format-number";
 import { useAddPropertyCost, usePropertyFinance, useReverseCost } from "@/lib/queries/finance";
+import { useCurrencyCode } from "@/lib/queries/tenant-config";
 import { usePropertyIssuances, useReverseIssuance } from "@/lib/queries/warehouse";
 
 export const Route = createFileRoute("/owner/properties/$propertyId/finance")({
@@ -37,6 +40,7 @@ function PropertyFinance() {
 	const reverseCost = useReverseCost(propertyId);
 	const { data: issuances } = usePropertyIssuances(propertyId);
 	const reverseIssuance = useReverseIssuance(propertyId);
+	const currency = useCurrencyCode();
 
 	const [category, setCategory] = useState<PropertyCostCategory>("TRANSPORT");
 	const [amount, setAmount] = useState("");
@@ -79,8 +83,8 @@ function PropertyFinance() {
 				</h1>
 				<p className="text-sm text-muted-foreground">
 					{t("propertyFinance.meta", {
-						area: summary.areaSqm,
-						cost: summary.plannedUnitCost,
+						area: formatNumber(summary.areaSqm),
+						cost: formatMoney(summary.plannedUnitCost, currency),
 						status: t(`propertyStatus.${summary.status}`, summary.status),
 					})}
 				</p>
@@ -92,12 +96,21 @@ function PropertyFinance() {
 			</header>
 
 			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-				<Stat label={t("propertyFinance.plannedTotal")} value={`$${summary.plannedTotal}`} />
-				<Stat label={t("propertyFinance.wagesCredited")} value={`$${summary.accruedWages}`} />
-				<Stat label={t("propertyFinance.materialsCost")} value={`$${summary.materialsCost}`} />
+				<Stat
+					label={t("propertyFinance.plannedTotal")}
+					value={formatMoney(summary.plannedTotal, currency)}
+				/>
+				<Stat
+					label={t("propertyFinance.wagesCredited")}
+					value={formatMoney(summary.accruedWages, currency)}
+				/>
+				<Stat
+					label={t("propertyFinance.materialsCost")}
+					value={formatMoney(summary.materialsCost, currency)}
+				/>
 				<Stat
 					label={t("propertyFinance.netProfit")}
-					value={`$${summary.netProfit}`}
+					value={formatMoney(summary.netProfit, currency)}
 					tone={positive ? "positive" : "negative"}
 				/>
 			</div>
@@ -107,7 +120,7 @@ function PropertyFinance() {
 					<Stat
 						key={c.category}
 						label={t(`costCategory.${c.category}`, c.category.replace("_", " "))}
-						value={`$${c.total}`}
+						value={formatMoney(c.total, currency)}
 						muted
 					/>
 				))}
@@ -144,9 +157,13 @@ function PropertyFinance() {
 										({t(`warehouse.unit.${i.materialUnit}`, i.materialUnit)})
 									</span>
 								</td>
-								<td className="px-3 py-2 text-right tabular-nums">{i.quantity}</td>
-								<td className="px-3 py-2 text-right tabular-nums">${i.unitPriceSnapshot}</td>
-								<td className="px-3 py-2 text-right tabular-nums">${i.amount}</td>
+								<td className="px-3 py-2 text-right tabular-nums">{formatNumber(i.quantity)}</td>
+								<td className="px-3 py-2 text-right tabular-nums">
+									{formatMoney(i.unitPriceSnapshot, currency)}
+								</td>
+								<td className="px-3 py-2 text-right tabular-nums">
+									{formatMoney(i.amount, currency)}
+								</td>
 								<td className="px-3 py-2 text-right">
 									{!i.reversedAt && summary.status !== "ARCHIVED" && (
 										<button
@@ -207,6 +224,9 @@ function PropertyFinance() {
 						<input
 							value={amount}
 							onChange={(e) => setAmount(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === ",") e.preventDefault();
+							}}
 							placeholder="0.00"
 							pattern="^\d+(\.\d{1,2})?$"
 							className="w-full rounded border px-2 py-1.5 font-mono"
@@ -262,7 +282,9 @@ function PropertyFinance() {
 										{t(`costCategory.${c.category}`, c.category)}
 									</td>
 									<td className="px-3 py-2 text-xs">{c.description ?? t("common.em")}</td>
-									<td className="px-3 py-2 text-right tabular-nums">${c.amount}</td>
+									<td className="px-3 py-2 text-right tabular-nums">
+										{formatMoney(c.amount, currency)}
+									</td>
 									<td className="px-3 py-2 text-right">
 										{!c.reversedAt && summary.status !== "ARCHIVED" && (
 											<button

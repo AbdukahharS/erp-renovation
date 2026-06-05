@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
 import {
 	Table,
 	TableBody,
@@ -14,9 +15,12 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { formatMoney } from "@/lib/format-money";
+import { formatNumber } from "@/lib/format-number";
 import { useGrantClosingPermission, useMarkPayout, useMasterFinance } from "@/lib/queries/finance";
 import { useMaster, useUpdateMaster, useUpdateMasterAvailability } from "@/lib/queries/hr";
 import { useSpecializations } from "@/lib/queries/templates";
+import { useCurrencyCode } from "@/lib/queries/tenant-config";
 
 type MasterDetailPayload = {
 	profile: {
@@ -61,6 +65,7 @@ export function MasterDetail({ id }: { id: string }) {
 	const masterFinance = useMasterFinance(data?.profile.userId);
 	const markPayout = useMarkPayout(data?.profile.userId);
 	const grantPermission = useGrantClosingPermission(data?.profile.userId);
+	const currency = useCurrencyCode();
 
 	if (query.isLoading)
 		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
@@ -81,7 +86,7 @@ export function MasterDetail({ id }: { id: string }) {
 			<div className="grid gap-3 md:grid-cols-3">
 				<Card className="p-4">
 					<div className="text-xs text-muted-foreground">{t("masterDetail.balance")}</div>
-					<div className="text-2xl font-semibold">${data.balance}</div>
+					<div className="text-2xl font-semibold">{formatMoney(data.balance, currency)}</div>
 				</Card>
 				<Card className="p-4">
 					<div className="text-xs text-muted-foreground">{t("masterDetail.acceptedRejected")}</div>
@@ -93,7 +98,7 @@ export function MasterDetail({ id }: { id: string }) {
 					<div className="text-xs text-muted-foreground">{t("masterDetail.avgDurationRatio")}</div>
 					<div className="text-2xl font-semibold">
 						{data.rating?.avgDurationRatio
-							? Number(data.rating.avgDurationRatio).toFixed(2)
+							? formatNumber(data.rating.avgDurationRatio, { maxDecimals: 2 })
 							: t("common.em")}
 					</div>
 				</Card>
@@ -179,30 +184,30 @@ export function MasterDetail({ id }: { id: string }) {
 							<div>
 								<div className="text-muted-foreground">{t("masterDetail.wages")}</div>
 								<div className="font-semibold tabular-nums">
-									${masterFinance.data.wagesCredited}
+									{formatMoney(masterFinance.data.wagesCredited, currency)}
 								</div>
 							</div>
 							<div>
 								<div className="text-muted-foreground">{t("masterDetail.fines")}</div>
 								<div className="font-semibold tabular-nums text-rose-700">
-									${masterFinance.data.finesDeducted}
+									{formatMoney(masterFinance.data.finesDeducted, currency)}
 								</div>
 							</div>
 							<div>
 								<div className="text-muted-foreground">{t("masterDetail.settled")}</div>
 								<div className="font-semibold tabular-nums">
-									${masterFinance.data.payoutsSettled}
+									{formatMoney(masterFinance.data.payoutsSettled, currency)}
 								</div>
 							</div>
 							<div>
 								<div className="text-muted-foreground">{t("masterDetail.outstanding")}</div>
 								<div className="font-semibold tabular-nums text-emerald-700">
-									${masterFinance.data.balance}
+									{formatMoney(masterFinance.data.balance, currency)}
 								</div>
 							</div>
 						</div>
 						<div className="grid gap-2 md:grid-cols-[1fr_2fr_auto]">
-							<Input
+							<NumberInput
 								value={payoutAmount}
 								onChange={(e) => setPayoutAmount(e.target.value)}
 								placeholder="0.00"
@@ -282,7 +287,7 @@ export function MasterDetail({ id }: { id: string }) {
 													<TableCell
 														className={`text-right font-medium tabular-nums ${Number(tx.amount) < 0 ? "text-rose-700" : "text-emerald-700"}`}
 													>
-														${tx.amount}
+														{formatMoney(tx.amount, currency)}
 													</TableCell>
 												</TableRow>
 											))

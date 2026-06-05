@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumberInput } from "@/components/ui/number-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Table,
@@ -22,6 +23,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { formatMoney } from "@/lib/format-money";
+import { formatNumber } from "@/lib/format-number";
+import { useCurrencyCode } from "@/lib/queries/tenant-config";
 import {
 	useAdjustMaterial,
 	useMaterial,
@@ -41,6 +45,7 @@ function MaterialDetail() {
 	const { materialId } = Route.useParams();
 	const { data: material, isLoading } = useMaterial(materialId);
 	const { data: movements } = useMaterialMovements(materialId);
+	const currency = useCurrencyCode();
 
 	if (isLoading || !material)
 		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
@@ -68,16 +73,17 @@ function MaterialDetail() {
 				</div>
 				<p className="text-sm text-muted-foreground">
 					{material.category ?? t("common.em")} ·{" "}
-					{t(`warehouse.unit.${material.unit}`, material.unit)} · ${material.price}/{material.unit}
+					{t(`warehouse.unit.${material.unit}`, material.unit)} ·{" "}
+					{formatMoney(material.price, currency)}/{material.unit}
 				</p>
 			</header>
 
 			<div className="grid gap-3 sm:grid-cols-3">
-				<Stat label={t("warehouse.stats.onHand")} value={material.onHand} />
-				<Stat label={t("warehouse.stats.price")} value={`$${material.price}`} />
+				<Stat label={t("warehouse.stats.onHand")} value={formatNumber(material.onHand)} />
+				<Stat label={t("warehouse.stats.price")} value={formatMoney(material.price, currency)} />
 				<Stat
 					label={t("warehouse.stats.totalValue")}
-					value={`$${(Number(material.onHand) * Number(material.price)).toFixed(2)}`}
+					value={formatMoney(Number(material.onHand) * Number(material.price), currency)}
 				/>
 			</div>
 
@@ -120,10 +126,12 @@ function MaterialDetail() {
 										}`}
 									>
 										{Number(m.delta) > 0 ? "+" : ""}
-										{m.delta}
+										{formatNumber(m.delta)}
 									</TableCell>
 									<TableCell className="text-right tabular-nums">
-										{m.unitPriceSnapshot ? `$${m.unitPriceSnapshot}` : t("common.em")}
+										{m.unitPriceSnapshot
+											? formatMoney(m.unitPriceSnapshot, currency)
+											: t("common.em")}
 									</TableCell>
 									<TableCell className="text-xs">
 										{m.propertyId && m.propertyName ? (
@@ -245,7 +253,7 @@ function EditMaterialDialog({
 						</div>
 						<div className="space-y-1.5">
 							<Label htmlFor="e-price">{t("warehouse.field.price")}</Label>
-							<Input
+							<NumberInput
 								id="e-price"
 								value={price}
 								onChange={(e) => setPrice(e.target.value)}
@@ -308,7 +316,7 @@ function RestockDialog({ id }: { id: string }) {
 					<div className="my-4 space-y-3">
 						<div className="space-y-1.5">
 							<Label htmlFor="r-qty">{t("warehouse.field.quantity")}</Label>
-							<Input
+							<NumberInput
 								id="r-qty"
 								value={quantity}
 								onChange={(e) => setQuantity(e.target.value)}
@@ -319,7 +327,7 @@ function RestockDialog({ id }: { id: string }) {
 						</div>
 						<div className="space-y-1.5">
 							<Label htmlFor="r-price">{t("warehouse.field.unitPriceOptional")}</Label>
-							<Input
+							<NumberInput
 								id="r-price"
 								value={unitPrice}
 								onChange={(e) => setUnitPrice(e.target.value)}
@@ -389,7 +397,7 @@ function AdjustDialog({ id }: { id: string }) {
 					<div className="my-4 space-y-3">
 						<div className="space-y-1.5">
 							<Label htmlFor="a-delta">{t("warehouse.field.delta")}</Label>
-							<Input
+							<NumberInput
 								id="a-delta"
 								value={delta}
 								onChange={(e) => setDelta(e.target.value)}
