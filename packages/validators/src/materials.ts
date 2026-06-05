@@ -95,6 +95,8 @@ export const MaterialMovementRowSchema = z.object({
 	actorUserId: z.string(),
 	reason: z.string().nullable(),
 	createdAt: z.coerce.date(),
+	propertyId: z.string().uuid().nullable(),
+	propertyName: z.string().nullable(),
 });
 export type MaterialMovementRow = z.infer<typeof MaterialMovementRowSchema>;
 

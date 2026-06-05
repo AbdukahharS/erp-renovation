@@ -195,7 +195,8 @@
 		"layoutSecondary": "Вторичка",
 		"metaLine": "{{layout}} · {{area}} м² · план ${{cost}}",
 		"wageLabel": "ставка ${{amount}}",
-		"backToProperties": "Объекты"
+		"backToProperties": "Объекты",
+		"openFinance": "Финансы и материалы"
 	},
 	"propertyFinance": {
 		"backToProperty": "← Назад к объекту",
@@ -225,6 +226,17 @@
 		"startClosing": "Начать закрытие",
 		"archivedOn": "Заархивирован {{date}}.",
 		"recordCostAria": "Внести расход"
+	},
+	"transactionType": {
+		"WAGE_CREDIT": "Зарплата",
+		"BUDGET_DECREMENT": "Бюджет",
+		"MATERIAL_COST": "Материалы",
+		"TRANSPORT_COST": "Транспорт",
+		"EXTERNAL_CONTRACTOR_COST": "Подрядчик",
+		"OTHER_COST": "Прочее",
+		"FINE": "Штраф",
+		"PAYOUT_SETTLEMENT": "Выплата",
+		"REVERSAL": "Отмена"
 	},
 	"costCategory": {
 		"TRANSPORT": "ТРАНСПОРТ",
@@ -279,7 +291,8 @@
 			"unitPrice": "Цена за ед.",
 			"reason": "Причина",
 			"material": "Материал",
-			"quantity": "Кол-во"
+			"quantity": "Кол-во",
+			"property": "Объект"
 		},
 		"stats": {
 			"onHand": "Остаток",
@@ -550,9 +563,15 @@
 		"wages": "Зарплаты",
 		"fines": "Штрафы",
 		"settled": "Выплачено",
+		"outstanding": "К выплате",
 		"noteOptional": "Заметка (необязательно)",
 		"markPaid": "Отметить оплачено",
 		"transactionsCount": "Транзакции ({{count}})",
+		"txDate": "Дата",
+		"txType": "Тип",
+		"txDescription": "Описание",
+		"txAmount": "Сумма",
+		"noTransactions": "Транзакций пока нет",
 		"closingPermission": "Разрешение на закрытие",
 		"closingPermissionDesc": "Даёт роль «главного технического контролёра» — инспектор с этим разрешением может подписать финальную приёмку и закрыть объект. Мастерам разрешение тоже можно выдать для гибкости, но на практике им пользуются только инспекторы.",
 		"grant": "Выдать",

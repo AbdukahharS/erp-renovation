@@ -1,5 +1,5 @@
 import { computeRatingScore } from "@repo/acceptance/rating";
-import { tenantConfig } from "@repo/db/schema/control";
+import { tenantConfig, tenantMemberships, user as users } from "@repo/db/schema/control";
 import {
 	masterBalances,
 	masterProfiles,
@@ -11,7 +11,7 @@ import {
 } from "@repo/db/schema/tenant";
 
 import { UpdateAvailabilityInput, UpdateMasterInput } from "@repo/validators";
-import { desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, ne } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../../db.ts";
 import { zodBody } from "../../lib/zod-body.ts";
@@ -49,13 +49,32 @@ function withScore(
 type AnyRow = any;
 
 /**
- * Build the roster payload — one row per master with availability derived from
- * an active assignment or the manual override window. Used by both the owner
- * (full read/edit) and inspector (read-only) endpoints.
+ * Build the roster payload — one row per enlisted tenant member (Master,
+ * Inspector, Procurement; Owner excluded). Masters carry profile/specs/rating/
+ * balance; non-masters fall back to the user's name + role. Used by both the
+ * owner (full read/edit) and inspector (read-only) endpoints.
  */
-async function loadRoster(tx: AnyRow, weights: { speed: number; defect: number }) {
-	const profiles = await tx.select().from(masterProfiles).orderBy(desc(masterProfiles.createdAt));
-	if (profiles.length === 0) return [];
+async function loadRoster(
+	tenantId: string,
+	tx: AnyRow,
+	weights: { speed: number; defect: number },
+) {
+	const members = await db
+		.select({
+			userId: tenantMemberships.userId,
+			role: tenantMemberships.role,
+			createdAt: tenantMemberships.createdAt,
+			name: users.name,
+			email: users.email,
+		})
+		.from(tenantMemberships)
+		.innerJoin(users, eq(users.id, tenantMemberships.userId))
+		.where(and(eq(tenantMemberships.tenantId, tenantId), ne(tenantMemberships.role, "OWNER")))
+		.orderBy(desc(tenantMemberships.createdAt));
+	if (members.length === 0) return [];
+
+	const profiles = await tx.select().from(masterProfiles);
+	const profileByUser = new Map<string, AnyRow>(profiles.map((p: AnyRow) => [p.userId, p]));
 
 	const ratings = await tx.select().from(masterRatings);
 	const ratingByUser = new Map<string, AnyRow>(ratings.map((r: AnyRow) => [r.masterUserId, r]));
@@ -82,10 +101,11 @@ async function loadRoster(tx: AnyRow, weights: { speed: number; defect: number }
 	);
 
 	const now = new Date();
-	return profiles.map((p: AnyRow) => {
-		const active = activeByUser.get(p.userId);
+	return members.map((m: AnyRow) => {
+		const p = profileByUser.get(m.userId);
+		const active = activeByUser.get(m.userId);
 		let availability: { state: string; detail: string | null; until: string | null };
-		if (p.availabilityOverrideUntil && p.availabilityOverrideUntil > now) {
+		if (p?.availabilityOverrideUntil && p.availabilityOverrideUntil > now) {
 			availability = {
 				state: "UNAVAILABLE",
 				detail: p.availabilityOverride ?? "Unavailable",
@@ -104,14 +124,15 @@ async function loadRoster(tx: AnyRow, weights: { speed: number; defect: number }
 			availability = { state: "AVAILABLE", detail: null, until: null };
 		}
 		return {
-			id: p.id,
-			userId: p.userId,
-			displayName: p.displayName,
-			phone: p.phone,
-			specializations: p.specializations,
+			id: p?.id ?? m.userId,
+			userId: m.userId,
+			role: m.role,
+			displayName: p?.displayName ?? m.name ?? m.email,
+			phone: p?.phone ?? null,
+			specializations: p?.specializations ?? [],
 			availability,
-			rating: withScore(ratingByUser.get(p.userId) ?? null, weights),
-			balance: balanceByUser.get(p.userId)?.balance ?? "0",
+			rating: withScore(ratingByUser.get(m.userId) ?? null, weights),
+			balance: balanceByUser.get(m.userId)?.balance ?? "0",
 		};
 	});
 }
@@ -131,7 +152,7 @@ const ownerRoutes = new Elysia({ prefix: "/owner/masters" })
 			return { error: "no tenant" };
 		}
 		const weights = await loadRatingWeights(tenant.id);
-		return await runInTenant((tx) => loadRoster(tx, weights));
+		return await runInTenant((tx) => loadRoster(tenant.id, tx, weights));
 	})
 
 	.get("/:masterId", async ({ tenant, params, runInTenant, set }) => {
@@ -257,7 +278,7 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector/masters" })
 			return { error: "no tenant" };
 		}
 		const weights = await loadRatingWeights(tenant.id);
-		return await runInTenant((tx) => loadRoster(tx, weights));
+		return await runInTenant((tx) => loadRoster(tenant.id, tx, weights));
 	});
 
 // Master self-view — returns the caller's own profile (incl. specializations),

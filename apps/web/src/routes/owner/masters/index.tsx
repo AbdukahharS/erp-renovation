@@ -235,74 +235,96 @@ function OwnerMasters() {
 					/>
 				) : (
 					<div className="grid gap-2">
-						{masters.data?.map((m) => (
-							<Card key={m.id} className="p-3">
-								<div className="grid items-center gap-3 md:grid-cols-[auto_1fr_1fr_1fr_1fr_auto]">
-									<Avatar className="size-9">
-										<AvatarFallback>{initialsOf(m.displayName)}</AvatarFallback>
-									</Avatar>
-									<div className="space-y-0.5">
-										<div className="text-sm font-medium">{m.displayName}</div>
-										<div className="text-xs text-muted-foreground">
-											{m.phone ?? t("masters.noPhone")}
-										</div>
-									</div>
-									<div className="flex flex-wrap gap-1">
-										{m.specializations.length === 0 ? (
-											<span className="text-xs text-muted-foreground">{t("masters.noSpecs")}</span>
-										) : (
-											m.specializations.map((s) => (
-												<Badge key={s} variant="outline" className="text-[10px]">
-													{s}
+						{masters.data?.map((m) => {
+							const isMaster = m.role === "MASTER";
+							return (
+								<Card key={m.id} className="p-3">
+									<div className="grid items-center gap-3 md:grid-cols-[auto_1fr_1fr_1fr_1fr_auto]">
+										<Avatar className="size-9">
+											<AvatarFallback>{initialsOf(m.displayName)}</AvatarFallback>
+										</Avatar>
+										<div className="space-y-0.5">
+											<div className="flex items-center gap-2">
+												<span className="text-sm font-medium">{m.displayName}</span>
+												<Badge variant="secondary" className="text-[10px]">
+													{t(`role.${m.role.toLowerCase()}`, m.role)}
 												</Badge>
-											))
-										)}
-									</div>
-									<div className="text-xs">
-										{m.rating ? (
-											<>
-												<div>
-													{t("masters.acceptedRejected", {
-														accepted: m.rating.acceptedCount,
-														rejected: m.rating.rejectedCount,
-													})}
-												</div>
-												<div className="text-muted-foreground">
-													{t("masters.avgRatio", {
-														value: m.rating.avgDurationRatio
-															? Number(m.rating.avgDurationRatio).toFixed(2)
-															: t("common.em"),
-													})}
-												</div>
-											</>
-										) : (
-											<span className="text-muted-foreground">{t("masters.noActivity")}</span>
-										)}
-									</div>
-									<div className="text-xs">
-										<div className="font-medium">{m.availability.state}</div>
-										{m.availability.detail ? (
-											<div className="text-muted-foreground">{m.availability.detail}</div>
-										) : null}
-										{m.availability.until ? (
-											<div className="text-muted-foreground">
-												{t("masters.until", {
-													date: new Date(m.availability.until).toLocaleDateString(),
-												})}
 											</div>
-										) : null}
+											<div className="text-xs text-muted-foreground">
+												{m.phone ?? t("masters.noPhone")}
+											</div>
+										</div>
+										<div className="flex flex-wrap gap-1">
+											{isMaster ? (
+												m.specializations.length === 0 ? (
+													<span className="text-xs text-muted-foreground">
+														{t("masters.noSpecs")}
+													</span>
+												) : (
+													m.specializations.map((s) => (
+														<Badge key={s} variant="outline" className="text-[10px]">
+															{s}
+														</Badge>
+													))
+												)
+											) : (
+												<span className="text-xs text-muted-foreground">{t("common.em")}</span>
+											)}
+										</div>
+										<div className="text-xs">
+											{isMaster ? (
+												m.rating ? (
+													<>
+														<div>
+															{t("masters.acceptedRejected", {
+																accepted: m.rating.acceptedCount,
+																rejected: m.rating.rejectedCount,
+															})}
+														</div>
+														<div className="text-muted-foreground">
+															{t("masters.avgRatio", {
+																value: m.rating.avgDurationRatio
+																	? Number(m.rating.avgDurationRatio).toFixed(2)
+																	: t("common.em"),
+															})}
+														</div>
+													</>
+												) : (
+													<span className="text-muted-foreground">{t("masters.noActivity")}</span>
+												)
+											) : (
+												<span className="text-muted-foreground">{t("common.em")}</span>
+											)}
+										</div>
+										<div className="text-xs">
+											<div className="font-medium">{m.availability.state}</div>
+											{m.availability.detail ? (
+												<div className="text-muted-foreground">{m.availability.detail}</div>
+											) : null}
+											{m.availability.until ? (
+												<div className="text-muted-foreground">
+													{t("masters.until", {
+														date: new Date(m.availability.until).toLocaleDateString(),
+													})}
+												</div>
+											) : null}
+										</div>
+										{isMaster ? (
+											<Button
+												size="sm"
+												variant="outline"
+												nativeButton={false}
+												render={<Link to="/owner/masters/$id" params={{ id: m.id }} />}
+											>
+												{t("masters.open")}
+											</Button>
+										) : (
+											<span />
+										)}
 									</div>
-									<Button
-										size="sm"
-										variant="outline"
-										nativeButton={false}
-										render={<Link to="/owner/masters/$id" params={{ id: m.id }} />}
-									>
-										{t("masters.open")}
-									</Button>
-								</div>
-							</Card>
-						))}
+								</Card>
+							);
+						})}
 					</div>
 				)}
 			</section>

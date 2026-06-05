@@ -195,7 +195,8 @@
 		"layoutSecondary": "Secondary",
 		"metaLine": "{{layout}} · {{area}} m² · planned ${{cost}}",
 		"wageLabel": "wage ${{amount}}",
-		"backToProperties": "Properties"
+		"backToProperties": "Properties",
+		"openFinance": "Finance & materials"
 	},
 	"propertyFinance": {
 		"backToProperty": "← Back to property",
@@ -230,6 +231,17 @@
 		"TRANSPORT": "TRANSPORT",
 		"EXTERNAL_CONTRACTOR": "EXTERNAL CONTRACTOR",
 		"OTHER": "OTHER"
+	},
+	"transactionType": {
+		"WAGE_CREDIT": "Wage",
+		"BUDGET_DECREMENT": "Budget",
+		"MATERIAL_COST": "Materials",
+		"TRANSPORT_COST": "Transport",
+		"EXTERNAL_CONTRACTOR_COST": "External contractor",
+		"OTHER_COST": "Other cost",
+		"FINE": "Fine",
+		"PAYOUT_SETTLEMENT": "Payout",
+		"REVERSAL": "Reversal"
 	},
 	"warehouse": {
 		"title": "Warehouse",
@@ -279,7 +291,8 @@
 			"unitPrice": "Unit price",
 			"reason": "Reason",
 			"material": "Material",
-			"quantity": "Quantity"
+			"quantity": "Quantity",
+			"property": "Property"
 		},
 		"stats": {
 			"onHand": "On hand",
@@ -550,9 +563,15 @@
 		"wages": "Wages",
 		"fines": "Fines",
 		"settled": "Settled",
+		"outstanding": "Outstanding",
 		"noteOptional": "Note (optional)",
 		"markPaid": "Mark paid",
 		"transactionsCount": "Transactions ({{count}})",
+		"txDate": "Date",
+		"txType": "Type",
+		"txDescription": "Description",
+		"txAmount": "Amount",
+		"noTransactions": "No transactions yet",
 		"closingPermission": "Closing permission",
 		"closingPermissionDesc": "Grants the \"Chief Technical Supervisor\" role — an Inspector with this permission can sign off on the final acceptance and close a property. Master accounts can also receive it for flexibility, though only Inspectors act on it in practice.",
 		"grant": "Grant",

@@ -101,6 +101,7 @@ function MaterialDetail() {
 								<TableHead>{t("warehouse.col.type")}</TableHead>
 								<TableHead className="text-right">{t("warehouse.col.delta")}</TableHead>
 								<TableHead className="text-right">{t("warehouse.col.unitPrice")}</TableHead>
+								<TableHead>{t("warehouse.col.property", "Property")}</TableHead>
 								<TableHead>{t("warehouse.col.reason")}</TableHead>
 							</TableRow>
 						</TableHeader>
@@ -123,6 +124,19 @@ function MaterialDetail() {
 									</TableCell>
 									<TableCell className="text-right tabular-nums">
 										{m.unitPriceSnapshot ? `$${m.unitPriceSnapshot}` : t("common.em")}
+									</TableCell>
+									<TableCell className="text-xs">
+										{m.propertyId && m.propertyName ? (
+											<Link
+												to="/owner/properties/$propertyId"
+												params={{ propertyId: m.propertyId }}
+												className="text-primary hover:underline"
+											>
+												{m.propertyName}
+											</Link>
+										) : (
+											<span className="text-muted-foreground">{t("common.em")}</span>
+										)}
 									</TableCell>
 									<TableCell className="text-xs text-muted-foreground">
 										{renderReason(m.reason, t)}

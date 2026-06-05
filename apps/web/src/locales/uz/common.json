@@ -195,7 +195,8 @@
 		"layoutSecondary": "Ikkilamchi",
 		"metaLine": "{{layout}} · {{area}} m² · reja ${{cost}}",
 		"wageLabel": "stavka ${{amount}}",
-		"backToProperties": "Obyektlar"
+		"backToProperties": "Obyektlar",
+		"openFinance": "Moliya va materiallar"
 	},
 	"propertyFinance": {
 		"backToProperty": "← Obyektga qaytish",
@@ -225,6 +226,17 @@
 		"startClosing": "Yopishni boshlash",
 		"archivedOn": "{{date}} sanasida arxivlangan.",
 		"recordCostAria": "Xarajat qoʻshish"
+	},
+	"transactionType": {
+		"WAGE_CREDIT": "Ish haqi",
+		"BUDGET_DECREMENT": "Byudjet",
+		"MATERIAL_COST": "Materiallar",
+		"TRANSPORT_COST": "Transport",
+		"EXTERNAL_CONTRACTOR_COST": "Tashqi pudratchi",
+		"OTHER_COST": "Boshqa",
+		"FINE": "Jarima",
+		"PAYOUT_SETTLEMENT": "Toʻlov",
+		"REVERSAL": "Bekor qilish"
 	},
 	"costCategory": {
 		"TRANSPORT": "TRANSPORT",
@@ -279,7 +291,8 @@
 			"unitPrice": "Birlik narxi",
 			"reason": "Sabab",
 			"material": "Material",
-			"quantity": "Miqdor"
+			"quantity": "Miqdor",
+			"property": "Obyekt"
 		},
 		"stats": {
 			"onHand": "Qoldiq",
@@ -550,9 +563,15 @@
 		"wages": "Ish haqi",
 		"fines": "Jarimalar",
 		"settled": "Toʻlangan",
+		"outstanding": "Toʻlanishi kerak",
 		"noteOptional": "Izoh (ixtiyoriy)",
 		"markPaid": "Toʻlangan deb belgilash",
 		"transactionsCount": "Tranzaksiyalar ({{count}})",
+		"txDate": "Sana",
+		"txType": "Turi",
+		"txDescription": "Tavsif",
+		"txAmount": "Summa",
+		"noTransactions": "Hozircha tranzaksiyalar yoʻq",
 		"closingPermission": "Yopish ruxsati",
 		"closingPermissionDesc": "«Bosh texnik nazoratchi» rolini beradi — bu ruxsatga ega Nazoratchi yakuniy qabulni imzolab, obyektni yopa oladi. Moslashuvchanlik uchun Ustalarga ham berilishi mumkin, lekin amalda undan faqat Nazoratchilar foydalanadi.",
 		"grant": "Berish",

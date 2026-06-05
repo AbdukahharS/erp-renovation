@@ -418,8 +418,22 @@ export async function listIssuancesByProperty(tx: Tx, propertyId: string) {
 
 export async function listMovementsByMaterial(tx: Tx, materialId: string) {
 	return await tx
-		.select()
+		.select({
+			id: materialMovements.id,
+			materialId: materialMovements.materialId,
+			type: materialMovements.type,
+			delta: materialMovements.delta,
+			unitPriceSnapshot: materialMovements.unitPriceSnapshot,
+			issuanceId: materialMovements.issuanceId,
+			actorUserId: materialMovements.actorUserId,
+			reason: materialMovements.reason,
+			createdAt: materialMovements.createdAt,
+			propertyId: properties.id,
+			propertyName: properties.name,
+		})
 		.from(materialMovements)
+		.leftJoin(materialIssuances, eq(materialIssuances.id, materialMovements.issuanceId))
+		.leftJoin(properties, eq(properties.id, materialIssuances.propertyId))
 		.where(eq(materialMovements.materialId, materialId))
 		.orderBy(desc(materialMovements.createdAt));
 }

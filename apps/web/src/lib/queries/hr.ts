@@ -5,6 +5,7 @@ import { api, unwrap } from "../api";
 export type MasterRosterRow = {
 	id: string;
 	userId: string;
+	role: Role;
 	displayName: string;
 	phone: string | null;
 	specializations: string[];

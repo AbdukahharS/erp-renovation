@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@/components/ui/table";
 import { useGrantClosingPermission, useMarkPayout, useMasterFinance } from "@/lib/queries/finance";
 import { useMaster, useUpdateMaster, useUpdateMasterAvailability } from "@/lib/queries/hr";
 import { useSpecializations } from "@/lib/queries/templates";
@@ -167,7 +175,7 @@ export function MasterDetail({ id }: { id: string }) {
 				)}
 				{masterFinance.data && (
 					<>
-						<div className="grid grid-cols-3 gap-2 text-xs">
+						<div className="grid grid-cols-2 gap-2 text-xs md:grid-cols-4">
 							<div>
 								<div className="text-muted-foreground">{t("masterDetail.wages")}</div>
 								<div className="font-semibold tabular-nums">
@@ -184,6 +192,12 @@ export function MasterDetail({ id }: { id: string }) {
 								<div className="text-muted-foreground">{t("masterDetail.settled")}</div>
 								<div className="font-semibold tabular-nums">
 									${masterFinance.data.payoutsSettled}
+								</div>
+							</div>
+							<div>
+								<div className="text-muted-foreground">{t("masterDetail.outstanding")}</div>
+								<div className="font-semibold tabular-nums text-emerald-700">
+									${masterFinance.data.balance}
 								</div>
 							</div>
 						</div>
@@ -228,25 +242,53 @@ export function MasterDetail({ id }: { id: string }) {
 									count: masterFinance.data.transactions.length,
 								})}
 							</summary>
-							<div className="mt-2 grid gap-1">
-								{masterFinance.data.transactions.slice(0, 30).map((t) => (
-									<div key={t.id} className="grid grid-cols-[80px_1fr_auto] items-center gap-2">
-										<span className="text-muted-foreground">
-											{new Date(t.createdAt).toISOString().slice(0, 10)}
-										</span>
-										<span>
-											{t.type}
-											{t.description ? (
-												<span className="text-muted-foreground"> · {t.description}</span>
-											) : null}
-										</span>
-										<span
-											className={`tabular-nums ${Number(t.amount) < 0 ? "text-rose-700" : "text-emerald-700"}`}
-										>
-											${t.amount}
-										</span>
-									</div>
-								))}
+							<div className="mt-2 overflow-hidden rounded-md border">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead className="w-[110px]">
+												{t("masterDetail.txDate", "Date")}
+											</TableHead>
+											<TableHead className="w-[140px]">
+												{t("masterDetail.txType", "Type")}
+											</TableHead>
+											<TableHead>{t("masterDetail.txDescription", "Description")}</TableHead>
+											<TableHead className="w-[110px] text-right">
+												{t("masterDetail.txAmount", "Amount")}
+											</TableHead>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{masterFinance.data.transactions.length === 0 ? (
+											<TableRow>
+												<TableCell colSpan={4} className="text-center text-muted-foreground">
+													{t("masterDetail.noTransactions", "No transactions yet")}
+												</TableCell>
+											</TableRow>
+										) : (
+											masterFinance.data.transactions.slice(0, 30).map((tx) => (
+												<TableRow key={tx.id}>
+													<TableCell className="text-muted-foreground tabular-nums">
+														{new Date(tx.createdAt).toISOString().slice(0, 10)}
+													</TableCell>
+													<TableCell>
+														<Badge variant="outline" className="text-[10px]">
+															{t(`transactionType.${tx.type}`, tx.type)}
+														</Badge>
+													</TableCell>
+													<TableCell className="text-muted-foreground">
+														{tx.description ?? "—"}
+													</TableCell>
+													<TableCell
+														className={`text-right font-medium tabular-nums ${Number(tx.amount) < 0 ? "text-rose-700" : "text-emerald-700"}`}
+													>
+														${tx.amount}
+													</TableCell>
+												</TableRow>
+											))
+										)}
+									</TableBody>
+								</Table>
 							</div>
 						</details>
 					</>

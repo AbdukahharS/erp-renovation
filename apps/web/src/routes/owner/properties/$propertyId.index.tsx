@@ -123,7 +123,7 @@ function PropertyDetail() {
 											<span
 												className={`rounded px-1.5 py-0.5 text-[10px] ${ss.performerType === "INSPECTOR" ? "bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200" : "bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"}`}
 											>
-												{ss.performerType}
+												{t(`role.${ss.performerType.toLowerCase()}`, ss.performerType)}
 											</span>
 										</div>
 										<div className="mt-1 leading-tight">{ss.name}</div>

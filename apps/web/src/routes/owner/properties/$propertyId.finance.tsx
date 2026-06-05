@@ -91,11 +91,10 @@ function PropertyFinance() {
 				)}
 			</header>
 
-			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+			<div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 				<Stat label={t("propertyFinance.plannedTotal")} value={`$${summary.plannedTotal}`} />
 				<Stat label={t("propertyFinance.wagesCredited")} value={`$${summary.accruedWages}`} />
 				<Stat label={t("propertyFinance.materialsCost")} value={`$${summary.materialsCost}`} />
-				<Stat label={t("propertyFinance.otherCosts")} value={`$${summary.costsTotal}`} />
 				<Stat
 					label={t("propertyFinance.netProfit")}
 					value={`$${summary.netProfit}`}
