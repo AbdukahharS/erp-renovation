@@ -299,7 +299,12 @@ function OwnerMasters() {
 											)}
 										</div>
 										<div className="text-xs">
-											<div className="font-medium">{m.availability.state}</div>
+											<div className="font-medium">
+												{t(
+													`masters.availabilityState.${m.availability.state}`,
+													m.availability.state,
+												)}
+											</div>
 											{m.availability.detail ? (
 												<div className="text-muted-foreground">{m.availability.detail}</div>
 											) : null}

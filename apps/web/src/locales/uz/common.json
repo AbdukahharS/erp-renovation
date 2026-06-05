@@ -563,6 +563,11 @@
 		"avgRatio": "oʻrt. koef.: {{value}}",
 		"noActivity": "faollik yoʻq",
 		"until": "{{date}} gacha",
+		"availabilityState": {
+			"AVAILABLE": "Bo‘sh",
+			"WORKING": "Ishda",
+			"UNAVAILABLE": "Band"
+		},
 		"open": "Ochish",
 		"invitationCreated": "Taklif yaratildi",
 		"invitationStatus": {

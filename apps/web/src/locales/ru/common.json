@@ -563,6 +563,11 @@
 		"avgRatio": "ср. коэф.: {{value}}",
 		"noActivity": "нет активности",
 		"until": "до {{date}}",
+		"availabilityState": {
+			"AVAILABLE": "Свободен",
+			"WORKING": "В работе",
+			"UNAVAILABLE": "Недоступен"
+		},
 		"open": "Открыть",
 		"invitationCreated": "Приглашение создано",
 		"invitationStatus": {

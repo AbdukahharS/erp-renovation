@@ -563,6 +563,11 @@
 		"avgRatio": "avg ratio: {{value}}",
 		"noActivity": "no activity",
 		"until": "until {{date}}",
+		"availabilityState": {
+			"AVAILABLE": "Available",
+			"WORKING": "Working",
+			"UNAVAILABLE": "Unavailable"
+		},
 		"open": "Open",
 		"invitationCreated": "Invitation created",
 		"invitationStatus": {

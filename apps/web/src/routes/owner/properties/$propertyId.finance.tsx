@@ -151,13 +151,13 @@ function PropertyFinance() {
 								<td className="px-3 py-2 text-xs">
 									{new Date(i.createdAt).toISOString().slice(0, 10)}
 								</td>
-								<td className="px-3 py-2 text-xs">
-									{i.materialName}{" "}
+								<td className="px-3 py-2 text-xs">{i.materialName}</td>
+								<td className="px-3 py-2 text-right tabular-nums">
+									{formatNumber(i.quantity)}{" "}
 									<span className="text-muted-foreground">
-										({t(`warehouse.unit.${i.materialUnit}`, i.materialUnit)})
+										{t(`warehouse.unit.${i.materialUnit}`, i.materialUnit)}
 									</span>
 								</td>
-								<td className="px-3 py-2 text-right tabular-nums">{formatNumber(i.quantity)}</td>
 								<td className="px-3 py-2 text-right tabular-nums">
 									{formatMoney(i.unitPriceSnapshot, currency)}
 								</td>
