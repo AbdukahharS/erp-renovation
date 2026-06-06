@@ -569,6 +569,15 @@
 			"UNAVAILABLE": "Unavailable"
 		},
 		"open": "Open",
+		"inviteMember": "Invite member",
+		"newInvitation": "New invitation",
+		"close": "Close",
+		"columns": {
+			"name": "Name",
+			"specializations": "Specializations",
+			"rating": "Rating",
+			"availability": "Availability"
+		},
 		"invitationCreated": "Invitation created",
 		"invitationStatus": {
 			"CONSUMED": "CONSUMED",

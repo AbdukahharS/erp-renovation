@@ -569,6 +569,15 @@
 			"UNAVAILABLE": "Недоступен"
 		},
 		"open": "Открыть",
+		"inviteMember": "Пригласить участника",
+		"newInvitation": "Новое приглашение",
+		"close": "Закрыть",
+		"columns": {
+			"name": "Имя",
+			"specializations": "Специализации",
+			"rating": "Рейтинг",
+			"availability": "Доступность"
+		},
 		"invitationCreated": "Приглашение создано",
 		"invitationStatus": {
 			"CONSUMED": "ИСПОЛЬЗОВАНО",

@@ -569,6 +569,15 @@
 			"UNAVAILABLE": "Band"
 		},
 		"open": "Ochish",
+		"inviteMember": "Aʼzo taklif qilish",
+		"newInvitation": "Yangi taklif",
+		"close": "Yopish",
+		"columns": {
+			"name": "Ism",
+			"specializations": "Mutaxassisliklar",
+			"rating": "Reyting",
+			"availability": "Mavjudlik"
+		},
 		"invitationCreated": "Taklif yaratildi",
 		"invitationStatus": {
 			"CONSUMED": "ISHLATILGAN",
