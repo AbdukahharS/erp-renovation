@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
 	BuildingIcon,
 	ClipboardListIcon,
@@ -9,6 +9,7 @@ import {
 	UsersIcon,
 	WalletIcon,
 } from "lucide-react";
+import { AnimatedOutlet } from "@/components/animated-outlet";
 import { AppSidebar, type NavGroup } from "@/components/layout/app-sidebar";
 import { AppTopbar } from "@/components/layout/app-topbar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -63,7 +64,7 @@ function OwnerShell() {
 			<SidebarInset>
 				<AppTopbar />
 				<main className="flex-1 p-4 md:p-6">
-					<Outlet />
+					<AnimatedOutlet />
 				</main>
 			</SidebarInset>
 		</SidebarProvider>

@@ -1,5 +1,6 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { AnimatedOutlet } from "@/components/animated-outlet";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -29,7 +30,7 @@ function ProcurementShell() {
 				</div>
 			</header>
 			<main className="p-4">
-				<Outlet />
+				<AnimatedOutlet />
 			</main>
 		</div>
 	);

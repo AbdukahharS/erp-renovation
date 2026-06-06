@@ -1,5 +1,6 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
+import { AnimatedOutlet } from "@/components/animated-outlet";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { FieldTabs } from "@/components/layout/field-tabs";
 import { InstallAndPermissionCard } from "@/components/notifications/install-and-permission-card";
@@ -32,7 +33,7 @@ function MasterShell() {
 			</header>
 			<main className="mx-auto max-w-md space-y-4 p-4 pb-24 text-base">
 				<InstallAndPermissionCard />
-				<Outlet />
+				<AnimatedOutlet />
 			</main>
 			<FieldTabs variant="master" />
 		</div>
