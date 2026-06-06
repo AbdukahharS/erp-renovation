@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SpecializationKeySchema } from "./specializations.ts";
 
 export const PerformerTypeSchema = z.enum(["MASTER", "INSPECTOR"]);
 export type PerformerType = z.infer<typeof PerformerTypeSchema>;
@@ -45,7 +46,7 @@ export const SubStageSchema = z.object({
 	code: z.string(),
 	name: z.string(),
 	performerType: PerformerTypeSchema,
-	specialization: z.string().nullable(),
+	specialization: SpecializationKeySchema.nullable(),
 	standardDurationDays: z.number().int(),
 	wageRatePerSqm: z.string(),
 	description: z.string().nullable(),
@@ -87,12 +88,6 @@ export const StageDependencySchema = z.object({
 });
 export type StageDependency = z.infer<typeof StageDependencySchema>;
 
-export const SpecializationSchema = z.object({
-	id: z.string().uuid(),
-	name: z.string(),
-});
-export type Specialization = z.infer<typeof SpecializationSchema>;
-
 // ---------- Inputs (client → server) ----------
 
 export const DefaultTemplateLocaleSchema = z.enum(["en", "ru", "uz"]);
@@ -131,7 +126,7 @@ export const CreateSubStageInput = z.object({
 	code: z.string().min(1).max(16),
 	name: z.string().min(1),
 	performerType: PerformerTypeSchema,
-	specialization: z.string().nullable().optional(),
+	specialization: SpecializationKeySchema.nullable().optional(),
 	standardDurationDays: z.number().int().min(0).default(1),
 	wageRatePerSqm: z.string().regex(/^\d+(\.\d{1,2})?$/),
 	description: z.string().nullable().optional(),
@@ -141,7 +136,7 @@ export const UpdateSubStageInput = z.object({
 	code: z.string().min(1).max(16).optional(),
 	name: z.string().min(1).optional(),
 	performerType: PerformerTypeSchema.optional(),
-	specialization: z.string().nullable().optional(),
+	specialization: SpecializationKeySchema.nullable().optional(),
 	standardDurationDays: z.number().int().min(0).optional(),
 	wageRatePerSqm: z
 		.string()
@@ -177,10 +172,6 @@ export const SetManualOverrideInput = z.object({
 	reason: z.string().nullable().optional(),
 });
 
-export const CreateSpecializationInput = z.object({
-	name: z.string().min(1),
-});
-
 // ---------- Template snapshot payload (per-property tailoring) ----------
 //
 // Shape matches the template tree but strips DB ids and is keyed only by
@@ -209,7 +200,7 @@ export const TemplateSnapshotSubStageInput = z.object({
 	code: z.string().min(1).max(16),
 	name: z.string().min(1),
 	performerType: PerformerTypeSchema,
-	specialization: z.string().nullable().optional(),
+	specialization: SpecializationKeySchema.nullable().optional(),
 	standardDurationDays: z.number().int().min(0),
 	wageRatePerSqm: NumericRate,
 	description: z.string().nullable().optional(),

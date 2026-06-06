@@ -110,11 +110,6 @@ export const mediaRequirements = pgTable(
 	(t) => [index("media_requirements_sub_stage_idx").on(t.subStageId)],
 );
 
-export const specializations = pgTable("specializations", {
-	id: uuid("id").primaryKey().defaultRandom(),
-	name: text("name").notNull().unique(),
-});
-
 export const stageDependencies = pgTable(
 	"stage_dependencies",
 	{

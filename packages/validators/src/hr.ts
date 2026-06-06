@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { RoleSchema } from "./auth.ts";
+import { SpecializationKeySchema } from "./specializations.ts";
 
 export const CreateInvitationInput = z.object({
 	role: RoleSchema,
@@ -27,7 +28,6 @@ export const InvitationPreviewSchema = z.discriminatedUnion("status", [
 		tenantName: z.string(),
 		role: RoleSchema,
 		expiresAt: z.string(),
-		specializations: z.array(z.object({ id: z.string().uuid(), name: z.string() })).optional(),
 	}),
 	z.object({ status: z.literal("CONSUMED") }),
 	z.object({ status: z.literal("EXPIRED") }),
@@ -40,7 +40,7 @@ export const RedeemInvitationInput = z.object({
 	password: z.string().min(8),
 	displayName: z.string().min(1).optional(),
 	phone: z.string().optional(),
-	specializations: z.array(z.string()).optional(),
+	specializations: z.array(SpecializationKeySchema).optional(),
 });
 export type RedeemInvitationInput = z.infer<typeof RedeemInvitationInput>;
 
@@ -53,7 +53,7 @@ export type UpdateAvailabilityInput = z.infer<typeof UpdateAvailabilityInput>;
 export const UpdateMasterInput = z.object({
 	displayName: z.string().min(1).optional(),
 	phone: z.string().nullable().optional(),
-	specializations: z.array(z.string()).optional(),
+	specializations: z.array(SpecializationKeySchema).optional(),
 });
 export type UpdateMasterInput = z.infer<typeof UpdateMasterInput>;
 

@@ -1,3 +1,5 @@
+import type { SpecializationKey } from "@repo/validators";
+import { useTranslation } from "react-i18next";
 import {
 	Combobox,
 	ComboboxChip,
@@ -11,8 +13,6 @@ import {
 	ComboboxValue,
 } from "@/components/ui/combobox";
 
-type Option = { id: string; name: string };
-
 export function SpecializationsPicker({
 	value,
 	options,
@@ -21,34 +21,37 @@ export function SpecializationsPicker({
 	emptyHint,
 	disabled,
 }: {
-	value: string[];
-	options: Option[];
-	onChange: (next: string[]) => void;
+	value: SpecializationKey[];
+	options: readonly SpecializationKey[];
+	onChange: (next: SpecializationKey[]) => void;
 	placeholder?: string;
 	emptyHint?: string;
 	disabled?: boolean;
 }) {
-	const items = options.map((o) => o.name);
+	const { t } = useTranslation();
+	const label = (key: SpecializationKey) => t(`specializations.${key}`);
 	return (
 		<Combobox
-			items={items}
+			items={options as SpecializationKey[]}
 			multiple
 			value={value}
-			onValueChange={(v: string[]) => onChange(v)}
+			onValueChange={(v: SpecializationKey[]) => onChange(v)}
 			disabled={disabled}
 		>
 			<ComboboxChips>
 				<ComboboxValue>
-					{(selected: string[]) => selected.map((s) => <ComboboxChip key={s}>{s}</ComboboxChip>)}
+					{(selected: SpecializationKey[]) =>
+						selected.map((s) => <ComboboxChip key={s}>{label(s)}</ComboboxChip>)
+					}
 				</ComboboxValue>
 				<ComboboxChipsInput placeholder={placeholder} />
 			</ComboboxChips>
 			<ComboboxContent>
 				<ComboboxList>
 					<ComboboxCollection>
-						{(item: string) => (
+						{(item: SpecializationKey) => (
 							<ComboboxItem key={item} value={item}>
-								{item}
+								{label(item)}
 							</ComboboxItem>
 						)}
 					</ComboboxCollection>

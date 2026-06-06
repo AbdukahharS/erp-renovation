@@ -74,7 +74,7 @@ function MasterHome() {
 						right={
 							s.specialization ? (
 								<Badge variant="secondary" className="text-[10px]">
-									{s.specialization}
+									{t(`specializations.${s.specialization}`)}
 								</Badge>
 							) : null
 						}

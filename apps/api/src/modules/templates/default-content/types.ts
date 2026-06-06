@@ -9,6 +9,7 @@
  */
 
 import type { MediaType, PerformerType } from "@repo/db/schema/tenant";
+import type { SpecializationKey } from "@repo/validators";
 
 export interface DefaultChecklistItem {
 	text: string;
@@ -25,7 +26,7 @@ export interface DefaultSubStage {
 	code: string;
 	name: string;
 	performerType: PerformerType;
-	specialization?: string;
+	specialization?: SpecializationKey;
 	standardDurationDays: number;
 	wageRatePerSqm: string;
 	description?: string;
@@ -41,7 +42,6 @@ export interface DefaultStage {
 
 export interface DefaultTemplateContent {
 	name: string;
-	specializations: string[];
 	stages: DefaultStage[];
 }
 

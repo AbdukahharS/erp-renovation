@@ -1,7 +1,6 @@
 import {
 	checklistItems,
 	mediaRequirements,
-	specializations,
 	stageDependencies,
 	stages,
 	subStages,
@@ -10,7 +9,6 @@ import {
 import {
 	CreateChecklistItemInput,
 	CreateMediaRequirementInput,
-	CreateSpecializationInput,
 	CreateStageInput,
 	CreateSubStageInput,
 	CreateTemplateInput,
@@ -33,9 +31,7 @@ import { type DefaultTemplateContent, getDefaultTemplateContent } from "./defaul
  * Deep-insert a full template tree from a static {@link DefaultTemplateContent}
  * source (the ERP-default template, supplied in code per locale). Mirrors the
  * shape used by the clone path: templates → stages → subStages → checklist
- * items + media requirements → linear stage dependencies. Specializations are
- * upserted by name so re-creating an ERP-default template doesn't duplicate
- * the lookup rows.
+ * items + media requirements → linear stage dependencies.
  *
  * Returns the new template row id.
  */
@@ -45,13 +41,6 @@ async function insertTemplateFromContent(
 	name: string,
 	content: DefaultTemplateContent,
 ): Promise<string> {
-	if (content.specializations.length > 0) {
-		await tx
-			.insert(specializations)
-			.values(content.specializations.map((n) => ({ name: n })))
-			.onConflictDoNothing();
-	}
-
 	const [tpl] = (await tx.insert(templates).values({ name }).returning({ id: templates.id })) as {
 		id: string;
 	}[];
@@ -914,60 +903,4 @@ export const templatesRoutes = new Elysia({ prefix: "" })
 			});
 		},
 		{ body: zodBody(SetManualOverrideInput) },
-	)
-
-	// ---------- Specializations ----------
-	.get("/specializations", async ({ runInTenant, set }) => {
-		if (!runInTenant) {
-			set.status = 401;
-			return { error: "no tenant" };
-		}
-		return await runInTenant(async (tx) => {
-			return await tx.select().from(specializations).orderBy(asc(specializations.name));
-		});
-	})
-
-	.post(
-		"/specializations",
-		async ({ body, runInTenant, set }) => {
-			if (!runInTenant) {
-				set.status = 401;
-				return { error: "no tenant" };
-			}
-			return await runInTenant(async (tx) => {
-				const [row] = await tx
-					.insert(specializations)
-					.values({ name: body.name })
-					.onConflictDoNothing()
-					.returning();
-				if (!row) {
-					const [existing] = await tx
-						.select()
-						.from(specializations)
-						.where(eq(specializations.name, body.name))
-						.limit(1);
-					return existing;
-				}
-				return row;
-			});
-		},
-		{ body: zodBody(CreateSpecializationInput) },
-	)
-
-	.delete("/specializations/:specializationId", async ({ params, runInTenant, set }) => {
-		if (!runInTenant) {
-			set.status = 401;
-			return { error: "no tenant" };
-		}
-		return await runInTenant(async (tx) => {
-			const [row] = await tx
-				.delete(specializations)
-				.where(eq(specializations.id, params.specializationId))
-				.returning();
-			if (!row) {
-				set.status = 404;
-				return { error: "not found" };
-			}
-			return { ok: true };
-		});
-	});
+	);

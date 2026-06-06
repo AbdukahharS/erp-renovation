@@ -137,7 +137,9 @@ function PropertyDetail() {
 											</div>
 										)}
 										{ss.specialization && (
-											<div className="text-[11px] text-muted-foreground">{ss.specialization}</div>
+											<div className="text-[11px] text-muted-foreground">
+												{t(`specializations.${ss.specialization}`)}
+											</div>
 										)}
 									</div>
 								))}

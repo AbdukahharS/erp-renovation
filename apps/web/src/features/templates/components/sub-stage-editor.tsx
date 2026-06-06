@@ -1,4 +1,4 @@
-import type { StageTree, SubStageTree } from "@repo/validators";
+import { SPECIALIZATIONS, type StageTree, type SubStageTree } from "@repo/validators";
 import { ArrowDown, ArrowUp, ChevronDown, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
@@ -12,7 +12,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { useSpecializations } from "@/lib/queries/templates";
 import { AddChecklistForm, AddMediaForm } from "./add-forms";
 import type { EditorOps } from "./ops";
 import { ConfirmDelete, Field, InlineText, InlineTextarea } from "./primitives";
@@ -49,17 +48,12 @@ export function SubStageEditor({
 	ops: EditorOps;
 }) {
 	const { t } = useTranslation();
-	const { data: specs } = useSpecializations();
 	const [expanded, setExpanded] = useState(false);
 	const patch = (p: Record<string, unknown>) => ops.updateSubStage(sub.id, p);
 
-	// Performer types are fixed enum values, always localizable. Specializations
-	// are free-form text — known seed names are localized via the
-	// `specializations` namespace, anything custom falls back to the raw value
-	// (i18next returns the key when the lookup is missing).
 	const performerLabel = t(`performerType.${sub.performerType}`, sub.performerType);
 	const specializationLabel = sub.specialization
-		? t(`specializations.${sub.specialization}`, sub.specialization)
+		? t(`specializations.${sub.specialization}`)
 		: null;
 
 	return (
@@ -188,15 +182,15 @@ export function SubStageEditor({
 													{(v) =>
 														!v || v === "__none__"
 															? t("templates.specNone")
-															: t(`specializations.${v}`, String(v))
+															: t(`specializations.${v}`)
 													}
 												</SelectValue>
 											</SelectTrigger>
 											<SelectContent>
 												<SelectItem value="__none__">{t("templates.specNone")}</SelectItem>
-												{(specs ?? []).map((s) => (
-													<SelectItem key={s.id} value={s.name}>
-														{t(`specializations.${s.name}`, s.name)}
+												{SPECIALIZATIONS.map((s) => (
+													<SelectItem key={s} value={s}>
+														{t(`specializations.${s}`)}
 													</SelectItem>
 												))}
 											</SelectContent>

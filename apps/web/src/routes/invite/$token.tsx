@@ -1,3 +1,4 @@
+import { SPECIALIZATIONS, type SpecializationKey } from "@repo/validators";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
@@ -29,7 +30,7 @@ function RedeemInvite() {
 		email: string;
 		password: string;
 		phone: string;
-		specializations: string[];
+		specializations: SpecializationKey[];
 	}>({
 		name: "",
 		email: "",
@@ -168,7 +169,7 @@ function RedeemInvite() {
 							<Label>{t("invite.specsLabel")}</Label>
 							<SpecializationsPicker
 								value={form.specializations}
-								options={preview.data.specializations ?? []}
+								options={SPECIALIZATIONS}
 								onChange={(next) => setForm((f) => ({ ...f, specializations: next }))}
 								placeholder={t("invite.specsPlaceholder")}
 								emptyHint={t("common.none")}

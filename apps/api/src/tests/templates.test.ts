@@ -300,31 +300,4 @@ describe("phase 2 templates", () => {
 			body: JSON.stringify({ order: unswap }),
 		});
 	});
-
-	it("specializations seed includes the 14 TZ roles", async () => {
-		// Earlier tests in this suite create ERP-default templates in en, ru,
-		// and uz — each seeds 14 localized specialization names via
-		// onConflictDoNothing on `name`, so the row count is 14 × locales.
-		// What matters is that the EN seed produced its 14 canonical names.
-		const EXPECTED_EN = [
-			"Demolition Specialist",
-			"Site Foreman",
-			"Mason / Installer",
-			"Plasterer",
-			"HVAC Installer",
-			"Plumber",
-			"Electrician",
-			"Screed Layer",
-			"Drywall Installer",
-			"Door Installer",
-			"Painter",
-			"Tiler",
-			"Floor Installer",
-			"Cleaning Contractor",
-		];
-		const list = (await (await api("/specializations")).json()) as Array<{ name: string }>;
-		const names = new Set(list.map((s) => s.name));
-		for (const n of EXPECTED_EN) expect(names.has(n)).toBe(true);
-		expect(EXPECTED_EN.length).toBe(14);
-	});
 });

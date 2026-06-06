@@ -1,3 +1,4 @@
+import { SPECIALIZATIONS, type SpecializationKey } from "@repo/validators";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -20,7 +21,6 @@ import { formatMoney } from "@/lib/format-money";
 import { formatNumber } from "@/lib/format-number";
 import { useGrantClosingPermission, useMarkPayout, useMasterFinance } from "@/lib/queries/finance";
 import { useMaster, useUpdateMaster, useUpdateMasterAvailability } from "@/lib/queries/hr";
-import { useSpecializations } from "@/lib/queries/templates";
 import { useCurrencyCode } from "@/lib/queries/tenant-config";
 
 type MasterDetailPayload = {
@@ -29,7 +29,7 @@ type MasterDetailPayload = {
 		userId: string;
 		displayName: string;
 		phone: string | null;
-		specializations: string[];
+		specializations: SpecializationKey[];
 		availabilityOverride: string | null;
 		availabilityOverrideUntil: string | null;
 	};
@@ -110,7 +110,7 @@ export function MasterDetail({ id }: { id: string }) {
 				<div className="flex flex-wrap gap-1">
 					{p.specializations.map((s) => (
 						<Badge key={s} variant="outline">
-							{s}
+							{t(`specializations.${s}`)}
 						</Badge>
 					))}
 					{p.specializations.length === 0 && (
@@ -357,17 +357,16 @@ function EditSpecializations({
 	onSave,
 	pending,
 }: {
-	initial: string[];
+	initial: SpecializationKey[];
 	phone: string | null;
 	displayName: string;
-	onSave: (displayName: string, phone: string | null, specs: string[]) => void;
+	onSave: (displayName: string, phone: string | null, specs: SpecializationKey[]) => void;
 	pending: boolean;
 }) {
 	const { t } = useTranslation();
 	const [name, setName] = useState(displayName);
 	const [phoneVal, setPhoneVal] = useState(phone ?? "");
-	const [specs, setSpecs] = useState<string[]>(initial);
-	const specOptions = useSpecializations();
+	const [specs, setSpecs] = useState<SpecializationKey[]>(initial);
 	return (
 		<div className="grid gap-2 md:grid-cols-[1fr_1fr_2fr_auto]">
 			<Input
@@ -382,11 +381,10 @@ function EditSpecializations({
 			/>
 			<SpecializationsPicker
 				value={specs}
-				options={specOptions.data ?? []}
+				options={SPECIALIZATIONS}
 				onChange={setSpecs}
 				placeholder={t("masterDetail.specsPh")}
 				emptyHint={t("common.none")}
-				disabled={specOptions.isLoading}
 			/>
 			<Button
 				size="sm"

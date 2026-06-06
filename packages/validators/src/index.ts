@@ -23,4 +23,5 @@ export * from "./hr.ts";
 export * from "./materials.ts";
 export * from "./notifications.ts";
 export * from "./properties.ts";
+export * from "./specializations.ts";
 export * from "./templates.ts";

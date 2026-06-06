@@ -6,7 +6,6 @@ export const templateKeys = {
 	all: ["templates"] as const,
 	list: () => [...templateKeys.all, "list"] as const,
 	tree: (id: string) => [...templateKeys.all, "tree", id] as const,
-	specializations: () => [...templateKeys.all, "specializations"] as const,
 };
 
 // Eden infers `Date` for Drizzle timestamp columns even though the wire
@@ -43,13 +42,6 @@ export function useDeleteTemplate() {
 	return useMutation({
 		mutationFn: (id: string) => unwrap(api.templates({ templateId: id }).delete()),
 		onSuccess: () => qc.invalidateQueries({ queryKey: templateKeys.list() }),
-	});
-}
-
-export function useSpecializations() {
-	return useQuery({
-		queryKey: templateKeys.specializations(),
-		queryFn: () => unwrap(api.specializations.get()),
 	});
 }
 

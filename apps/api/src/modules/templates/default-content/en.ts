@@ -6,26 +6,8 @@
 
 import { type DefaultTemplateContent, photo, video } from "./types.ts";
 
-export const DEFAULT_SPECIALIZATIONS_EN = [
-	"Demolition Specialist",
-	"Site Foreman",
-	"Mason / Installer",
-	"Plasterer",
-	"HVAC Installer",
-	"Plumber",
-	"Electrician",
-	"Screed Layer",
-	"Drywall Installer",
-	"Door Installer",
-	"Painter",
-	"Tiler",
-	"Floor Installer",
-	"Cleaning Contractor",
-];
-
 export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 	name: "Standard Apartment Renovation",
-	specializations: DEFAULT_SPECIALIZATIONS_EN,
 	stages: [
 		{
 			order: 1,
@@ -77,7 +59,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "1.2",
 					name: "Demolition Works",
 					performerType: "MASTER",
-					specialization: "Demolition Specialist",
+					specialization: "DEMOLITION",
 					standardDurationDays: 3,
 					wageRatePerSqm: "12.00",
 					description:
@@ -112,7 +94,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "1.3",
 					name: "Layout Tracing and Geometry Marking",
 					performerType: "MASTER",
-					specialization: "Site Foreman",
+					specialization: "FOREMAN",
 					standardDurationDays: 1,
 					wageRatePerSqm: "5.00",
 					description:
@@ -150,7 +132,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "2.1",
 					name: "Installation of Interior Partitions",
 					performerType: "MASTER",
-					specialization: "Mason / Installer",
+					specialization: "MASON",
 					standardDurationDays: 5,
 					wageRatePerSqm: "18.00",
 					description:
@@ -189,7 +171,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "2.2",
 					name: "Preparation and Setting of Beacons",
 					performerType: "MASTER",
-					specialization: "Plasterer",
+					specialization: "PLASTERER",
 					standardDurationDays: 2,
 					wageRatePerSqm: "8.00",
 					description:
@@ -226,7 +208,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "2.3",
 					name: "Plastering Works",
 					performerType: "MASTER",
-					specialization: "Plasterer",
+					specialization: "PLASTERER",
 					standardDurationDays: 6,
 					wageRatePerSqm: "22.00",
 					description:
@@ -266,7 +248,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "3.1",
 					name: "Rough Air Conditioning and Ventilation",
 					performerType: "MASTER",
-					specialization: "HVAC Installer",
+					specialization: "HVAC",
 					standardDurationDays: 2,
 					wageRatePerSqm: "10.00",
 					description:
@@ -304,7 +286,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "3.2",
 					name: "Rough Plumbing",
 					performerType: "MASTER",
-					specialization: "Plumber",
+					specialization: "PLUMBER",
 					standardDurationDays: 4,
 					wageRatePerSqm: "16.00",
 					description:
@@ -351,7 +333,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "3.3",
 					name: "Rough Electrical and Low-Voltage Networks",
 					performerType: "MASTER",
-					specialization: "Electrician",
+					specialization: "ELECTRICIAN",
 					standardDurationDays: 4,
 					wageRatePerSqm: "15.00",
 					description: "Instruments: laser level, tape measure, multimeter.",
@@ -395,7 +377,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "4.1",
 					name: "Base Preparation and Soundproofing",
 					performerType: "MASTER",
-					specialization: "Screed Layer",
+					specialization: "SCREED",
 					standardDurationDays: 1,
 					wageRatePerSqm: "6.00",
 					description:
@@ -428,7 +410,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "4.2",
 					name: "Screed Pouring",
 					performerType: "MASTER",
-					specialization: "Screed Layer",
+					specialization: "SCREED",
 					standardDurationDays: 3,
 					wageRatePerSqm: "14.00",
 					description:
@@ -473,7 +455,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "5.1",
 					name: "Installation of Drywall Structures",
 					performerType: "MASTER",
-					specialization: "Drywall Installer",
+					specialization: "DRYWALL",
 					standardDurationDays: 4,
 					wageRatePerSqm: "13.00",
 					description:
@@ -510,7 +492,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "5.2",
 					name: "Installation of Concealed Door Frames",
 					performerType: "MASTER",
-					specialization: "Door Installer",
+					specialization: "DOOR_INSTALLER",
 					standardDurationDays: 1,
 					wageRatePerSqm: "5.00",
 					description:
@@ -537,7 +519,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "5.3",
 					name: "Painting Preparation Works",
 					performerType: "MASTER",
-					specialization: "Painter",
+					specialization: "PAINTER",
 					standardDurationDays: 8,
 					wageRatePerSqm: "20.00",
 					description:
@@ -582,7 +564,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "6.1",
 					name: "Tile Laying",
 					performerType: "MASTER",
-					specialization: "Tiler",
+					specialization: "TILER",
 					standardDurationDays: 6,
 					wageRatePerSqm: "25.00",
 					description:
@@ -625,7 +607,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "6.2",
 					name: "Painting of Walls and Ceilings",
 					performerType: "MASTER",
-					specialization: "Painter",
+					specialization: "PAINTER",
 					standardDurationDays: 3,
 					wageRatePerSqm: "12.00",
 					description:
@@ -654,7 +636,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "6.3",
 					name: "Floor Covering Installation",
 					performerType: "MASTER",
-					specialization: "Floor Installer",
+					specialization: "FLOORING",
 					standardDurationDays: 2,
 					wageRatePerSqm: "11.00",
 					description: "Laminate, quartz vinyl, or engineered hardwood.",
@@ -688,7 +670,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "7.1",
 					name: "Finish Electrical Work",
 					performerType: "MASTER",
-					specialization: "Electrician",
+					specialization: "ELECTRICIAN",
 					standardDurationDays: 2,
 					wageRatePerSqm: "8.00",
 					description:
@@ -712,7 +694,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "7.2",
 					name: "Finish Plumbing",
 					performerType: "MASTER",
-					specialization: "Plumber",
+					specialization: "PLUMBER",
 					standardDurationDays: 2,
 					wageRatePerSqm: "9.00",
 					description:
@@ -748,7 +730,7 @@ export const DEFAULT_TEMPLATE_EN: DefaultTemplateContent = {
 					code: "8.1",
 					name: "Professional Cleaning",
 					performerType: "MASTER",
-					specialization: "Cleaning Contractor",
+					specialization: "CLEANING",
 					standardDurationDays: 1,
 					wageRatePerSqm: "4.00",
 					description:

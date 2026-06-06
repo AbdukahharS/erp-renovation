@@ -5,26 +5,8 @@
 
 import { type DefaultTemplateContent, photo, video } from "./types.ts";
 
-export const DEFAULT_SPECIALIZATIONS_UZ = [
-	"Demontajchi",
-	"Brigadir",
-	"G'isht teruvchi / Montajchi",
-	"Suvoqchi",
-	"Konditsioner montajchisi",
-	"Santexnik",
-	"Elektrik",
-	"Stayjka quyuvchi",
-	"GKL montajchisi",
-	"Eshik o'rnatuvchi",
-	"Bo'yoqchi",
-	"Plitkachi",
-	"Pol qoplovchi",
-	"Tozalash xizmati",
-];
-
 export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 	name: "Standart kvartira ta'miri",
-	specializations: DEFAULT_SPECIALIZATIONS_UZ,
 	stages: [
 		{
 			order: 1,
@@ -76,7 +58,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "1.2",
 					name: "Demontaj ishlari",
 					performerType: "MASTER",
-					specialization: "Demontajchi",
+					specialization: "DEMOLITION",
 					standardDurationDays: 3,
 					wageRatePerSqm: "12.00",
 					description:
@@ -111,7 +93,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "1.3",
 					name: "Planirovkani belgilash va geometriya o'lchovi",
 					performerType: "MASTER",
-					specialization: "Brigadir",
+					specialization: "FOREMAN",
 					standardDurationDays: 1,
 					wageRatePerSqm: "5.00",
 					description:
@@ -149,7 +131,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "2.1",
 					name: "Ichki devor-pardalarni o'rnatish",
 					performerType: "MASTER",
-					specialization: "G'isht teruvchi / Montajchi",
+					specialization: "MASON",
 					standardDurationDays: 5,
 					wageRatePerSqm: "18.00",
 					description:
@@ -187,7 +169,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "2.2",
 					name: "Mayoqlarni tayyorlash va o'rnatish",
 					performerType: "MASTER",
-					specialization: "Suvoqchi",
+					specialization: "PLASTERER",
 					standardDurationDays: 2,
 					wageRatePerSqm: "8.00",
 					description:
@@ -224,7 +206,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "2.3",
 					name: "Suvoq ishlari",
 					performerType: "MASTER",
-					specialization: "Suvoqchi",
+					specialization: "PLASTERER",
 					standardDurationDays: 6,
 					wageRatePerSqm: "22.00",
 					description:
@@ -266,7 +248,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "3.1",
 					name: "Qo'pol konditsioner va shamollatish",
 					performerType: "MASTER",
-					specialization: "Konditsioner montajchisi",
+					specialization: "HVAC",
 					standardDurationDays: 2,
 					wageRatePerSqm: "10.00",
 					description:
@@ -304,7 +286,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "3.2",
 					name: "Qo'pol santexnika",
 					performerType: "MASTER",
-					specialization: "Santexnik",
+					specialization: "PLUMBER",
 					standardDurationDays: 4,
 					wageRatePerSqm: "16.00",
 					description:
@@ -351,7 +333,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "3.3",
 					name: "Qo'pol elektrika va past kuchlanishli tarmoqlar",
 					performerType: "MASTER",
-					specialization: "Elektrik",
+					specialization: "ELECTRICIAN",
 					standardDurationDays: 4,
 					wageRatePerSqm: "15.00",
 					description: "Asboblar: lazerli daraja, ruletka, mul'timetr.",
@@ -395,7 +377,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "4.1",
 					name: "Asosni tayyorlash va shovqin izolyatsiyasi",
 					performerType: "MASTER",
-					specialization: "Stayjka quyuvchi",
+					specialization: "SCREED",
 					standardDurationDays: 1,
 					wageRatePerSqm: "6.00",
 					description:
@@ -428,7 +410,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "4.2",
 					name: "Stяjka quyish",
 					performerType: "MASTER",
-					specialization: "Stayjka quyuvchi",
+					specialization: "SCREED",
 					standardDurationDays: 3,
 					wageRatePerSqm: "14.00",
 					description:
@@ -473,7 +455,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "5.1",
 					name: "GKL konstruksiyalarini montaj qilish",
 					performerType: "MASTER",
-					specialization: "GKL montajchisi",
+					specialization: "DRYWALL",
 					standardDurationDays: 4,
 					wageRatePerSqm: "13.00",
 					description:
@@ -510,7 +492,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "5.2",
 					name: "Yashirin eshik ramkalarini o'rnatish",
 					performerType: "MASTER",
-					specialization: "Eshik o'rnatuvchi",
+					specialization: "DOOR_INSTALLER",
 					standardDurationDays: 1,
 					wageRatePerSqm: "5.00",
 					description:
@@ -537,7 +519,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "5.3",
 					name: "Bo'yashga tayyorgarlik ishlari",
 					performerType: "MASTER",
-					specialization: "Bo'yoqchi",
+					specialization: "PAINTER",
 					standardDurationDays: 8,
 					wageRatePerSqm: "20.00",
 					description:
@@ -582,7 +564,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "6.1",
 					name: "Plitka qoplash",
 					performerType: "MASTER",
-					specialization: "Plitkachi",
+					specialization: "TILER",
 					standardDurationDays: 6,
 					wageRatePerSqm: "25.00",
 					description:
@@ -627,7 +609,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "6.2",
 					name: "Devorlar va shiftlarni bo'yash",
 					performerType: "MASTER",
-					specialization: "Bo'yoqchi",
+					specialization: "PAINTER",
 					standardDurationDays: 3,
 					wageRatePerSqm: "12.00",
 					description:
@@ -656,7 +638,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "6.3",
 					name: "Pol qoplamasini o'rnatish",
 					performerType: "MASTER",
-					specialization: "Pol qoplovchi",
+					specialization: "FLOORING",
 					standardDurationDays: 2,
 					wageRatePerSqm: "11.00",
 					description: "Laminat, kvartsvinil yoki muhandislik taxtasi.",
@@ -690,7 +672,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "7.1",
 					name: "Finish elektrika",
 					performerType: "MASTER",
-					specialization: "Elektrik",
+					specialization: "ELECTRICIAN",
 					standardDurationDays: 2,
 					wageRatePerSqm: "8.00",
 					description:
@@ -712,7 +694,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "7.2",
 					name: "Finish santexnika",
 					performerType: "MASTER",
-					specialization: "Santexnik",
+					specialization: "PLUMBER",
 					standardDurationDays: 2,
 					wageRatePerSqm: "9.00",
 					description:
@@ -748,7 +730,7 @@ export const DEFAULT_TEMPLATE_UZ: DefaultTemplateContent = {
 					code: "8.1",
 					name: "Professional tozalash",
 					performerType: "MASTER",
-					specialization: "Tozalash xizmati",
+					specialization: "CLEANING",
 					standardDurationDays: 1,
 					wageRatePerSqm: "4.00",
 					description:

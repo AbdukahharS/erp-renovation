@@ -265,7 +265,7 @@ function OwnerMasters() {
 												) : (
 													m.specializations.map((s) => (
 														<Badge key={s} variant="outline" className="text-[10px]">
-															{s}
+															{t(`specializations.${s}`)}
 														</Badge>
 													))
 												)

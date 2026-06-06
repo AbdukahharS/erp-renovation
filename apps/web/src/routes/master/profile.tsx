@@ -59,7 +59,11 @@ function MasterProfile() {
 				/>
 				<Row
 					label={t("profile.specializations", { defaultValue: "Specializations" })}
-					value={specializations.length > 0 ? specializations.join(", ") : "—"}
+					value={
+						specializations.length > 0
+							? specializations.map((s) => t(`specializations.${s}`)).join(", ")
+							: "—"
+					}
 				/>
 				{self?.profile.phone ? (
 					<Row label={t("profile.phone", { defaultValue: "Phone" })} value={self.profile.phone} />

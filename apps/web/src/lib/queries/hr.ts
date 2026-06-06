@@ -1,4 +1,4 @@
-import type { InvitationPreview, InvitationRow, Role } from "@repo/validators";
+import type { InvitationPreview, InvitationRow, Role, SpecializationKey } from "@repo/validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "../api";
 
@@ -8,7 +8,7 @@ export type MasterRosterRow = {
 	role: Role;
 	displayName: string;
 	phone: string | null;
-	specializations: string[];
+	specializations: SpecializationKey[];
 	availability: { state: string; detail: string | null; until: string | null };
 	rating: {
 		masterUserId: string;
@@ -33,7 +33,7 @@ export type MasterSelf = {
 		userId: string;
 		displayName: string;
 		phone: string | null;
-		specializations: string[];
+		specializations: SpecializationKey[];
 		availabilityOverride: string | null;
 		availabilityOverrideUntil: string | null;
 	};
@@ -95,7 +95,7 @@ export function useRedeemInvitation() {
 			password: string;
 			displayName?: string;
 			phone?: string;
-			specializations?: string[];
+			specializations?: SpecializationKey[];
 		}) =>
 			unwrap(
 				api.invitations({ token: vars.token }).redeem.post({
@@ -134,7 +134,7 @@ export function useUpdateMaster() {
 			id: string;
 			displayName?: string;
 			phone?: string | null;
-			specializations?: string[];
+			specializations?: SpecializationKey[];
 		}) =>
 			unwrap(
 				api.owner.masters({ masterId: vars.id }).patch({

@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { invitations, tenantMemberships, tenants } from "@repo/db/schema/control";
-import { masterProfiles, specializations } from "@repo/db/schema/tenant";
+import { masterProfiles } from "@repo/db/schema/tenant";
 import { withTenant } from "@repo/db/with-tenant";
 import { CreateInvitationInput, RedeemInvitationInput } from "@repo/validators";
-import { and, asc, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { Elysia } from "elysia";
 import { db } from "../../db.ts";
 import { zodBody } from "../../lib/zod-body.ts";
@@ -112,7 +112,6 @@ const publicInvitations = new Elysia({ prefix: "/invitations" })
 				expiresAt: invitations.expiresAt,
 				consumedAt: invitations.consumedAt,
 				tenantName: tenants.name,
-				schemaName: tenants.schemaName,
 			})
 			.from(invitations)
 			.innerJoin(tenants, eq(tenants.id, invitations.tenantId))
@@ -131,21 +130,11 @@ const publicInvitations = new Elysia({ prefix: "/invitations" })
 		if (row.expiresAt.getTime() <= Date.now()) {
 			return { status: "EXPIRED" as const };
 		}
-		let specs: { id: string; name: string }[] | undefined;
-		if (row.role === "MASTER") {
-			specs = await withTenant(db, row.schemaName, async (tx) =>
-				tx
-					.select({ id: specializations.id, name: specializations.name })
-					.from(specializations)
-					.orderBy(asc(specializations.name)),
-			);
-		}
 		return {
 			tenantName: row.tenantName,
 			role: row.role,
 			expiresAt: row.expiresAt.toISOString(),
 			status: "PENDING" as const,
-			specializations: specs,
 		};
 	})
 

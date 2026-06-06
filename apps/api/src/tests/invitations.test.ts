@@ -115,7 +115,7 @@ describe("invitations", () => {
 					password,
 					displayName: "Joe",
 					phone: "+1-555-1212",
-					specializations: ["electrician"],
+					specializations: ["ELECTRICIAN"],
 				}),
 			}),
 		);
@@ -181,7 +181,7 @@ describe("invitations", () => {
 		}>;
 		expect(rows.length).toBe(1);
 		expect(rows[0]?.displayName).toBe("Joe");
-		expect(rows[0]?.specializations).toEqual(["electrician"]);
+		expect(rows[0]?.specializations).toEqual(["ELECTRICIAN"]);
 		expect(rows[0]?.rating).toBeNull();
 	});
 });
