@@ -45,8 +45,11 @@ export async function recomputeMasterRating(tx: Tx, masterUserId: string): Promi
 
 	let accepted = 0;
 	let rejected = 0;
-	let ratioSum = 0;
-	let ratioCount = 0;
+	// Weighted by standardDurationDays so a 14-day stage outweighs a 1-day stage —
+	// otherwise a master who blows the deadline on a single long stage looks the
+	// same as one who slips a one-day touch-up.
+	let ratioWeightedSum = 0;
+	let weightSum = 0;
 	for (const r of rows as Array<{
 		resolution: "ACCEPTED" | "REJECTED" | null;
 		submittedAt: Date;
@@ -60,14 +63,14 @@ export async function recomputeMasterRating(tx: Tx, masterUserId: string): Promi
 				const actualMs = r.resolvedAt.getTime() - r.claimedAt.getTime();
 				const standardMs = r.standardDurationDays * 86400_000;
 				const ratio = Math.min(3, Math.max(0, actualMs / standardMs));
-				ratioSum += ratio;
-				ratioCount += 1;
+				ratioWeightedSum += ratio * r.standardDurationDays;
+				weightSum += r.standardDurationDays;
 			}
 		} else if (r.resolution === "REJECTED") {
 			rejected += 1;
 		}
 	}
-	const avgRatio = ratioCount > 0 ? ratioSum / ratioCount : null;
+	const avgRatio = weightSum > 0 ? ratioWeightedSum / weightSum : null;
 
 	await tx
 		.insert(masterRatings)
@@ -91,15 +94,23 @@ export async function recomputeMasterRating(tx: Tx, masterUserId: string): Promi
 
 /**
  * Phase 9 composite rating score derived from raw counters + tenant-configured
- * weights. Returns a 0–100 score where 100 is best.
+ * weights. Returns a 0–100 score where 100 is best, together with the component
+ * sub-scores so the UI can show masters *why* they're rated as they are
+ * (transparent on purpose — opaque ratings get disputed).
  *
- * Formula (transparent on purpose — masters dispute opaque ratings):
+ * Formula:
  *   acceptanceRate = accepted / (accepted + rejected)
  *   speedScore     = clamp(2 - avgDurationRatio, 0, 1)   // 1.0 = on time, 0.0 = ≥2x late
  *   defectScore    = acceptanceRate                       // 1.0 = no rejections
- *   composite      = 100 * ((wSpeed * speedScore + wDefect * defectScore) / (wSpeed + wDefect))
  *
- * When there are no resolved requests, score is null (not zero) so the UI can
+ * When `avgDurationRatio` is null (only rejections so far, or no
+ * standard-duration data), the composite collapses to defectScore only —
+ * we deliberately do NOT fall back to acceptanceRate-as-speedScore, which
+ * double-weighted the same signal.
+ *
+ *   composite = 100 * (wSpeed * speedScore + wDefect * defectScore) / (wSpeed + wDefect)
+ *
+ * With no resolved requests, score is null (not zero) so the UI can
  * distinguish "unrated" from "rated badly."
  */
 export interface RatingCounters {
@@ -113,19 +124,55 @@ export interface RatingWeights {
 	defect: number;
 }
 
+export interface RatingBreakdown {
+	score: number;
+	acceptanceRate: number;
+	speedScore: number | null;
+	defectScore: number;
+}
+
+export function computeRatingBreakdown(
+	counters: RatingCounters,
+	weights: RatingWeights,
+): RatingBreakdown | null {
+	const total = counters.acceptedCount + counters.rejectedCount;
+	if (total === 0) return null;
+	const acceptanceRate = counters.acceptedCount / total;
+	const defectScore = acceptanceRate;
+	const speedScore =
+		counters.avgDurationRatio === null
+			? null
+			: Math.min(1, Math.max(0, 2 - counters.avgDurationRatio));
+
+	const wSpeed = Math.max(0, weights.speed);
+	const wDefect = Math.max(0, weights.defect);
+
+	let raw: number;
+	if (speedScore === null) {
+		// Speed signal absent — defect alone drives the score; weights are
+		// irrelevant in this branch.
+		raw = defectScore;
+	} else {
+		const wSum = wSpeed + wDefect;
+		// Defensive: validation guarantees wSum > 0, but if a stale config slips
+		// through, fall back to a simple mean of the two component scores rather
+		// than double-counting defect.
+		raw =
+			wSum > 0
+				? (wSpeed * speedScore + wDefect * defectScore) / wSum
+				: (speedScore + defectScore) / 2;
+	}
+	return {
+		score: Math.round(100 * raw),
+		acceptanceRate,
+		speedScore,
+		defectScore,
+	};
+}
+
 export function computeRatingScore(
 	counters: RatingCounters,
 	weights: RatingWeights,
 ): number | null {
-	const total = counters.acceptedCount + counters.rejectedCount;
-	if (total === 0) return null;
-	const acceptanceRate = counters.acceptedCount / total;
-	const speedScore =
-		counters.avgDurationRatio === null
-			? acceptanceRate
-			: Math.min(1, Math.max(0, 2 - counters.avgDurationRatio));
-	const defectScore = acceptanceRate;
-	const wSum = weights.speed + weights.defect;
-	if (wSum <= 0) return Math.round(100 * acceptanceRate);
-	return Math.round((100 * (weights.speed * speedScore + weights.defect * defectScore)) / wSum);
+	return computeRatingBreakdown(counters, weights)?.score ?? null;
 }

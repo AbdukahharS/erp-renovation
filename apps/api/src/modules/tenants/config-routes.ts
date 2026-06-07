@@ -60,7 +60,17 @@ const writeRoutes = new Elysia({ prefix: "/tenant/config" })
 				updates.currencyCode = body.currencyCode;
 			}
 			if (body.targetUnitCost !== undefined) updates.targetUnitCost = body.targetUnitCost;
-			if (body.ratingWeights !== undefined) updates.ratingWeights = body.ratingWeights;
+			if (body.ratingWeights !== undefined) {
+				// Both weights ≥ 0 is enforced by the body schema; reject {0, 0}
+				// here so the composite score never falls into the degenerate
+				// "no weight at all" branch.
+				const { speed, defect } = body.ratingWeights;
+				if (speed + defect <= 0) {
+					set.status = 400;
+					return { error: "ratingWeights must have at least one positive weight" };
+				}
+				updates.ratingWeights = body.ratingWeights;
+			}
 			if (body.branding !== undefined) updates.branding = body.branding;
 			if (body.photoRetentionDays !== undefined)
 				updates.photoRetentionDays = body.photoRetentionDays;
@@ -78,7 +88,10 @@ const writeRoutes = new Elysia({ prefix: "/tenant/config" })
 				currencyCode: t.Optional(t.String({ minLength: 3, maxLength: 3 })),
 				targetUnitCost: t.Optional(t.Union([t.String(), t.Null()])),
 				ratingWeights: t.Optional(
-					t.Object({ speed: t.Number({ minimum: 0 }), defect: t.Number({ minimum: 0 }) }),
+					t.Object({
+						speed: t.Number({ minimum: 0, maximum: 10 }),
+						defect: t.Number({ minimum: 0, maximum: 10 }),
+					}),
 				),
 				branding: t.Optional(
 					t.Object({

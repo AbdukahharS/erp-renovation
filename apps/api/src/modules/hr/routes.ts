@@ -1,4 +1,4 @@
-import { computeRatingScore } from "@repo/acceptance/rating";
+import { computeRatingBreakdown } from "@repo/acceptance/rating";
 import { tenantConfig, tenantMemberships, user as users } from "@repo/db/schema/control";
 import {
 	masterBalances,
@@ -18,7 +18,7 @@ import { zodBody } from "../../lib/zod-body.ts";
 import { requireRole } from "../auth/guards.ts";
 import { tenancy } from "../tenancy/plugin.ts";
 
-const DEFAULT_WEIGHTS = { speed: 0.5, defect: 0.5 };
+const DEFAULT_WEIGHTS = { speed: 1.0, defect: 1.0 };
 
 async function loadRatingWeights(tenantId: string): Promise<{ speed: number; defect: number }> {
 	const [cfg] = await db
@@ -34,7 +34,7 @@ function withScore(
 	weights: { speed: number; defect: number },
 ) {
 	if (!rating) return null;
-	const score = computeRatingScore(
+	const breakdown = computeRatingBreakdown(
 		{
 			acceptedCount: rating.acceptedCount,
 			rejectedCount: rating.rejectedCount,
@@ -42,7 +42,13 @@ function withScore(
 		},
 		weights,
 	);
-	return { ...rating, score };
+	return {
+		...rating,
+		score: breakdown?.score ?? null,
+		acceptanceRate: breakdown?.acceptanceRate ?? null,
+		speedScore: breakdown?.speedScore ?? null,
+		defectScore: breakdown?.defectScore ?? null,
+	};
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: drizzle row types
