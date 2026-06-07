@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LogOutIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { RatingBreakdownCard } from "@/components/master-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -43,6 +44,8 @@ function MasterProfile() {
 					<div className="truncate text-sm text-muted-foreground">{user?.email ?? ""}</div>
 				</div>
 			</Card>
+
+			<RatingBreakdownCard rating={self?.rating ?? null} />
 
 			<Card className="divide-y p-0">
 				<Row

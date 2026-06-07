@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { type Column, DataTable } from "@/components/layout/data-table";
 import { EmptyState } from "@/components/layout/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
+import { RatingBadge } from "@/components/master-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,6 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatNumber } from "@/lib/format-number";
 import i18n from "@/lib/i18n";
 import {
 	type MasterRosterRow,
@@ -227,26 +227,7 @@ function RosterTable({ rows }: { rows: MasterRosterRow[] }) {
 				if (m.role !== "MASTER") {
 					return <span className="text-xs text-muted-foreground">{t("common.em")}</span>;
 				}
-				if (!m.rating) {
-					return <span className="text-xs text-muted-foreground">{t("masters.noActivity")}</span>;
-				}
-				return (
-					<div className="text-xs">
-						<div>
-							{t("masters.acceptedRejected", {
-								accepted: m.rating.acceptedCount,
-								rejected: m.rating.rejectedCount,
-							})}
-						</div>
-						<div className="text-muted-foreground">
-							{t("masters.avgRatio", {
-								value: m.rating.avgDurationRatio
-									? formatNumber(m.rating.avgDurationRatio, { maxDecimals: 2 })
-									: t("common.em"),
-							})}
-						</div>
-					</div>
-				);
+				return <RatingBadge rating={m.rating} />;
 			},
 		},
 		{

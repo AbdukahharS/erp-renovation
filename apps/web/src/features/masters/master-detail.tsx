@@ -2,6 +2,7 @@ import { SPECIALIZATIONS, type SpecializationKey } from "@repo/validators";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { RatingBreakdownCard } from "@/components/master-rating";
 import { SpecializationsPicker } from "@/components/specializations-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,6 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { formatMoney } from "@/lib/format-money";
-import { formatNumber } from "@/lib/format-number";
 import { useGrantClosingPermission, useMarkPayout, useMasterFinance } from "@/lib/queries/finance";
 import { useMaster, useUpdateMaster, useUpdateMasterAvailability } from "@/lib/queries/hr";
 import { useCurrencyCode } from "@/lib/queries/tenant-config";
@@ -38,6 +38,10 @@ type MasterDetailPayload = {
 		rejectedCount: number;
 		avgDurationRatio: string | null;
 		computedAt: string;
+		score: number | null;
+		acceptanceRate: number | null;
+		speedScore: number | null;
+		defectScore: number | null;
 	} | null;
 	balance: string;
 	recentAssignments: Array<{
@@ -84,25 +88,19 @@ export function MasterDetail({ id }: { id: string }) {
 				<p className="font-mono text-xs text-muted-foreground">{p.userId}</p>
 			</header>
 
-			<div className="grid gap-3 md:grid-cols-3">
-				<Card className="p-4">
-					<div className="text-xs text-muted-foreground">{t("masterDetail.balance")}</div>
-					<div className="text-2xl font-semibold">{formatMoney(data.balance, currency)}</div>
-				</Card>
-				<Card className="p-4">
-					<div className="text-xs text-muted-foreground">{t("masterDetail.acceptedRejected")}</div>
-					<div className="text-2xl font-semibold">
-						{data.rating?.acceptedCount ?? 0} / {data.rating?.rejectedCount ?? 0}
+			<div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+				<Card className="flex flex-col justify-between p-4">
+					<div className="text-xs uppercase tracking-wide text-muted-foreground">
+						{t("masterDetail.balance")}
+					</div>
+					<div className="mt-2 text-3xl font-semibold tabular-nums">
+						{formatMoney(data.balance, currency)}
+					</div>
+					<div className="mt-1 text-xs text-muted-foreground">
+						{t("masterDetail.outstandingHint", { defaultValue: "Outstanding balance owed" })}
 					</div>
 				</Card>
-				<Card className="p-4">
-					<div className="text-xs text-muted-foreground">{t("masterDetail.avgDurationRatio")}</div>
-					<div className="text-2xl font-semibold">
-						{data.rating?.avgDurationRatio
-							? formatNumber(data.rating.avgDurationRatio, { maxDecimals: 2 })
-							: t("common.em")}
-					</div>
-				</Card>
+				<RatingBreakdownCard rating={data.rating} />
 			</div>
 
 			<Card className="space-y-3 p-4">

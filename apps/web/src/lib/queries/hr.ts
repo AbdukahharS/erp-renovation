@@ -16,6 +16,10 @@ export type MasterRosterRow = {
 		rejectedCount: number;
 		avgDurationRatio: string | null;
 		computedAt: string;
+		score: number | null;
+		acceptanceRate: number | null;
+		speedScore: number | null;
+		defectScore: number | null;
 	} | null;
 	balance: string;
 };
@@ -40,6 +44,9 @@ export type MasterSelf = {
 	rating: MasterRosterRow["rating"];
 	balance: string;
 };
+
+// Strip the `masterUserId` from MasterRosterRow["rating"] for the breakdown-card consumer.
+export type RatingPayload = MasterRosterRow["rating"];
 
 // --------- Invitations: owner ---------
 
