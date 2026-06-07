@@ -356,14 +356,33 @@ const masterRoutes = new Elysia({ prefix: "/master" })
 					.update(propertyAssets)
 					.set({ uploadedAt: new Date() })
 					.where(eq(propertyAssets.id, asset.id));
+				let requirementId: string | null = null;
+				if (body.requirementId) {
+					const [req] = await tx
+						.select({ id: mediaRequirementInstances.id })
+						.from(mediaRequirementInstances)
+						.where(
+							and(
+								eq(mediaRequirementInstances.id, body.requirementId),
+								eq(mediaRequirementInstances.subStageInstanceId, params.subStageId),
+							),
+						)
+						.limit(1);
+					if (!req) {
+						set.status = 400;
+						return { error: "requirement does not belong to this sub-stage" };
+					}
+					requirementId = req.id;
+				}
 				try {
 					await tx.insert(stageMediaAssets).values({
 						subStageInstanceId: params.subStageId,
 						assetId: asset.id,
+						requirementId,
 						uploadedBy: user.id,
 					});
 				} catch {
-					// Idempotent re-attach is fine.
+					// Idempotent re-attach — keep the existing requirement link as-is.
 				}
 				return { ok: true, assetId: asset.id };
 			});
@@ -1003,8 +1022,10 @@ const inspectorRoutes = new Elysia({ prefix: "/inspector" })
 					.set({ resolution: "REJECTED", resolvedAt: new Date(), resolvedBy: user.id })
 					.where(eq(acceptanceRequests.id, request.id));
 				// Inspector-performed stages return to AVAILABLE (no claim to keep);
-				// master-performed stages return to IN_PROGRESS (claim stays).
-				const nextStatus = ss.performer_type === "INSPECTOR" ? "AVAILABLE" : "IN_PROGRESS";
+				// master-performed stages stay at REJECTED so the master sees the
+				// rework state distinctly (claim stays). The state machine allows
+				// REJECTED → SUBMITTED for a direct resubmit.
+				const nextStatus = ss.performer_type === "INSPECTOR" ? "AVAILABLE" : "REJECTED";
 				await tx
 					.update(subStageInstances)
 					.set({ status: nextStatus })
@@ -1196,6 +1217,7 @@ async function loadStageDetail(tx: AnyRow, subStageInstanceId: string) {
 			r2Key: propertyAssets.r2Key,
 			uploadedBy: stageMediaAssets.uploadedBy,
 			uploadedAt: propertyAssets.uploadedAt,
+			requirementId: stageMediaAssets.requirementId,
 		})
 		.from(stageMediaAssets)
 		.innerJoin(propertyAssets, eq(propertyAssets.id, stageMediaAssets.assetId))
@@ -1212,6 +1234,7 @@ async function loadStageDetail(tx: AnyRow, subStageInstanceId: string) {
 			uploadedBy: m.uploadedBy,
 			uploadedAt:
 				typeof m.uploadedAt === "string" ? m.uploadedAt : (m.uploadedAt as Date).toISOString(),
+			requirementId: m.requirementId ?? null,
 			url: await presignedGetUrl(m.r2Key),
 		})),
 	);
@@ -1229,6 +1252,78 @@ async function loadStageDetail(tx: AnyRow, subStageInstanceId: string) {
 				.from(checklistResults)
 				.where(eq(checklistResults.acceptanceRequestId, request.id))
 		: [];
+
+	// Latest rejection (for REJECTED state): comment, defect asset (presigned),
+	// failed checklist items + notes from that request — so the master sees
+	// distinctly *why* the work was sent back and what to fix.
+	let latestRejection: {
+		comment: string;
+		rejectedAt: string;
+		rejectedBy: string;
+		defect: { assetId: string; contentType: string; r2Key: string; url: string | null } | null;
+		results: Array<{ checklistItemInstanceId: string; passed: boolean; note: string | null }>;
+	} | null = null;
+	if (ss.status === "REJECTED") {
+		const [rejRow] = await tx
+			.select({
+				id: rejections.id,
+				acceptanceRequestId: rejections.acceptanceRequestId,
+				comment: rejections.comment,
+				rejectedBy: rejections.rejectedBy,
+				rejectedAt: rejections.rejectedAt,
+				defectAssetId: rejections.defectAssetId,
+			})
+			.from(rejections)
+			.innerJoin(acceptanceRequests, eq(acceptanceRequests.id, rejections.acceptanceRequestId))
+			.where(eq(acceptanceRequests.subStageInstanceId, ss.id))
+			.orderBy(desc(rejections.rejectedAt))
+			.limit(1);
+		if (rejRow) {
+			let defect: {
+				assetId: string;
+				contentType: string;
+				r2Key: string;
+				url: string | null;
+			} | null = null;
+			if (rejRow.defectAssetId) {
+				const [a] = await tx
+					.select({
+						id: propertyAssets.id,
+						contentType: propertyAssets.contentType,
+						r2Key: propertyAssets.r2Key,
+					})
+					.from(propertyAssets)
+					.where(eq(propertyAssets.id, rejRow.defectAssetId))
+					.limit(1);
+				if (a) {
+					defect = {
+						assetId: a.id,
+						contentType: a.contentType,
+						r2Key: a.r2Key,
+						url: await presignedGetUrl(a.r2Key),
+					};
+				}
+			}
+			const resultRows = await tx
+				.select({
+					checklistItemInstanceId: checklistResults.checklistItemInstanceId,
+					passed: checklistResults.passed,
+					note: checklistResults.note,
+				})
+				.from(checklistResults)
+				.where(eq(checklistResults.acceptanceRequestId, rejRow.acceptanceRequestId));
+			latestRejection = {
+				comment: rejRow.comment,
+				rejectedAt:
+					typeof rejRow.rejectedAt === "string"
+						? rejRow.rejectedAt
+						: (rejRow.rejectedAt as Date).toISOString(),
+				rejectedBy: rejRow.rejectedBy,
+				defect,
+				results: resultRows,
+			};
+		}
+	}
 
 	return {
 		subStage: {
@@ -1259,6 +1354,7 @@ async function loadStageDetail(tx: AnyRow, subStageInstanceId: string) {
 			: null,
 		media,
 		previousResults,
+		latestRejection,
 	};
 }
 

@@ -25,7 +25,7 @@ const transitions: Record<StageInstanceStatus, StageInstanceStatus[]> = {
 	AVAILABLE: ["IN_PROGRESS", "SUBMITTED"], // SUBMITTED for INSPECTOR submit-self
 	IN_PROGRESS: ["SUBMITTED"],
 	SUBMITTED: ["ACCEPTED", "REJECTED"],
-	REJECTED: ["IN_PROGRESS"],
+	REJECTED: ["IN_PROGRESS", "SUBMITTED"],
 	ACCEPTED: [],
 };
 
@@ -194,9 +194,13 @@ export async function unlockReadySubStages(
 }
 
 /**
- * Verifies every required-PHOTO media requirement (and any required-VIDEO ones)
- * has at least one matching uploaded asset linked via `stage_media_assets`.
+ * Verifies every required media requirement has at least one uploaded asset
+ * linked *to that specific requirement* via `stage_media_assets.requirement_id`.
  * Returns a list of missing requirement descriptions (empty = pass).
+ *
+ * The earlier "any media counts" rule satisfied the TZ Module 3 blocker but
+ * left masters confused about which slot they'd filled. Per-requirement
+ * linkage drives the per-slot uploader UI and makes the blocker meaningful.
  */
 export async function missingRequiredMedia(tx: Tx, subStageInstanceId: string): Promise<string[]> {
 	const reqs = await tx
@@ -206,18 +210,16 @@ export async function missingRequiredMedia(tx: Tx, subStageInstanceId: string): 
 	const required = reqs.filter((r: { required: boolean }) => r.required);
 	if (required.length === 0) return [];
 
-	const linked = await tx
-		.select({ id: stageMediaAssets.id })
+	const linked = (await tx
+		.select({ requirementId: stageMediaAssets.requirementId })
 		.from(stageMediaAssets)
-		.where(eq(stageMediaAssets.subStageInstanceId, subStageInstanceId));
-	if (linked.length === 0) {
-		return required.map((r: { description: string }) => r.description);
-	}
-	// At least one uploaded asset satisfies the photo blocker per TZ Module 3.
-	// Per-media-type granularity (one PHOTO + one VIDEO when both required) is a
-	// refinement left for later; the current rule keeps the loop honest without
-	// over-constraining tenants who only mark PHOTO as required.
-	return [];
+		.where(eq(stageMediaAssets.subStageInstanceId, subStageInstanceId))) as Array<{
+		requirementId: string | null;
+	}>;
+	const filled = new Set(linked.map((l) => l.requirementId).filter((id): id is string => !!id));
+	return required
+		.filter((r: { id: string }) => !filled.has(r.id))
+		.map((r: { description: string }) => r.description);
 }
 
 /**
