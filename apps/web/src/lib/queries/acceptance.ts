@@ -24,6 +24,7 @@ export type StageMediaView = {
 	r2Key: string;
 	uploadedBy: string;
 	uploadedAt: string;
+	requirementId: string | null;
 	url: string | null;
 };
 
@@ -65,6 +66,18 @@ export type StageDetail = {
 		passed: boolean;
 		note?: string | null;
 	}>;
+	latestRejection: {
+		comment: string;
+		rejectedAt: string;
+		rejectedBy: string;
+		defect: {
+			assetId: string;
+			contentType: string;
+			r2Key: string;
+			url: string | null;
+		} | null;
+		results: Array<{ checklistItemInstanceId: string; passed: boolean; note: string | null }>;
+	} | null;
 };
 
 export type InspectorQueue = {
@@ -164,8 +177,13 @@ export function usePresignStageMedia(stageId: string | undefined) {
 export function useAttachStageMedia(stageId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (assetId: string) =>
-			unwrap(api.master.stages({ subStageId: stageId as string }).media.attach.post({ assetId })),
+		mutationFn: (vars: { assetId: string; requirementId?: string | null }) =>
+			unwrap(
+				api.master.stages({ subStageId: stageId as string }).media.attach.post({
+					assetId: vars.assetId,
+					requirementId: vars.requirementId ?? null,
+				}),
+			),
 		onSuccess: () => {
 			if (stageId) qc.invalidateQueries({ queryKey: acceptanceKeys.stage(stageId) });
 		},
@@ -293,11 +311,17 @@ export function useAcceptStage() {
 export function useRejectStage() {
 	const qc = useQueryClient();
 	return useMutation({
-		mutationFn: (vars: { id: string; comment: string; defectAssetId?: string | null }) =>
+		mutationFn: (vars: {
+			id: string;
+			comment: string;
+			defectAssetId?: string | null;
+			results?: Array<{ checklistItemInstanceId: string; passed: boolean; note?: string | null }>;
+		}) =>
 			unwrap(
 				api.inspector.stages({ subStageId: vars.id }).reject.post({
 					comment: vars.comment,
 					defectAssetId: vars.defectAssetId ?? null,
+					results: vars.results,
 				}),
 			),
 		onSuccess: (_, vars) => {

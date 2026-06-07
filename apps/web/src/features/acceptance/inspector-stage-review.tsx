@@ -160,14 +160,89 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 				</Card>
 			)}
 
-			{/* Read-only gallery for non-AVAILABLE inspector stages or master-performed stages */}
+			{/* Read-only gallery for non-AVAILABLE inspector stages or master-performed stages,
+			    grouped by the requirement slot each asset was uploaded for. */}
 			{!(isInspectorStage && subStage.status === "AVAILABLE") &&
 				(otherMedia.length > 0 || beforeMedia.length > 0) && (
-					<Card className="space-y-2 p-4">
-						<h2 className="text-sm font-semibold">
-							{t("inspectorStage.mediaCount", { count: media.length })}
-						</h2>
-						<MediaGrid media={[...beforeMedia, ...otherMedia]} />
+					<Card className="space-y-4 p-4">
+						<div className="flex items-center justify-between">
+							<h2 className="text-sm font-semibold">
+								{t("inspectorStage.mediaCount", { count: media.length })}
+							</h2>
+						</div>
+
+						{beforeMedia.length > 0 && (
+							<div className="space-y-2">
+								<div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+									{t("inspectorStage.beforePhotos")}
+								</div>
+								<MediaGrid media={beforeMedia} />
+							</div>
+						)}
+
+						{subStage.mediaRequirements.map((r) => {
+							const slotMedia = otherMedia.filter((m) => m.requirementId === r.id);
+							const filled = slotMedia.length > 0;
+							return (
+								<div
+									key={r.id}
+									className={`space-y-2 rounded-lg border p-3 ${
+										r.required && !filled
+											? "border-amber-400/60 bg-amber-50/40 dark:border-amber-500/40 dark:bg-amber-950/20"
+											: filled
+												? "border-emerald-300/50 bg-emerald-50/40 dark:border-emerald-800/40 dark:bg-emerald-950/20"
+												: "border-border"
+									}`}
+								>
+									<div className="flex items-start gap-2">
+										<span
+											className={`mt-1 inline-block h-2 w-2 shrink-0 rounded-full ${
+												filled
+													? "bg-emerald-500"
+													: r.required
+														? "bg-amber-500"
+														: "bg-muted-foreground/40"
+											}`}
+										/>
+										<div className="min-w-0 flex-1">
+											<div className="text-sm">{r.description}</div>
+											<div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
+												<span className="font-mono">{r.mediaType}</span>
+												<span>·</span>
+												<span className={r.required ? "text-amber-700 dark:text-amber-400" : ""}>
+													{r.required
+														? t("inspectorStage.requiredLabel")
+														: t("inspectorStage.optionalLabel")}
+												</span>
+												<span>·</span>
+												<span>{t("inspectorStage.itemCount", { count: slotMedia.length })}</span>
+											</div>
+										</div>
+									</div>
+
+									{filled ? (
+										<MediaGrid media={slotMedia} />
+									) : (
+										<p className="text-xs italic text-muted-foreground">
+											{r.required ? t("inspectorStage.slotMissing") : t("inspectorStage.slotEmpty")}
+										</p>
+									)}
+								</div>
+							);
+						})}
+
+						{(() => {
+							const unlinked = otherMedia.filter((m) => !m.requirementId);
+							if (unlinked.length === 0) return null;
+							return (
+								<div className="space-y-2">
+									<div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+										{t("inspectorStage.otherMedia", { count: unlinked.length })}
+									</div>
+									<MediaGrid media={unlinked} />
+								</div>
+							);
+						})()}
 					</Card>
 				)}
 
@@ -269,6 +344,11 @@ export function InspectorStageReview({ subStageId }: { subStageId: string }) {
 											id: subStageId,
 											comment: rejectComment.trim(),
 											defectAssetId,
+											results: items.map((i) => ({
+												checklistItemInstanceId: i.id,
+												passed: results[i.id]?.passed ?? false,
+												note: results[i.id]?.note || null,
+											})),
 										})
 									}
 								>
