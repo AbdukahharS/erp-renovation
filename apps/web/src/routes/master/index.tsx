@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRightIcon, HardHatIcon, InboxIcon } from "lucide-react";
+import { AlertTriangleIcon, ChevronRightIcon, HardHatIcon, InboxIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { EmptyState } from "@/components/layout/empty-state";
 import { Badge } from "@/components/ui/badge";
@@ -17,14 +17,47 @@ function MasterHome() {
 	const available = useAvailableStages();
 	const mine = useMyStages();
 
+	const rejected = (mine.data ?? []).filter((s) => s.status === "REJECTED");
+	const active = (mine.data ?? []).filter((s) => s.status !== "REJECTED");
+
 	return (
 		<div className="space-y-6">
+			{rejected.length > 0 && (
+				<section>
+					<div className="mb-3 flex items-center gap-2">
+						<AlertTriangleIcon className="size-4 text-destructive" />
+						<h2 className="text-lg font-semibold text-destructive">
+							{t("masterHome.reworkTitle")}
+						</h2>
+					</div>
+					<p className="mb-3 text-xs text-muted-foreground">{t("masterHome.reworkDesc")}</p>
+					<div className="space-y-2">
+						{rejected.map((s) => (
+							<StageRow
+								key={s.subStageInstanceId}
+								to={s.subStageInstanceId}
+								code={s.code}
+								title={s.name}
+								subtitle={`${s.propertyName} · ${s.stageName}`}
+								right={
+									<Badge variant="destructive" className="text-[10px]">
+										{t("stageStatus.REJECTED")}
+									</Badge>
+								}
+								wage={s.wageAmount}
+								tone="destructive"
+							/>
+						))}
+					</div>
+				</section>
+			)}
+
 			<Section
 				title={t("masterHome.inProgressTitle")}
 				description={t("masterHome.inProgressDesc")}
 				loading={mine.isLoading}
 				empty={
-					(mine.data?.length ?? 0) === 0 ? (
+					active.length === 0 ? (
 						<EmptyState
 							icon={HardHatIcon}
 							title={t("masterHome.noClaimsTitle")}
@@ -33,7 +66,7 @@ function MasterHome() {
 					) : null
 				}
 			>
-				{mine.data?.map((s) => (
+				{active.map((s) => (
 					<StageRow
 						key={s.subStageInstanceId}
 						to={s.subStageInstanceId}
@@ -126,6 +159,7 @@ function StageRow({
 	subtitle,
 	right,
 	wage,
+	tone,
 }: {
 	to: string;
 	code: string;
@@ -133,10 +167,15 @@ function StageRow({
 	subtitle: string;
 	right: React.ReactNode;
 	wage: string | number;
+	tone?: "destructive";
 }) {
+	const toneClasses =
+		tone === "destructive"
+			? "border-destructive/40 bg-destructive/5 hover:bg-destructive/10 active:bg-destructive/15"
+			: "hover:bg-accent active:bg-accent/80";
 	return (
 		<Link to="/master/stages/$subStageId" params={{ subStageId: to }}>
-			<Card className="p-4 transition-colors hover:bg-accent active:bg-accent/80">
+			<Card className={`p-4 transition-colors ${toneClasses}`}>
 				<div className="flex items-center gap-3">
 					<div className="min-w-0 flex-1">
 						<div className="flex items-center gap-2">

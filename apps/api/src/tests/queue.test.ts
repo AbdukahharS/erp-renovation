@@ -4,13 +4,14 @@ import {
 	financialTransactions,
 	masterBalances,
 	masterProfiles,
+	mediaRequirementInstances,
 	notificationIntents,
 	propertyAssets,
 	stageMediaAssets,
 	subStageInstances,
 } from "@repo/db/schema/tenant";
 import { withTenant } from "@repo/db/with-tenant";
-import { and, sql as dsql, eq } from "drizzle-orm";
+import { and, asc, sql as dsql, eq } from "drizzle-orm";
 import { processStagePropagate } from "../../../worker/src/jobs/stage-propagate.ts";
 import { processWageCredit } from "../../../worker/src/jobs/wage-credit.ts";
 import { db } from "../db.ts";
@@ -117,20 +118,48 @@ async function attachFakeAsset(
 	userId: string,
 ): Promise<void> {
 	await withTenant(db, schema, async (tx) => {
-		const uid = crypto.randomUUID();
-		const [asset] = (await tx
-			.insert(propertyAssets)
-			.values({
-				propertyId,
-				kind,
-				r2Key: `${schema}/properties/${propertyId}/${kind}/${uid}.jpg`,
-				contentType: "image/jpeg",
+		const reqs = (await tx
+			.select({ id: mediaRequirementInstances.id })
+			.from(mediaRequirementInstances)
+			.where(
+				and(
+					eq(mediaRequirementInstances.subStageInstanceId, subStageInstanceId),
+					eq(mediaRequirementInstances.required, true),
+					eq(mediaRequirementInstances.mediaType, "PHOTO"),
+				),
+			)
+			.orderBy(asc(mediaRequirementInstances.id))) as Array<{ id: string }>;
+		const filled = (await tx
+			.select({ requirementId: stageMediaAssets.requirementId })
+			.from(stageMediaAssets)
+			.where(eq(stageMediaAssets.subStageInstanceId, subStageInstanceId))) as Array<{
+			requirementId: string | null;
+		}>;
+		const filledIds = new Set(
+			filled.map((f) => f.requirementId).filter((id): id is string => !!id),
+		);
+		const slotsToFill = reqs.filter((r) => !filledIds.has(r.id));
+		const targets: Array<string | null> =
+			slotsToFill.length > 0 ? slotsToFill.map((r) => r.id) : [null];
+		for (const requirementId of targets) {
+			const uid = crypto.randomUUID();
+			const [asset] = (await tx
+				.insert(propertyAssets)
+				.values({
+					propertyId,
+					kind,
+					r2Key: `${schema}/properties/${propertyId}/${kind}/${uid}.jpg`,
+					contentType: "image/jpeg",
+					uploadedBy: userId,
+				})
+				.returning({ id: propertyAssets.id })) as Array<{ id: string }>;
+			await tx.insert(stageMediaAssets).values({
+				subStageInstanceId,
+				assetId: must(asset).id,
+				requirementId,
 				uploadedBy: userId,
-			})
-			.returning({ id: propertyAssets.id })) as Array<{ id: string }>;
-		await tx
-			.insert(stageMediaAssets)
-			.values({ subStageInstanceId, assetId: must(asset).id, uploadedBy: userId });
+			});
+		}
 	});
 }
 

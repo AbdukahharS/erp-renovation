@@ -585,6 +585,26 @@
 			"PENDING": "KUTILMOQDA"
 		}
 	},
+	"rating": {
+		"title": "Samaradorlik",
+		"outOf100": "/ 100",
+		"scoreLabel": "Bal",
+		"speed": "Tezlik",
+		"defect": "Sifat",
+		"accepted": "Qabul qilindi",
+		"rejected": "Rad etildi",
+		"avgRatio": "Oʻrtacha davomiylik koef.",
+		"speedHint": "Oʻrtacha haqiqiy / meʼyor: {{ratio}}×",
+		"speedHintNone": "Hozircha vaqt boʻyicha maʼlumot yoʻq",
+		"defectHint": "{{accepted}} qabul · {{rejected}} rad",
+		"noActivityTooltip": "Hali yakunlangan bosqichlar yoʻq — birinchi qabuldan keyin reyting paydo boʻladi.",
+		"tier": {
+			"great": "Yetakchi",
+			"good": "Meʼyorda",
+			"watch": "Eʼtibor talab qiladi",
+			"unrated": "Reytingsiz"
+		}
+	},
 	"masterDetail": {
 		"backToRoster": "← Roʻyxatga qaytish",
 		"balance": "Balans",
@@ -712,6 +732,13 @@
 		"submitForAcceptance": "Qabul uchun yuborish",
 		"needPhoto": "Yuborish uchun kamida bitta foto yuklang.",
 		"mediaCount": "Media ({{count}})",
+		"beforePhotos": "«Oldin» fotolari",
+		"requiredLabel": "majburiy",
+		"optionalLabel": "ixtiyoriy",
+		"itemCount": "fayllar: {{count}}",
+		"slotMissing": "Usta ushbu majburiy band uchun media yuklamagan.",
+		"slotEmpty": "Bu band uchun media yuklanmagan.",
+		"otherMedia": "Boshqa media ({{count}})",
 		"checklist": "Roʻyxat",
 		"pass": "Oʻtdi",
 		"noteOptional": "Izoh (ixtiyoriy)",
@@ -755,7 +782,9 @@
 		"availableTitle": "Mavjud",
 		"availableDesc": "Mutaxassisligingizga mos ochiq bosqichlar.",
 		"nothingAvailableTitle": "Hech narsa yoʻq",
-		"nothingAvailableDesc": "Sizdan oldingi ustalar tugatgach yangi vazifalar paydo boʻladi."
+		"nothingAvailableDesc": "Sizdan oldingi ustalar tugatgach yangi vazifalar paydo boʻladi.",
+		"reworkTitle": "Qayta ishlash kerak",
+		"reworkDesc": "Bu bosqichlarni nazoratchi rad etgan. Har birini ochib, nima xato boʻlganini koʻring va qayta yuboring."
 	},
 	"masterStage": {
 		"back": "← Orqaga",
@@ -769,13 +798,33 @@
 		"submitting": "Yuborilmoqda…",
 		"complete": "Yakunlash",
 		"needPhoto": "«Yakunlash» faollashishi uchun kamida bitta foto yuklang.",
+		"slotsFilled": "{{filled}}/{{total}} toʻldirildi",
+		"uploadForSlot": "Yuklash",
+		"addAnother": "Yana qoʻshish",
+		"addExtra": "Qoʻshimcha foto qoʻshish",
+		"otherPhotos": "Qoʻshimcha fotolar",
+		"optionalSuffix": "ixtiyoriy",
+		"needSlots": "Toʻldirilmagan majburiy bandlar: {{count}}.",
+		"inspectorChecklist": "Nazoratchi nimani tekshiradi",
+		"inspectorChecklistHint": "Yuborishdan oldin har bir bandni oʻzingiz tekshiring — nazoratchi shu roʻyxat boʻyicha yuradi.",
+		"checklistCount": "bandlar: {{count}}",
+		"inspectorNoted": "Nazoratchi izohi: {{note}}",
+		"fixTheseItems": "Tuzatish kerak boʻlgan bandlar",
+		"fixTheseItemsHint": "Qayta yuborganingizda nazoratchi shu roʻyxat boʻyicha yuradi. Oʻtmagan bandlar ajratilgan; oʻtganlarini qayta bajarish shart emas.",
 		"submittedNotice": "Qabulga yuborildi. Nazoratchi koʻrib chiqishini kutmoqda.",
 		"acceptedNotice": "Qabul qilindi. Ish haqi hisoblangan.",
 		"choosePhotoOrVideo": "Foto yoki video tanlash",
 		"tapToUpload": "Yuklash uchun bosing",
 		"orDragHere": "yoki faylni bu yerga torting",
 		"removeMedia": "Oʻchirish",
-		"removing": "Oʻchirilmoqda…"
+		"removing": "Oʻchirilmoqda…",
+		"rejectedTitle": "Nazoratchi rad etdi",
+		"rejectionComment": "Nazoratchi izohi",
+		"checklistOutcome": "Chek-list natijasi",
+		"failedCountShort": "oʻtmadi: {{count}}",
+		"passedCountShort": "oʻtdi: {{count}}",
+		"defectPhoto": "Nuqson fotosi",
+		"rejectedActionHint": "Kamchiliklarni tuzating, yangi fotolar yuklang va qayta yuboring."
 	},
 	"procurement": {
 		"title": "Taʼminot (vaqtinchalik)",

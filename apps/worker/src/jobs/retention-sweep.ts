@@ -1,5 +1,7 @@
+import { recomputeMasterRating } from "@repo/acceptance/rating";
 import { tenantConfig, tenants } from "@repo/db/schema/control";
 import {
+	masterRatings,
 	notifications,
 	properties,
 	propertyAssets,
@@ -26,9 +28,16 @@ export async function processRetentionSweep(): Promise<{
 	assetsDeleted: number;
 	notificationsDeleted: number;
 	subscriptionsDeleted: number;
+	ratingsRecomputed: number;
 }> {
 	const r2 = readR2Client();
-	const totals = { tenants: 0, assetsDeleted: 0, notificationsDeleted: 0, subscriptionsDeleted: 0 };
+	const totals = {
+		tenants: 0,
+		assetsDeleted: 0,
+		notificationsDeleted: 0,
+		subscriptionsDeleted: 0,
+		ratingsRecomputed: 0,
+	};
 
 	const rows = await db
 		.select({
@@ -91,10 +100,21 @@ export async function processRetentionSweep(): Promise<{
 					)
 					.returning({ id: pushSubscriptions.id });
 
+				// 4. Phase 6 rating reconciliation. Inline reject-path recomputes and
+				// the stage-propagate worker keep `master_ratings` live, but a
+				// permanently failed propagate job after an ACCEPTED event would
+				// leave counters drifted. Recomputing here is idempotent — it's a
+				// safety net, not a primary source.
+				const masters = await tx.select({ id: masterRatings.masterUserId }).from(masterRatings);
+				for (const m of masters) {
+					await recomputeMasterRating(tx, m.id);
+				}
+
 				return {
 					staleAssets: stale,
 					notifDeleted: notifResult[0]?.n ?? 0,
 					subDeleted: deadSubs.length,
+					ratingsRecomputed: masters.length,
 				};
 			});
 
@@ -112,9 +132,10 @@ export async function processRetentionSweep(): Promise<{
 			totals.assetsDeleted += result.staleAssets.length;
 			totals.notificationsDeleted += result.notifDeleted;
 			totals.subscriptionsDeleted += result.subDeleted;
+			totals.ratingsRecomputed += result.ratingsRecomputed;
 
 			console.log(
-				`[retention:${t.schemaName}] assets=${result.staleAssets.length} notifications=${result.notifDeleted} subs=${result.subDeleted}`,
+				`[retention:${t.schemaName}] assets=${result.staleAssets.length} notifications=${result.notifDeleted} subs=${result.subDeleted} ratings=${result.ratingsRecomputed}`,
 			);
 		} catch (err) {
 			console.error(`[retention:${t.schemaName}] failed:`, (err as Error).message);

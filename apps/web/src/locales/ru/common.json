@@ -585,6 +585,26 @@
 			"PENDING": "ОЖИДАЕТ"
 		}
 	},
+	"rating": {
+		"title": "Производительность",
+		"outOf100": "/ 100",
+		"scoreLabel": "Оценка",
+		"speed": "Скорость",
+		"defect": "Качество",
+		"accepted": "Принято",
+		"rejected": "Отклонено",
+		"avgRatio": "Ср. коэф. длительности",
+		"speedHint": "Среднее факт / норматив: {{ratio}}×",
+		"speedHintNone": "Нет данных о сроках",
+		"defectHint": "{{accepted}} принято · {{rejected}} отклонено",
+		"noActivityTooltip": "Пока нет завершённых этапов — рейтинг появится после первой приёмки.",
+		"tier": {
+			"great": "Лидер",
+			"good": "В норме",
+			"watch": "Требует внимания",
+			"unrated": "Без рейтинга"
+		}
+	},
 	"masterDetail": {
 		"backToRoster": "← Назад к списку",
 		"balance": "Баланс",
@@ -712,6 +732,13 @@
 		"submitForAcceptance": "Отправить на приёмку",
 		"needPhoto": "Загрузите хотя бы одно фото, чтобы отправить.",
 		"mediaCount": "Медиа ({{count}})",
+		"beforePhotos": "Фото «до»",
+		"requiredLabel": "обязательно",
+		"optionalLabel": "необязательно",
+		"itemCount": "файлов: {{count}}",
+		"slotMissing": "Мастер не загрузил медиа для этого обязательного пункта.",
+		"slotEmpty": "Медиа для этого пункта не загружено.",
+		"otherMedia": "Другие медиа ({{count}})",
 		"checklist": "Чек-лист",
 		"pass": "Пройдено",
 		"noteOptional": "Заметка (необязательно)",
@@ -755,7 +782,9 @@
 		"availableTitle": "Доступно",
 		"availableDesc": "Открытые стадии, подходящие вашей специализации.",
 		"nothingAvailableTitle": "Ничего нет",
-		"nothingAvailableDesc": "Новые задачи появятся, когда мастера до вас закончат."
+		"nothingAvailableDesc": "Новые задачи появятся, когда мастера до вас закончат.",
+		"reworkTitle": "Нужно доработать",
+		"reworkDesc": "Эти стадии отклонены инспектором. Откройте каждую, чтобы увидеть, что не прошло, и отправьте повторно."
 	},
 	"masterStage": {
 		"back": "← Назад",
@@ -769,13 +798,33 @@
 		"submitting": "Отправка…",
 		"complete": "Завершить",
 		"needPhoto": "Загрузите хотя бы одно фото, чтобы активировать «Завершить».",
+		"slotsFilled": "заполнено {{filled}}/{{total}}",
+		"uploadForSlot": "Загрузить",
+		"addAnother": "Добавить ещё",
+		"addExtra": "Добавить доп. фото",
+		"otherPhotos": "Дополнительные фото",
+		"optionalSuffix": "необязательно",
+		"needSlots": "Не заполнено обязательных пунктов: {{count}}.",
+		"inspectorChecklist": "Что проверит инспектор",
+		"inspectorChecklistHint": "Проверьте каждый пункт перед отправкой — инспектор пройдёт по этому же списку.",
+		"checklistCount": "пунктов: {{count}}",
+		"inspectorNoted": "Замечание инспектора: {{note}}",
+		"fixTheseItems": "Что нужно исправить",
+		"fixTheseItemsHint": "При повторной отправке инспектор пройдёт по этому же списку. Не пройденные пункты выделены; пройденные переделывать не нужно.",
 		"submittedNotice": "Отправлено на приёмку. Ожидается проверка инспектором.",
 		"acceptedNotice": "Принято. Зарплата начислена.",
 		"choosePhotoOrVideo": "Выбрать фото или видео",
 		"tapToUpload": "Нажмите, чтобы загрузить",
 		"orDragHere": "или перетащите файл сюда",
 		"removeMedia": "Удалить",
-		"removing": "Удаление…"
+		"removing": "Удаление…",
+		"rejectedTitle": "Отклонено инспектором",
+		"rejectionComment": "Комментарий инспектора",
+		"checklistOutcome": "Результат чек-листа",
+		"failedCountShort": "не прошло: {{count}}",
+		"passedCountShort": "пройдено: {{count}}",
+		"defectPhoto": "Фото дефекта",
+		"rejectedActionHint": "Устраните замечания, загрузите новые фото и отправьте снова."
 	},
 	"procurement": {
 		"title": "Снабжение (заглушка)",

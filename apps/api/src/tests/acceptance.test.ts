@@ -2,12 +2,13 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { tenantMemberships, tenants, user as userTable } from "@repo/db/schema/control";
 import {
 	masterProfiles,
+	mediaRequirementInstances,
 	propertyAssets,
 	stageEvents,
 	stageMediaAssets,
 } from "@repo/db/schema/tenant";
 import { withTenant } from "@repo/db/with-tenant";
-import { sql as dsql, eq } from "drizzle-orm";
+import { and, asc, sql as dsql, eq } from "drizzle-orm";
 import { db } from "../db.ts";
 import { app } from "../index.ts";
 import { acceptanceEvents } from "../modules/acceptance/events.ts";
@@ -182,21 +183,63 @@ async function attachFakeAsset(
 	userId: string,
 ): Promise<string> {
 	return await withTenant(db, schema, async (tx) => {
-		const uid = crypto.randomUUID();
-		const [asset] = (await tx
-			.insert(propertyAssets)
-			.values({
-				propertyId,
-				kind,
-				r2Key: `${schema}/properties/${propertyId}/${kind}/${uid}.jpg`,
-				contentType: "image/jpeg",
+		// For STAGE_PHOTO/BEFORE_PHOTO, satisfy every still-empty required
+		// requirement in one call. Tests treat this helper as "make the photo
+		// blocker pass"; per-slot semantics are a server-side concern they
+		// don't try to exercise. DEFECT_PHOTO is inspector-uploaded and not
+		// tied to a requirement.
+		const isRequirementBacked = kind === "STAGE_PHOTO" || kind === "BEFORE_PHOTO";
+		const reqs = isRequirementBacked
+			? ((await tx
+					.select({ id: mediaRequirementInstances.id })
+					.from(mediaRequirementInstances)
+					.where(
+						and(
+							eq(mediaRequirementInstances.subStageInstanceId, subStageInstanceId),
+							eq(mediaRequirementInstances.required, true),
+							eq(mediaRequirementInstances.mediaType, "PHOTO"),
+						),
+					)
+					.orderBy(asc(mediaRequirementInstances.id))) as Array<{ id: string }>)
+			: [];
+		const filled = isRequirementBacked
+			? ((await tx
+					.select({ requirementId: stageMediaAssets.requirementId })
+					.from(stageMediaAssets)
+					.where(eq(stageMediaAssets.subStageInstanceId, subStageInstanceId))) as Array<{
+					requirementId: string | null;
+				}>)
+			: [];
+		const filledIds = new Set(
+			filled.map((f) => f.requirementId).filter((id): id is string => !!id),
+		);
+		const slotsToFill = reqs.filter((r) => !filledIds.has(r.id));
+		// Always insert at least one asset (matches the historical behaviour for
+		// stages with no required requirements / DEFECT_PHOTO).
+		const targets: Array<string | null> =
+			slotsToFill.length > 0 ? slotsToFill.map((r) => r.id) : [null];
+		let lastAssetId = "";
+		for (const requirementId of targets) {
+			const uid = crypto.randomUUID();
+			const [asset] = (await tx
+				.insert(propertyAssets)
+				.values({
+					propertyId,
+					kind,
+					r2Key: `${schema}/properties/${propertyId}/${kind}/${uid}.jpg`,
+					contentType: "image/jpeg",
+					uploadedBy: userId,
+				})
+				.returning({ id: propertyAssets.id })) as Array<{ id: string }>;
+			await tx.insert(stageMediaAssets).values({
+				subStageInstanceId,
+				assetId: must(asset).id,
+				requirementId,
 				uploadedBy: userId,
-			})
-			.returning({ id: propertyAssets.id })) as Array<{ id: string }>;
-		await tx
-			.insert(stageMediaAssets)
-			.values({ subStageInstanceId, assetId: must(asset).id, uploadedBy: userId });
-		return must(asset).id;
+			});
+			lastAssetId = must(asset).id;
+		}
+		return lastAssetId;
 	});
 }
 
@@ -595,7 +638,7 @@ describe("phase 4 acceptance loop", () => {
 		expect(types).toContain("MANUAL_UNBLOCKED");
 	});
 
-	it("reject loop: submit → reject → IN_PROGRESS → resubmit → accept", async () => {
+	it("reject loop: submit → reject → REJECTED → resubmit → accept", async () => {
 		const { id, tree } = await createProperty(aOwnerCookie);
 		const first = must(tree.stages[0]?.subStages[0]);
 		await attachFakeAsset(aSchema, id, first.id, "BEFORE_PHOTO", "inspector-test");
@@ -655,8 +698,8 @@ describe("phase 4 acceptance loop", () => {
 		const fm2 = must(
 			afterReject.stages.flatMap((s) => s.subStages).find((s) => s.id === firstMaster.id),
 		);
-		// Master-performed → returns to IN_PROGRESS, claim stays.
-		expect(fm2.status).toBe("IN_PROGRESS");
+		// Master-performed → stays at REJECTED (distinct rework state), claim stays.
+		expect(fm2.status).toBe("REJECTED");
 
 		const sub2 = await call(aMasterCookie, `/master/stages/${firstMaster.id}/submit`, {
 			method: "POST",

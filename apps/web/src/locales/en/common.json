@@ -585,6 +585,26 @@
 			"PENDING": "PENDING"
 		}
 	},
+	"rating": {
+		"title": "Performance",
+		"outOf100": "/ 100",
+		"scoreLabel": "Score",
+		"speed": "Speed",
+		"defect": "Quality",
+		"accepted": "Accepted",
+		"rejected": "Rejected",
+		"avgRatio": "Avg duration ratio",
+		"speedHint": "Avg actual / standard duration: {{ratio}}×",
+		"speedHintNone": "No on-time data yet",
+		"defectHint": "{{accepted}} accepted · {{rejected}} rejected",
+		"noActivityTooltip": "No resolved stages yet — rating unlocks after the first acceptance.",
+		"tier": {
+			"great": "Top performer",
+			"good": "On track",
+			"watch": "Needs attention",
+			"unrated": "Unrated"
+		}
+	},
 	"masterDetail": {
 		"backToRoster": "← Back to roster",
 		"balance": "Balance",
@@ -712,6 +732,13 @@
 		"submitForAcceptance": "Submit for acceptance",
 		"needPhoto": "Upload at least one photo to enable submit.",
 		"mediaCount": "Media ({{count}})",
+		"beforePhotos": "Before photos",
+		"requiredLabel": "required",
+		"optionalLabel": "optional",
+		"itemCount": "{{count}} file(s)",
+		"slotMissing": "Master did not upload media for this required slot.",
+		"slotEmpty": "No media uploaded for this slot.",
+		"otherMedia": "Other media ({{count}})",
 		"checklist": "Checklist",
 		"pass": "Pass",
 		"noteOptional": "Note (optional)",
@@ -755,7 +782,9 @@
 		"availableTitle": "Available",
 		"availableDesc": "Open stages matching your specialization.",
 		"nothingAvailableTitle": "Nothing available",
-		"nothingAvailableDesc": "New tasks will appear here when masters before you finish."
+		"nothingAvailableDesc": "New tasks will appear here when masters before you finish.",
+		"reworkTitle": "Needs rework",
+		"reworkDesc": "These stages were rejected by the inspector. Open each one to see what failed, then re-submit."
 	},
 	"masterStage": {
 		"back": "← Back",
@@ -769,13 +798,33 @@
 		"submitting": "Submitting…",
 		"complete": "Complete",
 		"needPhoto": "Upload at least one photo to enable Complete.",
+		"slotsFilled": "{{filled}}/{{total}} filled",
+		"uploadForSlot": "Upload",
+		"addAnother": "Add another",
+		"addExtra": "Add extra photo",
+		"otherPhotos": "Other photos",
+		"optionalSuffix": "optional",
+		"needSlots": "{{count}} required slot(s) still empty.",
+		"inspectorChecklist": "What the inspector will check",
+		"inspectorChecklistHint": "Verify each of these before submitting. The inspector walks the same list.",
+		"checklistCount": "{{count}} item(s)",
+		"inspectorNoted": "Inspector noted: {{note}}",
+		"fixTheseItems": "Fix these to pass",
+		"fixTheseItemsHint": "The inspector will walk this same list on re-submission. Failed items are highlighted; passed ones don't need redoing.",
 		"submittedNotice": "Submitted for acceptance. Waiting for inspector review.",
 		"acceptedNotice": "Accepted. Wage credited.",
 		"choosePhotoOrVideo": "Choose photo or video",
 		"tapToUpload": "Tap to upload",
 		"orDragHere": "or drag a file here",
 		"removeMedia": "Remove",
-		"removing": "Removing…"
+		"removing": "Removing…",
+		"rejectedTitle": "Rejected by inspector",
+		"rejectionComment": "Inspector's note",
+		"checklistOutcome": "Checklist outcome",
+		"failedCountShort": "{{count}} failed",
+		"passedCountShort": "{{count}} passed",
+		"defectPhoto": "Defect photo",
+		"rejectedActionHint": "Fix the issues, upload new photos, and submit again."
 	},
 	"procurement": {
 		"title": "Procurement (stub)",
