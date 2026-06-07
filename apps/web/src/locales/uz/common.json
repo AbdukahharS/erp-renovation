@@ -824,7 +824,10 @@
 		"failedCountShort": "oʻtmadi: {{count}}",
 		"passedCountShort": "oʻtdi: {{count}}",
 		"defectPhoto": "Nuqson fotosi",
-		"rejectedActionHint": "Kamchiliklarni tuzating, yangi fotolar yuklang va qayta yuboring."
+		"rejectedActionHint": "Kamchiliklarni tuzating, yangi fotolar yuklang va qayta yuboring.",
+		"durationLabel": "≈ {{count}} kun",
+		"wageLabel": "stavka ${{amount}}",
+		"areaLabel": "{{area}} m²"
 	},
 	"procurement": {
 		"title": "Taʼminot (vaqtinchalik)",

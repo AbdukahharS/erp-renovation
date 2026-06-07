@@ -824,7 +824,13 @@
 		"failedCountShort": "не прошло: {{count}}",
 		"passedCountShort": "пройдено: {{count}}",
 		"defectPhoto": "Фото дефекта",
-		"rejectedActionHint": "Устраните замечания, загрузите новые фото и отправьте снова."
+		"rejectedActionHint": "Устраните замечания, загрузите новые фото и отправьте снова.",
+		"durationLabel_one": "≈ {{count}} день",
+		"durationLabel_few": "≈ {{count}} дня",
+		"durationLabel_many": "≈ {{count}} дней",
+		"durationLabel_other": "≈ {{count}} дня",
+		"wageLabel": "ставка ${{amount}}",
+		"areaLabel": "{{area}} м²"
 	},
 	"procurement": {
 		"title": "Снабжение (заглушка)",

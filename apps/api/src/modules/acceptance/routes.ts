@@ -1190,6 +1190,7 @@ async function loadStageDetail(tx: AnyRow, subStageInstanceId: string) {
 			name: properties.name,
 			status: properties.status,
 			materialsOnSite: properties.materialsOnSite,
+			areaSqm: properties.areaSqm,
 		})
 		.from(properties)
 		.where(eq(properties.id, stage.propertyId))

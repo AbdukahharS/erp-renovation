@@ -824,7 +824,11 @@
 		"failedCountShort": "{{count}} failed",
 		"passedCountShort": "{{count}} passed",
 		"defectPhoto": "Defect photo",
-		"rejectedActionHint": "Fix the issues, upload new photos, and submit again."
+		"rejectedActionHint": "Fix the issues, upload new photos, and submit again.",
+		"durationLabel": "≈ {{count}} day",
+		"durationLabel_other": "≈ {{count}} days",
+		"wageLabel": "wage ${{amount}}",
+		"areaLabel": "{{area}} m²"
 	},
 	"procurement": {
 		"title": "Procurement (stub)",

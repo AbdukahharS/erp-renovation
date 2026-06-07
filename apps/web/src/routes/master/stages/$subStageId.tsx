@@ -3,9 +3,12 @@ import {
 	AlertTriangleIcon,
 	CheckIcon,
 	ClipboardCheckIcon,
+	ClockIcon,
 	ImagePlus,
 	Loader2,
+	RulerIcon,
 	Trash2,
+	WalletIcon,
 	XIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -110,6 +113,24 @@ function MasterStageDetail() {
 				<p className="text-sm text-muted-foreground">
 					{property.name} · {stageName}
 				</p>
+				<div className="mt-1 flex flex-wrap items-center gap-1.5">
+					<span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs font-medium tabular-nums">
+						<ClockIcon className="size-3 text-muted-foreground" />
+						{t("masterStage.durationLabel", { count: subStage.standardDurationDays })}
+					</span>
+					{Number(property.areaSqm) > 0 && (
+						<span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-xs font-medium tabular-nums">
+							<RulerIcon className="size-3 text-muted-foreground" />
+							{t("masterStage.areaLabel", { area: property.areaSqm })}
+						</span>
+					)}
+					{Number(subStage.wageAmount) > 0 && (
+						<span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/50 bg-emerald-50 px-2 py-0.5 text-xs font-medium tabular-nums text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/40 dark:text-emerald-400">
+							<WalletIcon className="size-3" />
+							{t("masterStage.wageLabel", { amount: subStage.wageAmount })}
+						</span>
+					)}
+				</div>
 				{subStage.description && (
 					<p className="text-sm text-muted-foreground">{subStage.description}</p>
 				)}

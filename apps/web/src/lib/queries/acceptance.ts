@@ -57,7 +57,13 @@ export type StageDetail = {
 		}>;
 	};
 	stageName: string;
-	property: { id: string; name: string; status: string; materialsOnSite: boolean };
+	property: {
+		id: string;
+		name: string;
+		status: string;
+		materialsOnSite: boolean;
+		areaSqm: string;
+	};
 	assignment: { masterUserId: string; claimedAt: string } | null;
 	activeRequest: { id: string; submittedBy: string; submittedAt: string } | null;
 	media: StageMediaView[];
