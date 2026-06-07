@@ -36,6 +36,13 @@
 			"when": 1780000000001,
 			"tag": "0004_phase9_tenant_config",
 			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "7",
+			"when": 1780000000002,
+			"tag": "0005_rating_weights_default",
+			"breakpoints": true
 		}
 	]
 }

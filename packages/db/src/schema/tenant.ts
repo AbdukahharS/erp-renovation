@@ -456,12 +456,16 @@ export const stageMediaAssets = pgTable(
 		assetId: uuid("asset_id")
 			.notNull()
 			.references(() => propertyAssets.id, { onDelete: "cascade" }),
+		requirementId: uuid("requirement_id").references(() => mediaRequirementInstances.id, {
+			onDelete: "set null",
+		}),
 		uploadedBy: text("uploaded_by").notNull(),
 		linkedAt: timestamp("linked_at").notNull().defaultNow(),
 	},
 	(t) => [
 		unique("stage_media_assets_edge_unique").on(t.subStageInstanceId, t.assetId),
 		index("stage_media_assets_sub_stage_idx").on(t.subStageInstanceId),
+		index("stage_media_assets_requirement_idx").on(t.requirementId),
 	],
 );
 

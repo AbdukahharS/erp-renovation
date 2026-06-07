@@ -197,6 +197,7 @@ export const PresignStageMediaInput = z.object({
 
 export const AttachStageMediaInput = z.object({
 	assetId: z.string().uuid(),
+	requirementId: z.string().uuid().nullable().optional(),
 });
 
 export const AttachInspectorMediaInput = z.object({

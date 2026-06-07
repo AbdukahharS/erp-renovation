@@ -101,7 +101,7 @@ export const tenantConfig = pgTable("tenant_config", {
 	ratingWeights: jsonb("rating_weights")
 		.notNull()
 		.$type<{ speed: number; defect: number }>()
-		.default({ speed: 0.5, defect: 0.5 }),
+		.default({ speed: 1.0, defect: 1.0 }),
 	branding: jsonb("branding")
 		.notNull()
 		.$type<{ displayName?: string; primaryColor?: string; logoKey?: string }>()
