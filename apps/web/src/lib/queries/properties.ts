@@ -73,6 +73,68 @@ export function usePresignFloorPlan(propertyId: string | undefined) {
 	});
 }
 
+export type ArchiveBlocker = { code: string; name: string };
+
+// Custom error so the UI can surface the blocking sub-stages list when the
+// API rejects archive with 409 active_work. Eden's error.value carries
+// `{ error: "active_work", blockers: [...] }` on that path.
+export class ArchiveActiveWorkError extends Error {
+	blockers: ArchiveBlocker[];
+	constructor(blockers: ArchiveBlocker[]) {
+		super("active_work");
+		this.name = "ArchiveActiveWorkError";
+		this.blockers = blockers;
+	}
+}
+
+export function useArchiveProperty(propertyId: string | undefined) {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: async (reason: string) => {
+			const res = await api
+				.properties({ propertyId: propertyId as string })
+				.archive.post({ reason });
+			if (res.error) {
+				const value = res.error.value as
+					| { error?: string; blockers?: ArchiveBlocker[] }
+					| string
+					| undefined;
+				if (
+					value &&
+					typeof value === "object" &&
+					value.error === "active_work" &&
+					Array.isArray(value.blockers)
+				) {
+					throw new ArchiveActiveWorkError(value.blockers);
+				}
+				const msg =
+					typeof value === "string"
+						? value
+						: value && typeof value === "object" && typeof value.error === "string"
+							? value.error
+							: String(res.error.status);
+				throw new Error(msg);
+			}
+			return res.data;
+		},
+		onSuccess: () => {
+			if (propertyId) qc.invalidateQueries({ queryKey: propertyKeys.detail(propertyId) });
+			qc.invalidateQueries({ queryKey: propertyKeys.list() });
+		},
+	});
+}
+
+export function useUnarchiveProperty(propertyId: string | undefined) {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: () => unwrap(api.properties({ propertyId: propertyId as string }).unarchive.post()),
+		onSuccess: () => {
+			if (propertyId) qc.invalidateQueries({ queryKey: propertyKeys.detail(propertyId) });
+			qc.invalidateQueries({ queryKey: propertyKeys.list() });
+		},
+	});
+}
+
 export function useAttachFloorPlan(propertyId: string | undefined) {
 	const qc = useQueryClient();
 	return useMutation({

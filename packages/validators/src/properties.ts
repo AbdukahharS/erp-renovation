@@ -46,6 +46,9 @@ export const PropertyRowSchema = z.object({
 	floorPlanAssetId: z.string().uuid().nullable(),
 	materialsOnSite: z.boolean(),
 	deadlineAt: z.string().nullable(),
+	archivedAt: z.string().nullable(),
+	archivedBy: z.string().nullable(),
+	archiveReason: z.string().nullable(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
 });
@@ -149,6 +152,11 @@ export const UpdatePropertyInput = z.object({
 	plannedUnitCost: Numeric2.optional(),
 	deadlineAt: z.string().datetime().nullable().optional(),
 });
+
+export const ArchivePropertyInput = z.object({
+	reason: z.string().min(1).max(500),
+});
+export type ArchivePropertyInputType = z.infer<typeof ArchivePropertyInput>;
 
 export const PresignAssetUploadInput = z.object({
 	kind: z.enum(["FLOOR_PLAN", "PORTFOLIO_PHOTO"]),

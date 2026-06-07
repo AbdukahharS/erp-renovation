@@ -1,9 +1,33 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { WalletIcon } from "lucide-react";
+import { ArchiveIcon, ArchiveRestoreIcon, WalletIcon } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import {
+	AlertDialog,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { formatMoney } from "@/lib/format-money";
 import { formatNumber } from "@/lib/format-number";
-import { useProperty } from "@/lib/queries/properties";
+import {
+	ArchiveActiveWorkError,
+	type ArchiveBlocker,
+	useArchiveProperty,
+	useProperty,
+	useUnarchiveProperty,
+} from "@/lib/queries/properties";
 import { useCurrencyCode } from "@/lib/queries/tenant-config";
 
 export const Route = createFileRoute("/owner/properties/$propertyId/")({
@@ -42,9 +66,35 @@ function PropertyDetail() {
 	const { propertyId } = Route.useParams();
 	const { data, isLoading } = useProperty(propertyId);
 	const currency = useCurrencyCode();
+	const archive = useArchiveProperty(propertyId);
+	const unarchive = useUnarchiveProperty(propertyId);
+	const [archiveOpen, setArchiveOpen] = useState(false);
+	const [unarchiveOpen, setUnarchiveOpen] = useState(false);
+	const [reason, setReason] = useState("");
+	const [blockers, setBlockers] = useState<ArchiveBlocker[] | null>(null);
 
 	if (isLoading || !data)
 		return <p className="text-sm text-muted-foreground">{t("common.loadingShort")}</p>;
+
+	const canManualArchive =
+		data.status === "PENDING" ||
+		data.status === "READY_FOR_PRODUCTION" ||
+		data.status === "IN_PROGRESS";
+	const isManualArchive = data.status === "ARCHIVED" && data.archivedAt !== null;
+
+	const submitArchive = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setBlockers(null);
+		try {
+			await archive.mutateAsync(reason.trim());
+			setArchiveOpen(false);
+			setReason("");
+		} catch (err) {
+			if (err instanceof ArchiveActiveWorkError) {
+				setBlockers(err.blockers);
+			}
+		}
+	};
 
 	const allSubStages = data.stages.flatMap((s) => s.subStages);
 	const byStatus = new Map<string, typeof allSubStages>();
@@ -95,6 +145,37 @@ function PropertyDetail() {
 						<WalletIcon className="size-3.5" />
 						{t("propertyDetail.openFinance", "Finance & materials")}
 					</Link>
+					{canManualArchive && (
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="h-7 text-xs"
+							onClick={() => {
+								setBlockers(null);
+								setReason("");
+								setArchiveOpen(true);
+							}}
+						>
+							<ArchiveIcon className="size-3.5" />
+							{t("propertyDetail.archive")}
+						</Button>
+					)}
+					{isManualArchive && (
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							className="h-7 text-xs"
+							disabled={unarchive.isPending}
+							onClick={() => setUnarchiveOpen(true)}
+						>
+							<ArchiveRestoreIcon className="size-3.5" />
+							{unarchive.isPending
+								? t("propertyDetail.unarchiving")
+								: t("propertyDetail.unarchive")}
+						</Button>
+					)}
 					{data.floorPlanAsset && (
 						<div className="text-xs text-muted-foreground">
 							<div>{t("propertyDetail.floorPlanAttached")}</div>
@@ -103,6 +184,100 @@ function PropertyDetail() {
 					)}
 				</div>
 			</header>
+
+			{isManualArchive && data.archiveReason && data.archivedAt && (
+				<div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">
+					{t("propertyDetail.archivedBanner", {
+						date: new Date(data.archivedAt).toLocaleDateString(),
+						reason: data.archiveReason,
+					})}
+				</div>
+			)}
+
+			<Dialog
+				open={archiveOpen}
+				onOpenChange={(o) => {
+					setArchiveOpen(o);
+					if (!o) {
+						setReason("");
+						setBlockers(null);
+					}
+				}}
+			>
+				<DialogContent>
+					<form onSubmit={submitArchive}>
+						<DialogHeader>
+							<DialogTitle>{t("propertyDetail.archiveDialogTitle")}</DialogTitle>
+							<DialogDescription>{t("propertyDetail.archiveDialogDesc")}</DialogDescription>
+						</DialogHeader>
+						<div className="my-4 space-y-2">
+							<label htmlFor="archive-reason" className="text-sm font-medium">
+								{t("propertyDetail.archiveReasonLabel")}
+							</label>
+							<textarea
+								id="archive-reason"
+								value={reason}
+								onChange={(e) => setReason(e.target.value)}
+								placeholder={t("propertyDetail.archiveReasonPlaceholder")}
+								rows={3}
+								required
+								maxLength={500}
+								className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+								autoFocus
+							/>
+							{blockers && blockers.length > 0 && (
+								<div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
+									<div className="font-medium">{t("propertyDetail.archiveBlockedTitle")}</div>
+									<div className="mt-1">{t("propertyDetail.archiveBlockedDesc")}</div>
+									<ul className="mt-1 list-disc pl-4">
+										{blockers.map((b) => (
+											<li key={b.code}>
+												<span className="font-mono">{b.code}</span> — {b.name}
+											</li>
+										))}
+									</ul>
+								</div>
+							)}
+						</div>
+						<DialogFooter>
+							<Button type="button" variant="ghost" onClick={() => setArchiveOpen(false)}>
+								{t("common.cancel")}
+							</Button>
+							<Button type="submit" disabled={!reason.trim() || archive.isPending}>
+								{archive.isPending
+									? t("propertyDetail.archiving")
+									: t("propertyDetail.archiveConfirm")}
+							</Button>
+						</DialogFooter>
+					</form>
+				</DialogContent>
+			</Dialog>
+
+			<AlertDialog open={unarchiveOpen} onOpenChange={setUnarchiveOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>{t("propertyDetail.unarchive")}</AlertDialogTitle>
+						<AlertDialogDescription>{t("propertyDetail.unarchiveConfirm")}</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<Button variant="outline" onClick={() => setUnarchiveOpen(false)}>
+							{t("common.cancel")}
+						</Button>
+						<Button
+							disabled={unarchive.isPending}
+							onClick={() =>
+								unarchive.mutate(undefined, {
+									onSuccess: () => setUnarchiveOpen(false),
+								})
+							}
+						>
+							{unarchive.isPending
+								? t("propertyDetail.unarchiving")
+								: t("propertyDetail.unarchive")}
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 
 			{data.status === "PENDING" && (
 				<div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-100">

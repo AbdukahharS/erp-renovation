@@ -190,7 +190,18 @@
 			"status": "Статус",
 			"area": "Площадь (м²)",
 			"progress": "Прогресс"
-		}
+		},
+		"searchPlaceholder": "Поиск по названию или адресу",
+		"filterStatus": "Статус",
+		"filterActive": "Активные",
+		"filterAll": "Все",
+		"sortBy": "Сортировка",
+		"sortRecent": "Недавно обновлённые",
+		"sortNameAsc": "Название (А–Я)",
+		"sortProgressDesc": "Прогресс (по убыванию)",
+		"sortAreaDesc": "Площадь (по убыванию)",
+		"emptyFilteredTitle": "Ничего не найдено",
+		"emptyFilteredDescription": "Попробуйте сбросить фильтр или поиск."
 	},
 	"propertyDetail": {
 		"floorPlanAttached": "План этажа прикреплён",
@@ -200,7 +211,20 @@
 		"metaLine": "{{layout}} · {{area}} м² · план ${{cost}}",
 		"wageLabel": "ставка ${{amount}}",
 		"backToProperties": "Объекты",
-		"openFinance": "Финансы и материалы"
+		"openFinance": "Финансы и материалы",
+		"archive": "Архивировать",
+		"unarchive": "Разархивировать",
+		"archiveDialogTitle": "Архивировать объект",
+		"archiveDialogDesc": "Архивирует этот незавершённый объект. Выдача материалов будет заблокирована. Объект можно разархивировать позже — причина сохранится в журнале.",
+		"archiveReasonLabel": "Причина",
+		"archiveReasonPlaceholder": "напр. отказ клиента, изменение объёма, дубликат",
+		"archiveConfirm": "Архивировать",
+		"archiveBlockedTitle": "Нельзя архивировать — есть активные работы",
+		"archiveBlockedDesc": "Завершите, отклоните или дождитесь окончания этих подстадий:",
+		"archivedBanner": "Архивировано {{date}} — {{reason}}",
+		"unarchiveConfirm": "Разархивировать этот объект?",
+		"archiving": "Архивирование…",
+		"unarchiving": "Разархивирование…"
 	},
 	"propertyFinance": {
 		"backToProperty": "← Назад к объекту",

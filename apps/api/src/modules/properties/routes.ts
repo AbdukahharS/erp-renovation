@@ -16,6 +16,7 @@ import {
 	type NotificationDispatchJobData,
 } from "@repo/queue";
 import {
+	ArchivePropertyInput,
 	AttachFloorPlanInput,
 	CreatePropertyInput,
 	PresignAssetUploadInput,
@@ -453,4 +454,134 @@ export const propertiesRoutes = new Elysia({ prefix: "" })
 			});
 		},
 		{ body: zodBody(AttachFloorPlanInput) },
-	);
+	)
+
+	// Manual archive of an unfinished property. Distinct from the finance
+	// close flow (POST /properties/:id/close): close requires COMPLETED and
+	// writes unit_closings; this path is for PENDING/READY_FOR_PRODUCTION/
+	// IN_PROGRESS properties the owner has decided to abandon.
+	.post(
+		"/properties/:propertyId/archive",
+		async ({ params, body, user, runInTenant, set }) => {
+			if (!runInTenant || !user) {
+				set.status = 401;
+				return { error: "no tenant" };
+			}
+			return await runInTenant(async (tx) => {
+				const [prop] = await tx
+					.select({ status: properties.status })
+					.from(properties)
+					.where(eq(properties.id, params.propertyId))
+					.limit(1);
+				if (!prop) {
+					set.status = 404;
+					return { error: "property not found" };
+				}
+				if (prop.status === "ARCHIVED") {
+					set.status = 409;
+					return { error: "already archived" };
+				}
+				if (prop.status === "COMPLETED") {
+					set.status = 409;
+					return { error: "completed properties use the close flow" };
+				}
+				// Block while masters/inspectors are mid-flight so we don't strand
+				// in-progress work or pending acceptance reviews.
+				const blockers = await tx
+					.select({ code: subStageInstances.code, name: subStageInstances.name })
+					.from(subStageInstances)
+					.innerJoin(stageInstances, eq(stageInstances.id, subStageInstances.stageInstanceId))
+					.where(
+						and(
+							eq(stageInstances.propertyId, params.propertyId),
+							inArray(subStageInstances.status, ["IN_PROGRESS", "SUBMITTED"]),
+						),
+					);
+				if (blockers.length > 0) {
+					set.status = 409;
+					return { error: "active_work", blockers };
+				}
+				const [row] = await tx
+					.update(properties)
+					.set({
+						status: "ARCHIVED",
+						archivedAt: new Date(),
+						archivedBy: user.id,
+						archiveReason: body.reason,
+						updatedAt: new Date(),
+					})
+					.where(eq(properties.id, params.propertyId))
+					.returning();
+				return row;
+			});
+		},
+		{ body: zodBody(ArchivePropertyInput) },
+	)
+
+	// Un-archive a manually-archived property. Only valid when archivedAt is
+	// non-null — finance-archived (COMPLETED → ARCHIVED via /close) properties
+	// must use POST /properties/:id/reopen instead so the unit_closings audit
+	// trail stays consistent.
+	.post("/properties/:propertyId/unarchive", async ({ params, runInTenant, set }) => {
+		if (!runInTenant) {
+			set.status = 401;
+			return { error: "no tenant" };
+		}
+		return await runInTenant(async (tx) => {
+			const [prop] = await tx
+				.select({ status: properties.status, archivedAt: properties.archivedAt })
+				.from(properties)
+				.where(eq(properties.id, params.propertyId))
+				.limit(1);
+			if (!prop) {
+				set.status = 404;
+				return { error: "property not found" };
+			}
+			if (prop.status !== "ARCHIVED") {
+				set.status = 409;
+				return { error: "property is not archived" };
+			}
+			if (prop.archivedAt === null) {
+				set.status = 409;
+				return { error: "use the finance reopen flow for closed properties" };
+			}
+			// Recompute target status from sub-stage state. 1.1 (the only
+			// INSPECTOR sub-stage on a fresh property) gates READY_FOR_PRODUCTION;
+			// any master sub-stage past LOCKED/AVAILABLE means work has started.
+			const subs = await tx
+				.select({
+					performerType: subStageInstances.performerType,
+					status: subStageInstances.status,
+				})
+				.from(subStageInstances)
+				.innerJoin(stageInstances, eq(stageInstances.id, subStageInstances.stageInstanceId))
+				.where(eq(stageInstances.propertyId, params.propertyId));
+			const inspectorAccepted = subs.some(
+				(s) => s.performerType === "INSPECTOR" && s.status === "ACCEPTED",
+			);
+			const masterStarted = subs.some(
+				(s) =>
+					s.performerType === "MASTER" &&
+					(s.status === "IN_PROGRESS" ||
+						s.status === "SUBMITTED" ||
+						s.status === "ACCEPTED" ||
+						s.status === "REJECTED"),
+			);
+			let nextStatus: "PENDING" | "READY_FOR_PRODUCTION" | "IN_PROGRESS";
+			if (!inspectorAccepted) nextStatus = "PENDING";
+			else if (masterStarted) nextStatus = "IN_PROGRESS";
+			else nextStatus = "READY_FOR_PRODUCTION";
+			const [row] = await tx
+				.update(properties)
+				.set({
+					status: nextStatus,
+					archivedAt: null,
+					archivedBy: null,
+					archiveReason: null,
+					updatedAt: new Date(),
+				})
+				.where(eq(properties.id, params.propertyId))
+				.returning();
+			return row;
+		});
+	});

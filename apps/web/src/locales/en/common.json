@@ -190,7 +190,18 @@
 			"status": "Status",
 			"area": "Area (m²)",
 			"progress": "Progress"
-		}
+		},
+		"searchPlaceholder": "Search name or address",
+		"filterStatus": "Status",
+		"filterActive": "Active",
+		"filterAll": "All",
+		"sortBy": "Sort by",
+		"sortRecent": "Recently updated",
+		"sortNameAsc": "Name (A–Z)",
+		"sortProgressDesc": "Progress (high → low)",
+		"sortAreaDesc": "Area (large → small)",
+		"emptyFilteredTitle": "No matching properties",
+		"emptyFilteredDescription": "Try clearing the filter or search."
 	},
 	"propertyDetail": {
 		"floorPlanAttached": "Floor plan attached",
@@ -200,7 +211,20 @@
 		"metaLine": "{{layout}} · {{area}} m² · planned ${{cost}}",
 		"wageLabel": "wage ${{amount}}",
 		"backToProperties": "Properties",
-		"openFinance": "Finance & materials"
+		"openFinance": "Finance & materials",
+		"archive": "Archive",
+		"unarchive": "Un-archive",
+		"archiveDialogTitle": "Archive property",
+		"archiveDialogDesc": "Archives this unfinished property. Material issuances will be blocked. You can un-archive it later — the audit record below preserves the reason.",
+		"archiveReasonLabel": "Reason",
+		"archiveReasonPlaceholder": "e.g. client cancelled, scope change, duplicate",
+		"archiveConfirm": "Archive property",
+		"archiveBlockedTitle": "Can't archive — active work",
+		"archiveBlockedDesc": "Finish, reject, or wait on these sub-stages before archiving:",
+		"archivedBanner": "Archived {{date}} — {{reason}}",
+		"unarchiveConfirm": "Un-archive this property?",
+		"archiving": "Archiving…",
+		"unarchiving": "Un-archiving…"
 	},
 	"propertyFinance": {
 		"backToProperty": "← Back to property",

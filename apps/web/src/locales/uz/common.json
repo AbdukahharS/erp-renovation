@@ -190,7 +190,18 @@
 			"status": "Holat",
 			"area": "Maydon (m²)",
 			"progress": "Holat"
-		}
+		},
+		"searchPlaceholder": "Nom yoki manzil boʻyicha qidirish",
+		"filterStatus": "Holat",
+		"filterActive": "Faol",
+		"filterAll": "Hammasi",
+		"sortBy": "Saralash",
+		"sortRecent": "Yaqinda yangilangan",
+		"sortNameAsc": "Nomi (A–Z)",
+		"sortProgressDesc": "Holat (yuqori → past)",
+		"sortAreaDesc": "Maydon (katta → kichik)",
+		"emptyFilteredTitle": "Mos obyekt topilmadi",
+		"emptyFilteredDescription": "Filtr yoki qidiruvni tozalab koʻring."
 	},
 	"propertyDetail": {
 		"floorPlanAttached": "Qavat rejasi biriktirilgan",
@@ -200,7 +211,20 @@
 		"metaLine": "{{layout}} · {{area}} m² · reja ${{cost}}",
 		"wageLabel": "stavka ${{amount}}",
 		"backToProperties": "Obyektlar",
-		"openFinance": "Moliya va materiallar"
+		"openFinance": "Moliya va materiallar",
+		"archive": "Arxivlash",
+		"unarchive": "Arxivdan chiqarish",
+		"archiveDialogTitle": "Obyektni arxivlash",
+		"archiveDialogDesc": "Tugallanmagan obyektni arxivlaydi. Materiallar berish bloklanadi. Keyinroq arxivdan chiqarishingiz mumkin — sabab jurnalda saqlanadi.",
+		"archiveReasonLabel": "Sabab",
+		"archiveReasonPlaceholder": "masalan: mijoz bekor qildi, koʻlam oʻzgardi, dublikat",
+		"archiveConfirm": "Arxivlash",
+		"archiveBlockedTitle": "Arxivlab boʻlmadi — faol ishlar bor",
+		"archiveBlockedDesc": "Quyidagi quyi-bosqichlarni yakunlang, rad eting yoki kuting:",
+		"archivedBanner": "Arxivlangan {{date}} — {{reason}}",
+		"unarchiveConfirm": "Bu obyektni arxivdan chiqarasizmi?",
+		"archiving": "Arxivlanmoqda…",
+		"unarchiving": "Arxivdan chiqarilmoqda…"
 	},
 	"propertyFinance": {
 		"backToProperty": "← Obyektga qaytish",
