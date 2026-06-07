@@ -31,7 +31,7 @@ function InspectorProfile() {
 				<h1 className="text-xl font-semibold">{t("fieldTabs.profile")}</h1>
 			</header>
 
-			<Card className="flex items-center gap-3 p-4">
+			<Card className="flex flex-row items-center gap-3 p-4">
 				<Avatar className="size-12">
 					<AvatarFallback>{initials}</AvatarFallback>
 				</Avatar>

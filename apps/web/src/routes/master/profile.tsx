@@ -3,6 +3,7 @@ import { LogOutIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { RatingBreakdownCard } from "@/components/master-rating";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { signOut } from "@/lib/auth";
@@ -35,7 +36,7 @@ function MasterProfile() {
 				<h1 className="text-xl font-semibold">{t("fieldTabs.profile")}</h1>
 			</header>
 
-			<Card className="flex items-center gap-3 p-4">
+			<Card className="flex flex-row items-center gap-3 p-4">
 				<Avatar className="size-12">
 					<AvatarFallback>{initials}</AvatarFallback>
 				</Avatar>
@@ -60,14 +61,22 @@ function MasterProfile() {
 					label={t("profile.company", { defaultValue: "Company" })}
 					value={membership?.tenantName ?? "—"}
 				/>
-				<Row
-					label={t("profile.specializations", { defaultValue: "Specializations" })}
-					value={
-						specializations.length > 0
-							? specializations.map((s) => t(`specializations.${s}`)).join(", ")
-							: "—"
-					}
-				/>
+				<div className="flex flex-col gap-2 px-4 py-3 text-sm">
+					<span className="text-muted-foreground">
+						{t("profile.specializations", { defaultValue: "Specializations" })}
+					</span>
+					{specializations.length > 0 ? (
+						<div className="flex flex-wrap gap-1.5">
+							{specializations.map((s) => (
+								<Badge key={s} variant="secondary" className="font-normal">
+									{t(`specializations.${s}`)}
+								</Badge>
+							))}
+						</div>
+					) : (
+						<span className="font-medium">—</span>
+					)}
+				</div>
 				{self?.profile.phone ? (
 					<Row label={t("profile.phone", { defaultValue: "Phone" })} value={self.profile.phone} />
 				) : null}

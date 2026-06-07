@@ -211,10 +211,6 @@ export function RatingBreakdownCard({ rating }: { rating: MasterRatingPayload })
 						label={t("rating.defect")}
 						value={rating?.defectScore ?? null}
 						tier={tier}
-						hint={t("rating.defectHint", {
-							accepted: rating?.acceptedCount ?? 0,
-							rejected: rating?.rejectedCount ?? 0,
-						})}
 					/>
 				</div>
 			</div>
@@ -253,7 +249,7 @@ function BreakdownRow({
 	label: string;
 	value: number | null;
 	tier: Tier;
-	hint: string;
+	hint?: string;
 }) {
 	const pct = value != null ? Math.round(value * 100) : null;
 	return (
@@ -268,7 +264,7 @@ function BreakdownRow({
 					style={{ width: `${pct ?? 0}%` }}
 				/>
 			</div>
-			<div className="text-[10px] text-muted-foreground">{hint}</div>
+			{hint ? <div className="text-[10px] text-muted-foreground">{hint}</div> : null}
 		</div>
 	);
 }
@@ -284,11 +280,13 @@ function Stat({
 }) {
 	return (
 		<div className="flex flex-col gap-0.5">
-			<div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+			<div className="flex items-center gap-1.5">
 				{icon}
-				<span>{label}</span>
+				<span className="text-sm font-semibold tabular-nums">{value}</span>
 			</div>
-			<div className="text-sm font-semibold tabular-nums">{value}</div>
+			<div className="text-[10px] uppercase leading-tight tracking-wide text-muted-foreground">
+				{label}
+			</div>
 		</div>
 	);
 }
