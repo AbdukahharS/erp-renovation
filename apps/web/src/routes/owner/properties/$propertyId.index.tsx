@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArchiveIcon, ArchiveRestoreIcon, WalletIcon } from "lucide-react";
+import { ArchiveIcon, ArchiveRestoreIcon, ShareIcon, WalletIcon } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -144,6 +144,14 @@ function PropertyDetail() {
 					>
 						<WalletIcon className="size-3.5" />
 						{t("propertyDetail.openFinance", "Finance & materials")}
+					</Link>
+					<Link
+						to="/owner/properties/$propertyId/share"
+						params={{ propertyId }}
+						className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium hover:bg-accent"
+					>
+						<ShareIcon className="size-3.5" />
+						{t("propertyDetail.openShare", "Customer link")}
 					</Link>
 					{canManualArchive && (
 						<Button
