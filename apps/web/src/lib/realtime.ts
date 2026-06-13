@@ -25,6 +25,13 @@ let reconnectAttempt = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let pingTimer: ReturnType<typeof setInterval> | null = null;
 let stopped = false;
+// Refcount of active subscribers. React 19 StrictMode runs the mount effect
+// twice in dev (mount → unmount → mount); without refcounting we'd close the
+// still-CONNECTING socket and immediately reopen it, producing a console
+// warning every reload. Counting starts/stops lets the unmount/remount pair
+// cancel itself.
+let startCount = 0;
+let deferredStopTimer: ReturnType<typeof setTimeout> | null = null;
 
 function wsUrl(): string {
 	const url = new URL(apiBaseUrl);
@@ -38,24 +45,40 @@ function wsUrl(): string {
 
 export function startRealtime(queryClient: QueryClient): void {
 	if (typeof window === "undefined") return;
+	if (deferredStopTimer) {
+		clearTimeout(deferredStopTimer);
+		deferredStopTimer = null;
+	}
+	startCount += 1;
+	if (startCount > 1) return;
 	stopped = false;
 	connect(queryClient);
 }
 
 export function stopRealtime(): void {
-	stopped = true;
-	if (reconnectTimer) clearTimeout(reconnectTimer);
-	if (pingTimer) clearInterval(pingTimer);
-	reconnectTimer = null;
-	pingTimer = null;
-	if (socket) {
-		try {
-			socket.close();
-		} catch {
-			// ignore
+	if (startCount === 0) return;
+	startCount -= 1;
+	if (startCount > 0) return;
+	// Defer the actual teardown by a tick so a StrictMode remount (which calls
+	// startRealtime right after this) cancels it before it runs.
+	if (deferredStopTimer) clearTimeout(deferredStopTimer);
+	deferredStopTimer = setTimeout(() => {
+		deferredStopTimer = null;
+		if (startCount > 0) return;
+		stopped = true;
+		if (reconnectTimer) clearTimeout(reconnectTimer);
+		if (pingTimer) clearInterval(pingTimer);
+		reconnectTimer = null;
+		pingTimer = null;
+		if (socket) {
+			try {
+				socket.close();
+			} catch {
+				// ignore
+			}
+			socket = null;
 		}
-		socket = null;
-	}
+	}, 0);
 }
 
 function connect(queryClient: QueryClient): void {
