@@ -16,6 +16,8 @@ import { hrRoutes } from "./modules/hr/routes.ts";
 import { invitationsRoutes } from "./modules/invitations/routes.ts";
 import { notificationsRoutes } from "./modules/notifications/routes.ts";
 import { propertiesRoutes } from "./modules/properties/routes.ts";
+import { propertyShareLinksRoutes } from "./modules/property-share-links/routes.ts";
+import { publicPropertyShareRoutes } from "./modules/public-property-share/routes.ts";
 import { realtimeRoutes } from "./modules/realtime/routes.ts";
 import { templatesRoutes } from "./modules/templates/routes.ts";
 import { tenancy } from "./modules/tenancy/plugin.ts";
@@ -65,6 +67,8 @@ export const app = new Elysia()
 	.use(adminRoutes)
 	.use(templatesRoutes)
 	.use(propertiesRoutes)
+	.use(propertyShareLinksRoutes)
+	.use(publicPropertyShareRoutes)
 	.use(acceptanceRoutes)
 	.use(invitationsRoutes)
 	.use(hrRoutes)

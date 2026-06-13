@@ -111,6 +111,15 @@ export const DEFAULT_RULES: RateLimitRule[] = [
 		windowSeconds: 60,
 		keyOf: ipKey,
 	},
+	// Public share-link password auth. Protects against brute-forcing the
+	// owner-set password on customer progress pages.
+	{
+		name: "share-link-auth",
+		match: (p, m) => m === "POST" && /^\/public\/property-share\/[^/]+\/[^/]+\/auth$/.test(p),
+		limit: 5,
+		windowSeconds: 60,
+		keyOf: ipKey,
+	},
 	// Super-admin export endpoint. Even with auth, a compromised super-admin
 	// shouldn't be able to drain tenants in a loop.
 	{
