@@ -292,6 +292,73 @@ export const StageMediaAssetView = z.object({
 	url: z.string().nullable(),
 });
 
+// ---------- Public share links ----------
+
+export const CreatePropertyShareLinkInput = z.object({
+	password: z.string().min(6).max(200),
+});
+export type CreatePropertyShareLinkInputType = z.infer<typeof CreatePropertyShareLinkInput>;
+
+export const RotateShareLinkPasswordInput = CreatePropertyShareLinkInput;
+
+export const PropertyShareLinkRowSchema = z.object({
+	id: z.string().uuid(),
+	propertyId: z.string().uuid(),
+	slug: z.string(),
+	createdByUserId: z.string(),
+	revokedAt: z.string().nullable(),
+	revokedBy: z.string().nullable(),
+	createdAt: z.string(),
+	updatedAt: z.string(),
+});
+export type PropertyShareLinkRow = z.infer<typeof PropertyShareLinkRowSchema>;
+
+export const ShareLinkAuthInput = z.object({
+	password: z.string().min(1).max(200),
+});
+
+export const PublicShareViewSubStageSchema = z.object({
+	id: z.string().uuid(),
+	code: z.string(),
+	name: z.string(),
+	performerType: PerformerTypeSchema,
+	status: StageInstanceStatusSchema,
+	standardDurationDays: z.number().int(),
+	acceptedAt: z.string().nullable(),
+	photos: z.array(
+		z.object({
+			id: z.string().uuid(),
+			url: z.string().nullable(),
+			contentType: z.string(),
+			uploadedAt: z.string(),
+		}),
+	),
+});
+
+export const PublicShareViewStageSchema = z.object({
+	id: z.string().uuid(),
+	order: z.number().int(),
+	name: z.string(),
+	progressPct: z.number().int(),
+	subStages: z.array(PublicShareViewSubStageSchema),
+});
+
+export const PublicShareViewSchema = z.object({
+	property: z.object({
+		name: z.string(),
+		address: z.string(),
+		areaSqm: z.string(),
+		status: PropertyStatusSchema,
+		deadlineAt: z.string().nullable(),
+	}),
+	stages: z.array(PublicShareViewStageSchema),
+	computedEta: z.object({
+		currentStageEndsAt: z.string().nullable(),
+		propertyEndsAt: z.string().nullable(),
+	}),
+});
+export type PublicShareView = z.infer<typeof PublicShareViewSchema>;
+
 export const StageReviewSchema = z.object({
 	subStage: SubStageInstanceTreeSchema,
 	stageName: z.string(),

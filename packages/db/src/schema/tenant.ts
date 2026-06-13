@@ -972,3 +972,28 @@ export const materialIssuances = pgTable(
 
 export type MaterialUnit = (typeof materialUnitEnum.enumValues)[number];
 export type MaterialMovementType = (typeof materialMovementTypeEnum.enumValues)[number];
+
+// ---------- Public property share links ----------
+//
+// Owner-minted password-protected link a customer uses to follow construction
+// progress without an account. URL shape: /p/{tenant.slug}/{propertyShareLinks.slug}.
+// passwordHash is an argon2 string; rotating it bumps `updatedAt`, which the
+// public-view JWT check compares against `iat` so old tokens stop working.
+
+export const propertyShareLinks = pgTable(
+	"property_share_links",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		propertyId: uuid("property_id")
+			.notNull()
+			.references(() => properties.id, { onDelete: "cascade" }),
+		slug: text("slug").notNull().unique(),
+		passwordHash: text("password_hash").notNull(),
+		createdByUserId: text("created_by_user_id").notNull(),
+		revokedAt: timestamp("revoked_at"),
+		revokedBy: text("revoked_by"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at").notNull().defaultNow(),
+	},
+	(t) => [index("property_share_links_property_idx").on(t.propertyId)],
+);
