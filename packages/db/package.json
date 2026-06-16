@@ -20,6 +20,7 @@
 		"db:generate:tenant": "bun --env-file=../../.env x drizzle-kit generate --config=drizzle.tenant.config.ts && bun scripts/strip-public-qualifier.ts",
 		"db:migrate:control": "bun --env-file=../../.env src/migrations/control.ts",
 		"db:migrate:tenants": "bun --env-file=../../.env src/migrations/fanout.ts",
+		"db:studio": "set -a; . ../../.env; bunx drizzle-kit studio --config=drizzle.studio.config.ts",
 		"typecheck": "tsc --noEmit"
 	},
 	"exports": {
