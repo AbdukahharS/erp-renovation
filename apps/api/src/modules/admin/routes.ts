@@ -12,6 +12,32 @@ import { auth } from "../auth/auth.ts";
 import { requireSuperAdmin } from "./guards.ts";
 
 /**
+ * Resolve a tenant's Postgres schema name from its id and validate the
+ * identifier shape before it's interpolated into raw SQL. Sets the response
+ * status (404/500) and returns null on failure. Shared by the cross-schema
+ * read endpoints (overview, masters) that query without impersonation.
+ */
+async function resolveTenantSchema(
+	tenantId: string,
+	set: { status?: number | string },
+): Promise<string | null> {
+	const [row] = await db
+		.select({ schemaName: tenants.schemaName })
+		.from(tenants)
+		.where(eq(tenants.id, tenantId))
+		.limit(1);
+	if (!row) {
+		set.status = 404;
+		return null;
+	}
+	if (!/^[a-z0-9_]+$/.test(row.schemaName)) {
+		set.status = 500;
+		return null;
+	}
+	return row.schemaName;
+}
+
+/**
  * Phase 9 admin surface. Replaces the BOOTSTRAP_TOKEN-only `POST /tenants`
  * for production use; provisioning still lives there for the bootstrap path
  * (seeding the very first super-admin before this gate can be satisfied).
@@ -449,4 +475,214 @@ export const adminRoutes = new Elysia()
 			};
 		},
 		{ params: t.Object({ tenantId: t.String({ format: "uuid" }) }) },
+	)
+
+	// Workforce roster for the superadmin: one row per master_profiles in the
+	// tenant schema, cross-joined to the control-plane user for name/email and
+	// enriched with balance + rating counts. Same no-impersonation, schema-
+	// qualified raw-SQL pattern as /overview.
+	.get(
+		"/admin/tenants/:tenantId/masters",
+		async ({ params, set }) => {
+			const schemaName = await resolveTenantSchema(params.tenantId, set);
+			if (!schemaName) return { error: "tenant not found or invalid schema" };
+			const s = schemaName;
+
+			const rows = await db.execute<{
+				id: string;
+				user_id: string;
+				display_name: string | null;
+				phone: string | null;
+				specializations: string[] | null;
+				user_name: string | null;
+				user_email: string | null;
+				balance: string | null;
+				accepted_count: number | null;
+				rejected_count: number | null;
+			}>(
+				dsql.raw(
+					`SELECT mp.id, mp.user_id, mp.display_name, mp.phone, mp.specializations,
+							u.name AS user_name, u.email AS user_email,
+							mb.balance,
+							mr.accepted_count, mr.rejected_count
+					 FROM "${s}"."master_profiles" mp
+					 LEFT JOIN public."user" u ON u.id = mp.user_id
+					 LEFT JOIN "${s}"."master_balances" mb ON mb.master_user_id = mp.user_id
+					 LEFT JOIN "${s}"."master_ratings" mr ON mr.master_user_id = mp.user_id
+					 ORDER BY mp.display_name`,
+				),
+			);
+
+			return {
+				masters: rows.map((r) => ({
+					id: r.id,
+					userId: r.user_id,
+					displayName: r.display_name ?? r.user_name ?? r.user_email ?? r.user_id,
+					phone: r.phone,
+					specializations: r.specializations ?? [],
+					balance: r.balance ?? "0",
+					acceptedCount: r.accepted_count ?? 0,
+					rejectedCount: r.rejected_count ?? 0,
+				})),
+			};
+		},
+		{ params: t.Object({ tenantId: t.String({ format: "uuid" }) }) },
+	)
+
+	// Single master detail for the superadmin: profile + rating + balance, plus
+	// basic work history (recent sub-stage assignments) and earn history (wage/
+	// fine/payout ledger). Mirrors hr GET /owner/masters/:masterId and
+	// finance buildMasterFinanceView, but read cross-schema without impersonation.
+	.get(
+		"/admin/tenants/:tenantId/masters/:masterId",
+		async ({ params, set }) => {
+			const schemaName = await resolveTenantSchema(params.tenantId, set);
+			if (!schemaName) return { error: "tenant not found or invalid schema" };
+			const s = schemaName;
+
+			const profileRows = await db.execute<{
+				id: string;
+				user_id: string;
+				display_name: string | null;
+				phone: string | null;
+				specializations: string[] | null;
+				is_external_contractor: boolean;
+				created_at: string;
+				user_name: string | null;
+				user_email: string | null;
+			}>(
+				dsql.raw(
+					`SELECT mp.id, mp.user_id, mp.display_name, mp.phone, mp.specializations,
+							mp.is_external_contractor, mp.created_at,
+							u.name AS user_name, u.email AS user_email
+					 FROM "${s}"."master_profiles" mp
+					 LEFT JOIN public."user" u ON u.id = mp.user_id
+					 WHERE mp.id = '${params.masterId}'
+					 LIMIT 1`,
+				),
+			);
+			const profile = profileRows[0];
+			if (!profile) {
+				set.status = 404;
+				return { error: "master not found" };
+			}
+			const userId = profile.user_id;
+
+			const [balanceRows, ratingRows, assignmentRows, txnRows] = await Promise.all([
+				db.execute<{ balance: string }>(
+					dsql.raw(
+						`SELECT balance FROM "${s}"."master_balances"
+						 WHERE master_user_id = '${userId}' LIMIT 1`,
+					),
+				),
+				db.execute<{
+					accepted_count: number;
+					rejected_count: number;
+					avg_duration_ratio: string | null;
+				}>(
+					dsql.raw(
+						`SELECT accepted_count, rejected_count, avg_duration_ratio
+						 FROM "${s}"."master_ratings"
+						 WHERE master_user_id = '${userId}' LIMIT 1`,
+					),
+				),
+				db.execute<{
+					sub_stage_instance_id: string;
+					property_id: string;
+					property_name: string;
+					sub_stage_name: string;
+					status: string;
+					claimed_at: string;
+					released_at: string | null;
+				}>(
+					dsql.raw(
+						`SELECT ssa.sub_stage_instance_id, si.property_id, p.name AS property_name,
+								ssi.name AS sub_stage_name, ssi.status,
+								ssa.claimed_at, ssa.released_at
+						 FROM "${s}"."sub_stage_assignments" ssa
+						 JOIN "${s}"."sub_stage_instances" ssi ON ssi.id = ssa.sub_stage_instance_id
+						 JOIN "${s}"."stage_instances" si ON si.id = ssi.stage_instance_id
+						 JOIN "${s}"."properties" p ON p.id = si.property_id
+						 WHERE ssa.master_user_id = '${userId}'
+						 ORDER BY ssa.claimed_at DESC
+						 LIMIT 20`,
+					),
+				),
+				db.execute<{
+					id: string;
+					type: string;
+					amount: string;
+					description: string | null;
+					property_id: string | null;
+					created_at: string;
+				}>(
+					dsql.raw(
+						`SELECT id, type, amount, description, property_id, created_at
+						 FROM "${s}"."financial_transactions"
+						 WHERE master_user_id = '${userId}'
+						   AND type IN ('WAGE_CREDIT', 'FINE', 'PAYOUT_SETTLEMENT')
+						 ORDER BY created_at DESC
+						 LIMIT 50`,
+					),
+				),
+			]);
+
+			let wagesCredited = 0;
+			let finesDeducted = 0;
+			let payoutsSettled = 0;
+			for (const txn of txnRows) {
+				const n = Number(txn.amount);
+				if (txn.type === "WAGE_CREDIT") wagesCredited += n;
+				else if (txn.type === "FINE") finesDeducted += -n;
+				else if (txn.type === "PAYOUT_SETTLEMENT") payoutsSettled += -n;
+			}
+
+			return {
+				profile: {
+					id: profile.id,
+					userId: profile.user_id,
+					displayName:
+						profile.display_name ?? profile.user_name ?? profile.user_email ?? profile.user_id,
+					email: profile.user_email,
+					phone: profile.phone,
+					specializations: profile.specializations ?? [],
+					isExternalContractor: profile.is_external_contractor,
+					createdAt: profile.created_at,
+				},
+				rating: ratingRows[0]
+					? {
+							acceptedCount: ratingRows[0].accepted_count,
+							rejectedCount: ratingRows[0].rejected_count,
+							avgDurationRatio: ratingRows[0].avg_duration_ratio,
+						}
+					: null,
+				balance: balanceRows[0]?.balance ?? "0",
+				recentAssignments: assignmentRows.map((a) => ({
+					subStageInstanceId: a.sub_stage_instance_id,
+					propertyId: a.property_id,
+					propertyName: a.property_name,
+					subStageName: a.sub_stage_name,
+					status: a.status,
+					claimedAt: a.claimed_at,
+					releasedAt: a.released_at,
+				})),
+				transactions: txnRows.map((txn) => ({
+					id: txn.id,
+					type: txn.type,
+					amount: txn.amount,
+					description: txn.description,
+					propertyId: txn.property_id,
+					createdAt: txn.created_at,
+				})),
+				wagesCredited: wagesCredited.toFixed(2),
+				finesDeducted: finesDeducted.toFixed(2),
+				payoutsSettled: payoutsSettled.toFixed(2),
+			};
+		},
+		{
+			params: t.Object({
+				tenantId: t.String({ format: "uuid" }),
+				masterId: t.String({ format: "uuid" }),
+			}),
+		},
 	);

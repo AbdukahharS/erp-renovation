@@ -164,6 +164,36 @@ describe("admin (super-admin gating)", () => {
 		expect(res.status).toBe(403);
 	});
 
+	it("super-admin lists tenant masters (empty roster ok)", async () => {
+		const res = await app.handle(
+			new Request(`http://localhost/admin/tenants/${provisionedTenantId}/masters`, {
+				headers: { cookie: superCookie },
+			}),
+		);
+		expect(res.status).toBe(200);
+		const body = (await res.json()) as { masters: unknown[] };
+		expect(Array.isArray(body.masters)).toBe(true);
+	});
+
+	it("non-super-admin cannot list tenant masters", async () => {
+		const res = await app.handle(
+			new Request(`http://localhost/admin/tenants/${provisionedTenantId}/masters`, {
+				headers: { cookie: plainCookie },
+			}),
+		);
+		expect(res.status).toBe(403);
+	});
+
+	it("master detail 404s for an unknown master id", async () => {
+		const res = await app.handle(
+			new Request(
+				`http://localhost/admin/tenants/${provisionedTenantId}/masters/00000000-0000-0000-0000-000000000000`,
+				{ headers: { cookie: superCookie } },
+			),
+		);
+		expect(res.status).toBe(404);
+	});
+
 	it("/auth/me reports isSuperAdmin correctly", async () => {
 		const r1 = await app.handle(
 			new Request("http://localhost/auth/me", { headers: { cookie: superCookie } }),
