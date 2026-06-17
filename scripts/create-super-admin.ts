@@ -74,7 +74,7 @@ try {
 
 	const userId = crypto.randomUUID();
 	const accountId = crypto.randomUUID();
-	const hashedPassword = await hashPassword(values.password);
+	const hashedPassword = await hashPassword(values.password!);
 	const now = new Date();
 
 	await db.transaction(async (tx) => {

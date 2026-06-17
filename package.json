@@ -16,6 +16,7 @@
 		"db:migrate:tenants": "turbo run db:migrate:tenants"
 	},
 	"dependencies": {
+		"@better-auth/utils": "^0.4.0",
 		"@repo/db": "workspace:*",
 		"drizzle-orm": "^0.45.2",
 		"postgres": "^3.4.9"
