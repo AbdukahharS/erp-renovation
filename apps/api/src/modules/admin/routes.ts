@@ -255,4 +255,198 @@ export const adminRoutes = new Elysia()
 			return cfg;
 		},
 		{ params: t.Object({ tenantId: t.String({ format: "uuid" }) }) },
+	)
+
+	// Business-intelligence view for the superadmin: surfaces tenant pricing,
+	// wage rates, materials, and financial aggregates without impersonation.
+	// All cross-schema queries use explicit schema-qualified identifiers (no
+	// search_path mutation) matching the pattern used by the export endpoint.
+	.get(
+		"/admin/tenants/:tenantId/overview",
+		async ({ params, set }) => {
+			const [row] = await db
+				.select({
+					id: tenants.id,
+					name: tenants.name,
+					slug: tenants.slug,
+					schemaName: tenants.schemaName,
+					status: tenants.status,
+					createdAt: tenants.createdAt,
+					currencyCode: tenantConfig.currencyCode,
+					targetUnitCost: tenantConfig.targetUnitCost,
+					ratingWeights: tenantConfig.ratingWeights,
+					branding: tenantConfig.branding,
+				})
+				.from(tenants)
+				.leftJoin(tenantConfig, eq(tenantConfig.tenantId, tenants.id))
+				.where(eq(tenants.id, params.tenantId))
+				.limit(1);
+
+			if (!row) {
+				set.status = 404;
+				return { error: "tenant not found" };
+			}
+
+			if (!/^[a-z0-9_]+$/.test(row.schemaName)) {
+				set.status = 500;
+				return { error: "invalid tenant schema name" };
+			}
+
+			const s = row.schemaName;
+
+			const [propRows, propCounts, templateRows, materialRows, finRows, closingRows] =
+				await Promise.all([
+					db.execute<{
+						id: string;
+						name: string;
+						address: string;
+						status: string;
+						planned_unit_cost: string | null;
+						area_sqm: string | null;
+						created_at: string;
+					}>(
+						dsql.raw(
+							`SELECT id, name, address, status, planned_unit_cost, area_sqm, created_at
+							 FROM "${s}"."properties"
+							 ORDER BY created_at DESC
+							 LIMIT 50`,
+						),
+					),
+					db.execute<{ status: string; count: string }>(
+						dsql.raw(
+							`SELECT status, COUNT(*)::text AS count FROM "${s}"."properties" GROUP BY status`,
+						),
+					),
+					db.execute<{
+						template_name: string;
+						stage_order: number;
+						stage_name: string;
+						sub_stage_order: number;
+						sub_stage_name: string;
+						performer_type: string;
+						specialization: string | null;
+						wage_rate_per_sqm: string | null;
+						standard_duration_days: number | null;
+					}>(
+						dsql.raw(
+							`SELECT t.name AS template_name,
+									s.order AS stage_order, s.name AS stage_name,
+									ss.order AS sub_stage_order, ss.name AS sub_stage_name,
+									ss.performer_type, ss.specialization,
+									ss.wage_rate_per_sqm, ss.standard_duration_days
+							 FROM "${s}"."templates" t
+							 JOIN "${s}"."stages" s ON s.template_id = t.id
+							 JOIN "${s}"."sub_stages" ss ON ss.stage_id = s.id
+							 WHERE t.is_default = true
+							 ORDER BY s.order, ss.order`,
+						),
+					),
+					db.execute<{ id: string; name: string; unit: string; price: string }>(
+						dsql.raw(
+							`SELECT id, name, unit, price
+							 FROM "${s}"."materials"
+							 WHERE archived_at IS NULL
+							 ORDER BY name
+							 LIMIT 200`,
+						),
+					),
+					db.execute<{ type: string; total: string }>(
+						dsql.raw(
+							`SELECT type, SUM(amount)::text AS total
+							 FROM "${s}"."financial_transactions"
+							 GROUP BY type`,
+						),
+					),
+					db.execute<{ count: string; avg_net_profit: string | null }>(
+						dsql.raw(
+							`SELECT COUNT(*)::text AS count, AVG(net_profit)::text AS avg_net_profit
+							 FROM "${s}"."unit_closings"
+							 WHERE reopened_at IS NULL`,
+						),
+					),
+				]);
+
+			// Group template rows into nested stage structure
+			type SubStageEntry = {
+				order: number;
+				name: string;
+				performerType: string;
+				specialization: string | null;
+				wageRatePerSqm: string | null;
+				standardDurationDays: number | null;
+			};
+			type StageEntry = { order: number; name: string; subStages: SubStageEntry[] };
+
+			let templatePricing: { templateName: string; stages: StageEntry[] } | null = null;
+			if (templateRows.length > 0) {
+				const stageMap = new Map<string, StageEntry>();
+				for (const r of templateRows) {
+					const key = `${r.stage_order}:${r.stage_name}`;
+					if (!stageMap.has(key)) {
+						stageMap.set(key, { order: r.stage_order, name: r.stage_name, subStages: [] });
+					}
+					stageMap.get(key)!.subStages.push({
+						order: r.sub_stage_order,
+						name: r.sub_stage_name,
+						performerType: r.performer_type,
+						specialization: r.specialization,
+						wageRatePerSqm: r.wage_rate_per_sqm,
+						standardDurationDays: r.standard_duration_days,
+					});
+				}
+				templatePricing = {
+					templateName: templateRows[0]!.template_name,
+					stages: [...stageMap.values()],
+				};
+			}
+
+			const byStatus: Record<string, number> = {};
+			for (const r of propCounts) byStatus[r.status] = Number(r.count);
+
+			const byType: Record<string, string> = {};
+			for (const r of finRows) byType[r.type] = r.total;
+
+			const closing = closingRows[0];
+
+			return {
+				tenant: {
+					id: row.id,
+					name: row.name,
+					slug: row.slug,
+					schemaName: row.schemaName,
+					status: row.status,
+					createdAt: row.createdAt,
+					currencyCode: row.currencyCode,
+					targetUnitCost: row.targetUnitCost,
+					ratingWeights: row.ratingWeights,
+					branding: row.branding,
+				},
+				propertyStats: {
+					total: Object.values(byStatus).reduce((a, b) => a + b, 0),
+					byStatus,
+					properties: propRows.map((p) => ({
+						id: p.id,
+						name: p.name,
+						address: p.address,
+						status: p.status,
+						plannedUnitCost: p.planned_unit_cost,
+						areaSqm: p.area_sqm,
+						createdAt: p.created_at,
+					})),
+				},
+				templatePricing,
+				materialPricing: materialRows.map((m) => ({
+					id: m.id,
+					name: m.name,
+					unit: m.unit,
+					price: m.price,
+				})),
+				financialSummary: {
+					byType,
+					closedCount: Number(closing?.count ?? 0),
+					avgNetProfit: closing?.avg_net_profit ?? null,
+				},
+			};
+		},
+		{ params: t.Object({ tenantId: t.String({ format: "uuid" }) }) },
 	);
