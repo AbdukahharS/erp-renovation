@@ -15,6 +15,8 @@ import { fetchMe, roleHomePath, signIn, switchTenant } from "@/lib/auth";
 export const Route = createFileRoute("/login")({
 	beforeLoad: ({ context }) => {
 		if (context.me?.user) {
+			if (context.me.isSuperAdmin && !context.me.activeRole)
+				throw redirect({ to: "/tenants" });
 			throw redirect({ to: roleHomePath(context.me.activeRole) });
 		}
 	},
@@ -51,6 +53,10 @@ function Login() {
 			// Hard navigate so the new auth cookie is picked up by __root's
 			// beforeLoad on the next page load. Router-level navigation races
 			// the cookie write and silently fails to redirect.
+			if (me.isSuperAdmin && !role) {
+				window.location.assign("/tenants");
+				return;
+			}
 			window.location.assign(roleHomePath(role));
 		} catch (e) {
 			setSubmitError((e as Error).message ?? t("auth.signInFailed"));
