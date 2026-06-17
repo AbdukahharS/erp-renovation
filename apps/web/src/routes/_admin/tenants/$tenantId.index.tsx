@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeftIcon, Building2Icon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { PageHeader } from "@/components/layout/page-header";
@@ -14,9 +14,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { apiBaseUrl } from "@/lib/api";
+import { adminFetch } from "@/lib/admin-fetch";
 
-export const Route = createFileRoute("/_admin/tenants/$tenantId")({
+export const Route = createFileRoute("/_admin/tenants/$tenantId/")({
 	staticData: { crumbKey: "crumbs.detail" },
 	component: TenantDetailPage,
 });
@@ -75,15 +75,15 @@ interface TenantOverview {
 	};
 }
 
-// ── Fetch ────────────────────────────────────────────────────────────────────
-
-async function adminFetch<T>(path: string): Promise<T> {
-	const res = await fetch(`${apiBaseUrl}${path}`, {
-		credentials: "include",
-		headers: { "content-type": "application/json" },
-	});
-	if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-	return res.json() as Promise<T>;
+interface MasterRow {
+	id: string;
+	userId: string;
+	displayName: string;
+	phone: string | null;
+	specializations: string[];
+	balance: string;
+	acceptedCount: number;
+	rejectedCount: number;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -207,6 +207,9 @@ function TenantDetailPage() {
 				)}
 			</Section>
 
+			{/* ── Masters ────────────────────────────────────────── */}
+			<MastersSection tenantId={tenant.id} currency={currency} />
+
 			{/* ── Template Pricing ───────────────────────────────── */}
 			<Section title={t("tenants.detail.templatePricing")}>
 				{!templatePricing ? (
@@ -321,6 +324,78 @@ function TenantDetailPage() {
 				</div>
 			</Section>
 		</div>
+	);
+}
+
+// ── Masters section ───────────────────────────────────────────────────────────
+
+function MastersSection({ tenantId, currency }: { tenantId: string; currency: string }) {
+	const { t } = useTranslation();
+	const navigate = useNavigate();
+
+	const { data, isLoading } = useQuery<{ masters: MasterRow[] }>({
+		queryKey: ["admin-tenant-masters", tenantId],
+		queryFn: () => adminFetch(`/admin/tenants/${tenantId}/masters`),
+	});
+
+	const masters = data?.masters ?? [];
+
+	return (
+		<Section title={t("tenants.detail.masters")}>
+			{isLoading ? (
+				<div className="space-y-2">
+					<Skeleton className="h-8 w-full" />
+					<Skeleton className="h-8 w-3/4" />
+				</div>
+			) : masters.length === 0 ? (
+				<EmptyNote text={t("tenants.detail.noMasters")} />
+			) : (
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead>{t("masters.columns.name")}</TableHead>
+							<TableHead>{t("masters.columns.specializations")}</TableHead>
+							<TableHead>{t("tenants.detail.phone")}</TableHead>
+							<TableHead className="text-right">{t("tenants.masterDetail.balance")}</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{masters.map((m) => (
+							<TableRow
+								key={m.id}
+								className="cursor-pointer"
+								onClick={() =>
+									navigate({
+										to: "/tenants/$tenantId/masters/$masterId",
+										params: { tenantId, masterId: m.id },
+									})
+								}
+							>
+								<TableCell className="font-medium">{m.displayName}</TableCell>
+								<TableCell>
+									{m.specializations.length === 0 ? (
+										<span className="text-xs text-muted-foreground">{t("masters.noSpecs")}</span>
+									) : (
+										<div className="flex flex-wrap gap-1">
+											{m.specializations.map((s) => (
+												<Badge key={s} variant="outline" className="text-[10px]">
+													{t(`specializations.${s}`, s)}
+												</Badge>
+											))}
+										</div>
+									)}
+								</TableCell>
+								<TableCell className="tabular-nums">{m.phone ?? t("masters.noPhone")}</TableCell>
+								<TableCell className="text-right tabular-nums">
+									{Number(m.balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}{" "}
+									{currency}
+								</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			)}
+		</Section>
 	);
 }
 
