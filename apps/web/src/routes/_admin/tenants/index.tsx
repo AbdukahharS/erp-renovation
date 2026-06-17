@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
 	Building2Icon,
 	CheckCircle2Icon,
@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/table";
 import { apiBaseUrl } from "@/lib/api";
 
-export const Route = createFileRoute("/_admin/tenants")({
+export const Route = createFileRoute("/_admin/tenants/")({
 	staticData: { crumbKey: "nav.tenants" },
 	component: AdminTenants,
 });
@@ -85,6 +85,7 @@ function slugify(s: string) {
 function AdminTenants() {
 	const { t } = useTranslation();
 	const qc = useQueryClient();
+	const navigate = useNavigate();
 	const { data: tenants, isLoading } = useQuery<TenantRow[]>({
 		queryKey: ["admin-tenants"],
 		queryFn: () => adminFetch("/admin/tenants"),
@@ -159,7 +160,13 @@ function AdminTenants() {
 						</TableHeader>
 						<TableBody>
 							{tenants.map((row) => (
-								<TableRow key={row.id}>
+								<TableRow
+									key={row.id}
+									className="cursor-pointer"
+									onClick={() =>
+										navigate({ to: "/tenants/$tenantId", params: { tenantId: row.id } })
+									}
+								>
 									<TableCell>
 										<div className="font-medium">{row.name}</div>
 										<div className="text-xs text-muted-foreground font-mono">{row.slug}</div>
@@ -174,7 +181,7 @@ function AdminTenants() {
 											{t(`tenants.status.${row.status}`, row.status.toLowerCase())}
 										</Badge>
 									</TableCell>
-									<TableCell className="text-right">
+									<TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
 										<div className="flex items-center justify-end gap-1">
 											{row.status === "ACTIVE" ? (
 												<Button
