@@ -10,9 +10,9 @@
  *   - Subsequent calls require SUPER_ADMIN_BOOTSTRAP_TOKEN=<BOOTSTRAP_TOKEN>.
  */
 import { parseArgs } from "node:util";
+import { hashPassword } from "@better-auth/utils/password";
 import { createDbClient } from "@repo/db/client";
 import { account as accountTable, user as userTable } from "@repo/db/schema/control";
-import { hashPassword } from "@better-auth/utils/password";
 import { eq } from "drizzle-orm";
 
 const { values } = parseArgs({
@@ -24,7 +24,9 @@ const { values } = parseArgs({
 });
 
 if (!values.email || !values.name || !values.password) {
-	console.error("Usage: bun scripts/create-super-admin.ts --email <email> --name <name> --password <password>");
+	console.error(
+		"Usage: bun scripts/create-super-admin.ts --email <email> --name <name> --password <password>",
+	);
 	process.exit(1);
 }
 
@@ -68,7 +70,9 @@ try {
 		.limit(1);
 
 	if (taken) {
-		console.error(`A user with email ${values.email} already exists. Use promote-super-admin.ts to promote them.`);
+		console.error(
+			`A user with email ${values.email} already exists. Use promote-super-admin.ts to promote them.`,
+		);
 		process.exit(1);
 	}
 
@@ -99,7 +103,13 @@ try {
 		});
 	});
 
-	console.log(JSON.stringify({ id: userId, email: values.email, name: values.name, isSuperAdmin: true }, null, 2));
+	console.log(
+		JSON.stringify(
+			{ id: userId, email: values.email, name: values.name, isSuperAdmin: true },
+			null,
+			2,
+		),
+	);
 } finally {
 	await sql.end();
 }

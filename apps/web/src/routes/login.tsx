@@ -15,8 +15,7 @@ import { fetchMe, roleHomePath, signIn, switchTenant } from "@/lib/auth";
 export const Route = createFileRoute("/login")({
 	beforeLoad: ({ context }) => {
 		if (context.me?.user) {
-			if (context.me.isSuperAdmin && !context.me.activeRole)
-				throw redirect({ to: "/tenants" });
+			if (context.me.isSuperAdmin && !context.me.activeRole) throw redirect({ to: "/tenants" });
 			throw redirect({ to: roleHomePath(context.me.activeRole) });
 		}
 	},
