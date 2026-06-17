@@ -953,7 +953,33 @@
 			"branding": "Название бренда",
 			"speedWeight": "Вес скорости",
 			"defectWeight": "Вес дефектов",
-			"notSet": "Не задано"
+			"notSet": "Не задано",
+			"masters": "Мастера",
+			"noMasters": "Мастеров пока нет",
+			"phone": "Телефон"
+		},
+		"masterDetail": {
+			"backToTenant": "Назад к компании",
+			"profile": "Профиль",
+			"workHistory": "История работ",
+			"earnHistory": "История начислений",
+			"balance": "Баланс",
+			"rating": "Рейтинг",
+			"acceptedRejected": "{{accepted}} принято · {{rejected}} отклонено",
+			"specializations": "Специализации",
+			"property": "Объект",
+			"subStage": "Подэтап",
+			"status": "Статус",
+			"claimedAt": "Взято",
+			"releasedAt": "Завершено",
+			"txType": "Тип",
+			"amount": "Сумма",
+			"date": "Дата",
+			"noWorkHistory": "История работ пуста",
+			"noEarnHistory": "Транзакций пока нет",
+			"wagesCredited": "Начислено зарплаты",
+			"finesDeducted": "Удержано штрафов",
+			"payoutsSettled": "Выплачено"
 		}
 	},
 	"tx": {

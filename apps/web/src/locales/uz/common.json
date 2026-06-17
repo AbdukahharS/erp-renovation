@@ -950,7 +950,33 @@
 			"branding": "Brend nomi",
 			"speedWeight": "Tezlik og'irligi",
 			"defectWeight": "Nosozlik og'irligi",
-			"notSet": "Belgilanmagan"
+			"notSet": "Belgilanmagan",
+			"masters": "Ustalar",
+			"noMasters": "Hozircha ustalar yo'q",
+			"phone": "Telefon"
+		},
+		"masterDetail": {
+			"backToTenant": "Kompaniyaga qaytish",
+			"profile": "Profil",
+			"workHistory": "Ish tarixi",
+			"earnHistory": "Daromad tarixi",
+			"balance": "Balans",
+			"rating": "Reyting",
+			"acceptedRejected": "{{accepted}} qabul · {{rejected}} rad etilgan",
+			"specializations": "Mutaxassisliklar",
+			"property": "Obyekt",
+			"subStage": "Kichik bosqich",
+			"status": "Holat",
+			"claimedAt": "Olingan",
+			"releasedAt": "Yakunlangan",
+			"txType": "Turi",
+			"amount": "Summa",
+			"date": "Sana",
+			"noWorkHistory": "Ish tarixi yo'q",
+			"noEarnHistory": "Hozircha tranzaksiyalar yo'q",
+			"wagesCredited": "Hisoblangan ish haqi",
+			"finesDeducted": "Ushlab qolingan jarimalar",
+			"payoutsSettled": "To'langan"
 		}
 	},
 	"tx": {

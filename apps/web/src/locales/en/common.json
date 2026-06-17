@@ -951,7 +951,33 @@
 			"branding": "Branding name",
 			"speedWeight": "Speed weight",
 			"defectWeight": "Defect weight",
-			"notSet": "Not set"
+			"notSet": "Not set",
+			"masters": "Masters",
+			"noMasters": "No masters yet",
+			"phone": "Phone"
+		},
+		"masterDetail": {
+			"backToTenant": "Back to company",
+			"profile": "Profile",
+			"workHistory": "Work history",
+			"earnHistory": "Earn history",
+			"balance": "Balance",
+			"rating": "Rating",
+			"acceptedRejected": "{{accepted}} accepted · {{rejected}} rejected",
+			"specializations": "Specializations",
+			"property": "Property",
+			"subStage": "Sub-stage",
+			"status": "Status",
+			"claimedAt": "Claimed",
+			"releasedAt": "Released",
+			"txType": "Type",
+			"amount": "Amount",
+			"date": "Date",
+			"noWorkHistory": "No work history yet",
+			"noEarnHistory": "No transactions yet",
+			"wagesCredited": "Wages credited",
+			"finesDeducted": "Fines deducted",
+			"payoutsSettled": "Payouts settled"
 		}
 	},
 	"tx": {
