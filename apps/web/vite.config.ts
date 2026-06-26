@@ -35,8 +35,8 @@ export default defineConfig({
 			// `vite build`/`vite preview`).
 			devOptions: { enabled: true, type: "module" },
 			manifest: {
-				name: "ERP Renovation",
-				short_name: "ERP",
+				name: "Ochag",
+				short_name: "Ochag",
 				description: "Assembly-line ERP for apartment renovation",
 				theme_color: "#0f172a",
 				background_color: "#ffffff",
@@ -46,11 +46,11 @@ export default defineConfig({
 				// (since Chrome 93) with `sizes: "any"`; the maskable copy
 				// makes Android home-screen icons render with safe insets.
 				icons: [
-					{ src: "/favicon.svg", sizes: "any", type: "image/svg+xml" },
+					{ src: "/logo.png", sizes: "239x239", type: "image/png" },
 					{
-						src: "/favicon.svg",
-						sizes: "any",
-						type: "image/svg+xml",
+						src: "/logo.png",
+						sizes: "239x239",
+						type: "image/png",
 						purpose: "maskable",
 					},
 				],
