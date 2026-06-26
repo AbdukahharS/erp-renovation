@@ -70,9 +70,7 @@ function Login() {
 			</div>
 			<div className="w-full max-w-sm space-y-6">
 				<div className="flex flex-col items-center gap-2">
-					<div className="flex size-12 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-sm">
-						E
-					</div>
+					<img src="/logo-long.png" alt="Ochag" className="h-auto w-72" />
 					<div className="text-center">
 						<h1 className="text-xl font-semibold">{t("auth.welcomeBack")}</h1>
 						<p className="text-sm text-muted-foreground">{t("auth.signInToTenant")}</p>

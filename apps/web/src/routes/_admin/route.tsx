@@ -36,7 +36,7 @@ function AdminShell() {
 		: baseNav;
 	return (
 		<SidebarProvider>
-			<AppSidebar brand="ERP" subtitle={t("role.admin")} groups={nav} me={me} />
+			<AppSidebar brand="Ochag" subtitle={t("role.admin")} groups={nav} me={me} />
 			<SidebarInset>
 				<AppTopbar />
 				<main className="flex-1 p-4 md:p-6">

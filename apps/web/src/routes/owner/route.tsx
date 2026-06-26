@@ -60,7 +60,7 @@ function OwnerShell() {
 	const nav = me?.isSuperAdmin ? [...baseNav, adminGroup] : baseNav;
 	return (
 		<SidebarProvider>
-			<AppSidebar brand="ERP" subtitle={tenantName} groups={nav} me={me} />
+			<AppSidebar brand="Ochag" subtitle={tenantName} groups={nav} me={me} />
 			<SidebarInset>
 				<AppTopbar />
 				<main className="flex-1 p-4 md:p-6">

@@ -56,9 +56,7 @@ export function AppSidebar({
 		<Sidebar collapsible="icon">
 			<SidebarHeader>
 				<div className="flex items-center gap-2 px-2 py-1">
-					<div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground text-sm font-semibold shrink-0">
-						{brand[0]}
-					</div>
+					<img src="/logo.png" alt={brand} className="size-8 shrink-0 object-contain" />
 					<div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
 						<span className="font-semibold truncate">{brand}</span>
 						{subtitle ? (
